@@ -1,0 +1,110 @@
+import { InputLabelProps } from "@mui/material";
+
+type validationPattern = {
+  type: string;
+  pattern: RegExp;
+  error: string;
+};
+
+type InputConfig<T> = {
+  name: keyof T;
+  type: string;
+  label: string;
+  required: boolean;
+  validationType?: string;
+  inputLabelProps?: InputLabelProps;
+  selectOptions?: selectOptions[];
+  helperText?: string;
+  inputProps?: {
+    accept: string;
+  };
+};
+
+type selectOptions = {
+  name: string;
+  value: string | number;
+};
+
+type ValidationErrors<T> = {
+  [K in keyof T]?: string | undefined;
+};
+
+/* This hook is to provide validationFunction across components */
+export default function useValidation() {
+  const JOB_NAME = "jobname";
+  const NUMBERS = "numbers";
+  const AUDIO_FILE_NAME = "audioFileName";
+
+  const validationPatterns: validationPattern[] = [
+    {
+      type: JOB_NAME,
+      pattern: /^([a-zA-Z0-9]{11,})$/,
+      error: "Es sind maximal 10 Zeichen erlaubt",
+    },
+    {
+      type: NUMBERS,
+      pattern: /[a-zA-Z]/,
+      error: "Die Eingabe muss eine Zahl sein",
+    },
+    {
+      type: AUDIO_FILE_NAME,
+      pattern: /^(?!.*\.mp3$).+$/,
+      error: "Die Eingabe muss eine mp3 File sein",
+    },
+  ];
+
+  // test the regex pattern and returns error message or undefined
+  function validateInput(
+    type: string | undefined,
+    input: string | undefined,
+    required: boolean | undefined
+  ) {
+    const validationObj = validationPatterns.find((o) => o.type === type);
+    if (validationObj?.pattern && input !== undefined) {
+      if (validationObj.pattern.test(input)) {
+        return validationObj.error;
+      }
+    }
+
+    if (required === true && input === undefined)
+      return "Bitte wählen Sie eine Audiofile aus";
+    else if (required === true && input === "")
+      return "Bitte füllen Sie dieses Feld aus";
+
+    return undefined;
+  }
+
+  function validateAll<T>(
+    inputs: InputConfig<T>[],
+    formData: T
+  ): ValidationErrors<T> {
+    /**This function checks if all inputs are valid, can be used for final checking
+          It returns all errors inside a obj
+        */
+    const errors: ValidationErrors<T> = {};
+
+    inputs.map((obj) => {
+      const errMessage = validateInput(
+        obj.validationType,
+        obj.type === "file"
+          ? (formData[obj.name] as File)?.name
+          : (formData[obj.name] as string),
+        obj.required
+      );
+
+      if (errMessage !== undefined) {
+        errors[obj.name] = errMessage;
+      }
+    });
+
+    return errors;
+  }
+
+  return {
+    validateInput: validateInput,
+    validateAll: validateAll,
+    JOB_NAME,
+    NUMBERS,
+    AUDIO_FILE_NAME,
+  };
+}

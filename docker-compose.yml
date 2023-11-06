@@ -1,0 +1,106 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: dashboard
+    restart: always
+    ports:
+      - "8000:80"
+    environment:
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
+      - QUEUE_NAME=jobs
+      - MINIO_ENDPOINT=localhost  # TODO update this to external hostname
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=shoutoutdevuser
+      - MINIO_SECRET_KEY=shoutoutdevuser
+      - MINIO_JOB_BUCKET=shoutout-job-bucket
+      - MINIO_SSL_ENABLED=false
+      - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
+      - DOWNLOAD_FILE_TARGET_DIR=finished-files/
+      - UPLOAD_FILE_TARGET_DIR=to-transcribe/
+      - FINISHED_FILE_FORMAT=.txt
+    depends_on:
+      - postgres
+      - minio
+      - rabbitmq
+
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5433:5432"
+    volumes:
+      - shoutout-db-data:/var/lib/postgresql/data
+
+  minio:
+    image: quay.io/minio/minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  mc:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add minio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb minio/shoutout-job-bucket;
+      /usr/bin/mc admin user add minio shoutoutdevuser shoutoutdevuser;
+      /usr/bin/mc admin policy attach minio readwrite --user shoutoutdevuser;
+      exit 0;"
+
+  rabbitmq:
+    image: rabbitmq:management
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=rabbit
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.config
+
+  worker:
+    build:
+      context: worker
+      args:
+        - HUGGINGFACE_APIKEY=not_a_real_api_key  # TODO replace with a real one
+    restart: always
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_NAME=postgres
+      - DATABASE_USER=admin
+      - DATABASE_PASSWORD=admin
+      - DATABASE_PORT=5432
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=rabbit
+      - RABBITMQ_PASSWORD=rabbit
+      - RABBITMQ_QUEUE=jobs
+      - MINIO_JOB_BUCKET=shoutout-job-bucket
+      - MINIO_SECRET_KEY=shoutoutdevuser
+      - MINIO_ACCESS_KEY=shoutoutdevuser
+      - MINIO_URL=http://minio:9000/
+      - TMP_FILE_DIR=tmp_downloads/
+      - UPLOAD_FILE_TARGET_DIR=finished-files/
+      - DOWNLOAD_FILE_DIR=to-transcribe/
+      - WHISPER_MODEL=small
+      - FINISHED_FILE_FORMAT=.txt
+    depends_on:
+      - postgres
+      - minio
+      - rabbitmq
+volumes:
+  shoutout-db-data:
+  minio_data:

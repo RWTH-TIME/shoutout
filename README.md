@@ -4,8 +4,6 @@
 
 ![.assets/arch.png](.assets/arch.png)
 
-# Dashboard
-
 ## quickstart
 
 Its recommended to use [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)

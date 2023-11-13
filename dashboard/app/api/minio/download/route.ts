@@ -28,7 +28,9 @@ export const GET = async (req: NextRequest) => {
       env.MINIO_JOB_BUCKET || "shoutout-job-bucket",
       env.DOWNLOAD_FILE_TARGET_DIR + fileName,
       24 * 60 * 60,
-      { "response-content-disposition": "attachment" }
+      {
+        "response-content-disposition": `attachment; filename=${query.get("jobName") + env.FINISHED_FILE_FORMAT}`,
+      }
     );
     return NextResponse.json({ presignedUrl: presignedUrl }, { status: 200 });
   } catch (error) {

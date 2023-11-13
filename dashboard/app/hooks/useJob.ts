@@ -92,7 +92,7 @@ export default function useJobs(id: number | undefined = undefined) {
 
   async function downloadFile(job: Job): Promise<string> {
     const presignedURLData = await fetch(
-      `/api/minio/download?fileName=${job.audioFile}`,
+      `/api/minio/download?fileName=${job.audioFile}&jobName=${job.name}`,
       {
         method: "GET",
       }

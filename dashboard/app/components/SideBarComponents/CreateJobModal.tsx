@@ -1,5 +1,5 @@
 import { Modal, Box, Typography, Fade, InputLabelProps } from "@mui/material";
-import { Job } from "../../types/types";
+import { Job, ValidationFunction } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 import useValidation from "../../hooks/useValidation";
 import { FormTemplate } from "../../templates/FormTemplate";
@@ -26,7 +26,7 @@ type Input<T> = {
   type: string;
   label: string;
   required: boolean;
-  validationType?: string;
+  validationType?: string | ValidationFunction;
   inputLabelProps?: InputLabelProps;
   selectOptions?: selectOptions[];
   helperText?: string;
@@ -51,7 +51,7 @@ const LANGUAGE_INPUT_LABEL = "Sprache";
 export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
   const handleClose = () => setOpen(false);
   const { createJob, LANGUAGE_DATA } = useJobs();
-  const { JOB_NAME, NUMBERS, AUDIO_FILE_NAME } = useValidation();
+  const { NUMBERS, AUDIO_FILE_NAME } = useValidation();
 
   const emptyState: Job = {
     name: "",
@@ -61,13 +61,21 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     status: "PENDING",
   };
 
+  const validateName = (data: string) => {
+    if (data.length > 10) {
+      return "Es sind maximal 10 Zeichen erlaubt"
+    } else {
+      return true
+    }
+  }
+
   const inputs: Input<Job>[] = [
     {
       name: "name",
       type: "text",
       label: NAME_INPUT_LABEL,
       required: true,
-      validationType: JOB_NAME,
+      validationType: validateName,
     },
     {
       name: "audioFile",

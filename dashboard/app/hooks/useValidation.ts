@@ -1,4 +1,5 @@
 import { InputLabelProps } from "@mui/material";
+import { ValidationFunction } from "../types/types";
 
 type validationPattern = {
   type: string;
@@ -11,7 +12,7 @@ type InputConfig<T> = {
   type: string;
   label: string;
   required: boolean;
-  validationType?: string;
+  validationType?: string | ValidationFunction;
   inputLabelProps?: InputLabelProps;
   selectOptions?: selectOptions[];
   helperText?: string;
@@ -37,11 +38,6 @@ export default function useValidation() {
 
   const validationPatterns: validationPattern[] = [
     {
-      type: JOB_NAME,
-      pattern: /^([a-zA-Z0-9]{11,})$/,
-      error: "Es sind maximal 10 Zeichen erlaubt",
-    },
-    {
       type: NUMBERS,
       pattern: /[a-zA-Z]/,
       error: "Die Eingabe muss eine Zahl sein",
@@ -55,16 +51,21 @@ export default function useValidation() {
 
   // test the regex pattern and returns error message or undefined
   function validateInput(
-    type: string | undefined,
+    type: string | ValidationFunction | undefined,
     input: string | undefined,
     required: boolean | undefined
   ) {
     const validationObj = validationPatterns.find((o) => o.type === type);
-    if (validationObj?.pattern && input !== undefined) {
-      if (validationObj.pattern.test(input)) {
-        return validationObj.error;
+    if (typeof type === "function") {
+      if (type(input) !== true) return type(input) as string
+    } else {
+      if (validationObj?.pattern && input !== undefined) {
+        if (validationObj.pattern.test(input)) {
+          return validationObj.error;
+        }
       }
     }
+
 
     if (required === true && input === undefined)
       return "Bitte wählen Sie eine Audiofile aus";
@@ -103,7 +104,6 @@ export default function useValidation() {
   return {
     validateInput: validateInput,
     validateAll: validateAll,
-    JOB_NAME,
     NUMBERS,
     AUDIO_FILE_NAME,
   };

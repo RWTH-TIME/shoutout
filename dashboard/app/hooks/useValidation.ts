@@ -42,11 +42,6 @@ export default function useValidation() {
       pattern: /[a-zA-Z]/,
       error: "Die Eingabe muss eine Zahl sein",
     },
-    {
-      type: AUDIO_FILE_NAME,
-      pattern: /^(?!.*\.mp3$).+$/,
-      error: "Die Eingabe muss eine mp3 File sein",
-    },
   ];
 
   // test the regex pattern and returns error message or undefined
@@ -105,6 +100,5 @@ export default function useValidation() {
     validateInput: validateInput,
     validateAll: validateAll,
     NUMBERS,
-    AUDIO_FILE_NAME,
   };
 }

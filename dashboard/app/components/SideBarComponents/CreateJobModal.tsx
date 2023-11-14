@@ -51,7 +51,7 @@ const LANGUAGE_INPUT_LABEL = "Sprache";
 export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
   const handleClose = () => setOpen(false);
   const { createJob, LANGUAGE_DATA } = useJobs();
-  const { NUMBERS, AUDIO_FILE_NAME } = useValidation();
+  const { NUMBERS } = useValidation();
 
   const emptyState: Job = {
     name: "",
@@ -86,9 +86,8 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
         shrink: true,
       },
       inputProps: {
-        accept: ".mp3",
+        accept: "audio/*",
       },
-      validationType: AUDIO_FILE_NAME,
     },
     {
       name: "participants",

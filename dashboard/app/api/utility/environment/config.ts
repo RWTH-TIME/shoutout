@@ -33,22 +33,22 @@ interface Config {
 const getConfig = (): ENV => {
   return {
     NODE_ENV: process.env.NODE_ENV,
-    DATABASE_URL: process.env.DATABASE_URL,
-    RABBITMQ_URL: process.env.RABBITMQ_URL,
-    QUEUE_NAME: process.env.QUEUE_NAME,
-    MINIO_ENDPOINT: process.env.MINIO_ENDPOINT,
+    DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://admin:admin@localhost:5433/postgres?schema=public",
+    RABBITMQ_URL: process.env.RABBITMQ_URL ?? "amqp://rabbit:rabbit@localhost",
+    QUEUE_NAME: process.env.QUEUE_NAME ?? "jobs",
+    MINIO_ENDPOINT: process.env.MINIO_ENDPOINT ?? "localhost",
     MINIO_PORT: process.env.MINIO_PORT
       ? parseInt(process.env.MINIO_PORT)
-      : undefined,
-    MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
-    MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY,
-    MINIO_JOB_BUCKET: process.env.MINIO_JOB_BUCKET,
-    DOWNLOAD_FILE_TARGET_DIR: process.env.DOWNLOAD_FILE_TARGET_DIR,
-    FINISHED_FILE_FORMAT: process.env.FINISHED_FILE_FORMAT,
-    UPLOAD_FILE_TARGET_DIR: process.env.UPLOAD_FILE_TARGET_DIR,
+      : 9000,
+    MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY ?? "shoutoutdevuser",
+    MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? "shoutoutdevuser",
+    MINIO_JOB_BUCKET: process.env.MINIO_JOB_BUCKET ?? "shoutout-job-bucket",
+    DOWNLOAD_FILE_TARGET_DIR: process.env.DOWNLOAD_FILE_TARGET_DIR ?? "finished-files/",
+    FINISHED_FILE_FORMAT: process.env.FINISHED_FILE_FORMAT ?? ".txt",
+    UPLOAD_FILE_TARGET_DIR: process.env.UPLOAD_FILE_TARGET_DIR ?? "to-transcribe/",
     MINIO_SSL_ENABLED: process.env.MINIO_SSL_ENABLED
       ? toBool(process.env.MINIO_SSL_ENABLED)
-      : undefined,
+      : false,
   };
 };
 

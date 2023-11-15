@@ -17,11 +17,11 @@ export const GET = async (req: NextRequest) => {
     if (fileName == null) throw new Error("Minio file name cannot be null");
 
     const minioClient = new minio.Client({
-      endPoint: env.MINIO_ENDPOINT || "localhost",
+      endPoint: env.MINIO_ENDPOINT,
       port: env.MINIO_PORT,
-      useSSL: env.MINIO_SSL_ENABLED || false,
-      accessKey: env.MINIO_ACCESS_KEY || "shoutoutdevuser",
-      secretKey: env.MINIO_SECRET_KEY || "shoutoutdevuser",
+      useSSL: env.MINIO_SSL_ENABLED,
+      accessKey: env.MINIO_ACCESS_KEY,
+      secretKey: env.MINIO_SECRET_KEY,
     });
 
     const presignedUrl = await minioClient.presignedGetObject(

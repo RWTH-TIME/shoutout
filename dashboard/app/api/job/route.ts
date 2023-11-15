@@ -2,8 +2,15 @@ import { Job } from "../../../app/types/types";
 import { PrismaClient } from "@prisma/client";
 import { NextResponse, NextRequest } from "next/server";
 import { pushToQueue } from "../utility/amqp";
+import env from "../utility/environment/config";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: env.DATABASE_URL
+    }
+  }
+});
 
 async function getAllJobs() {
   return await prisma.job.findMany();

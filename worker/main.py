@@ -1,6 +1,8 @@
 import logging
 import traceback
 import shutil
+import threading
+import functools
 
 from utils.rabbitmq_manager import RabbitManager
 from utils.postgres_manager import PostgresManager, Status
@@ -10,14 +12,14 @@ from config.environment import ConfigEntry
 from exceptions.TranscriptionException import TranscriptionException
 
 
-def _execute_job(channel, method, _, body) -> None:
-    job_name = str(body.decode())
-
+def _run_job(connection, ack_callback, delivery_tag, job_name):
+    """
+    This function handles the transcription
+    """
+    postgres = PostgresManager()
+    bucket = BucketManager()
+    transcription = TranscriptionManager()
     try:
-        postgres = PostgresManager()
-        bucket = BucketManager()
-        transcription = TranscriptionManager()
-
         file_name, participants, language = postgres.getJobDetails(
             jobName=job_name
         )
@@ -40,19 +42,34 @@ def _execute_job(channel, method, _, body) -> None:
 
         shutil.rmtree(ConfigEntry.TMP_FILE_DIR)
         postgres.updateJobStatus(status=Status.FINISHED, jobName=job_name)
-        channel.basic_ack(delivery_tag=method.delivery_tag)
+
+        ack = functools.partial(ack_callback, delivery_tag)
+        connection.add_callback_threadsafe(ack)
     except Exception:
         traceback.print_exc()
         raise TranscriptionException(
-            job=job_name, channel=channel,
-            method=method
+            job=job_name, ack=ack_callback,
+            delivery_tag=delivery_tag
         )
 
 
-def _main() -> None:
-    rabbitMQ = RabbitManager()
+def _execute_job(channel, method, _, body, args) -> None:
+    """
+    This function is the callback of the rabbitMQ "listener", it takes the job
+    information and starts the thread for transcribing the job
+    """
+    job_name = str(body.decode())
+    (connection, threads, ack_callback) = args
+    delivery_tag = method.delivery_tag
 
-    rabbitMQ.consume(callback=_execute_job)
+    # start thread:
+    t = threading.Thread(
+        target=_run_job,
+        args=(connection, ack_callback, delivery_tag, job_name)
+    )
+
+    t.start()
+    threads.append(t)
 
 
 if __name__ == "__main__":
@@ -63,16 +80,29 @@ if __name__ == "__main__":
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     try:
-        _main()
+        rabbitMQ = RabbitManager()
+        threads = []
+
+        transcription_callback = functools.partial(
+            _execute_job,
+            args=(
+                rabbitMQ.connection,
+                threads,
+                rabbitMQ.ack_message,
+            )
+        )
+
+        rabbitMQ.consume(callback=transcription_callback)
+
+        for thread in threads:
+            thread.join()
     except TranscriptionException as job_exception:
         # If the job fails, the job status will be updated
         postgres = PostgresManager()
         postgres.updateJobStatus(status=Status.FAILED,
                                  jobName=job_exception.jobName
                                  )
-        job_exception.channel.basic_ack(
-            delivery_tag=job_exception.method.delivery_tag
-        )
+        job_exception.ack(job_exception.delivery_tag)
     except Exception as e:
         print(e)
         logging.error("Job Failed")

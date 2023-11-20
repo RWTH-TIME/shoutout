@@ -5,3 +5,6 @@ export type Job = {
   language: string;
   status: string;
 };
+
+// returns true when validation successfull, error message if not
+export type ValidationFunction = (data: any) => string | boolean

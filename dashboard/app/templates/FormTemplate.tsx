@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import { ChangeEvent } from "react";
 import { useState } from "react";
+import { ValidationFunction } from "../types/types";
 import useValidation from "../hooks/useValidation";
 import useAlert from "../hooks/useAlert";
 
@@ -16,7 +17,7 @@ type Input<T> = {
   type: string;
   label: string;
   required: boolean;
-  validationType?: string;
+  validationType?: string | ValidationFunction;
   inputLabelProps?: InputLabelProps;
   selectOptions?: selectOptions[];
   helperText?: string;
@@ -68,7 +69,7 @@ export function FormTemplate<T>({
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    validationType: string | undefined,
+    validationType: string | ValidationFunction | undefined,
     required: boolean | undefined
   ) => {
     const inputElement = e.target as HTMLInputElement | HTMLTextAreaElement;

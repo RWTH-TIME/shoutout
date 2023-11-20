@@ -13,7 +13,7 @@ Its recommended to use [docker](https://docs.docker.com/get-docker/) and [docker
 
 To setup all services just run following command in the root directory.
 
-**Before running the following command, please update the environment variable `MINIO_ENDPOINT` inside the docker compose to your IP-Adress!**
+**Before running the following command, please update the environment variable `MINIO_ENDPOINT` inside the docker compose to the external reachable hostname! This container is called directly from the frontend.**
 
 ```bash
 docker compose up -d

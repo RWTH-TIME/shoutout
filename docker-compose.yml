@@ -9,7 +9,7 @@ services:
     environment:
       - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
       - QUEUE_NAME=jobs
-      - MINIO_ENDPOINT=localhost  # TODO update this to external hostname
+      - MINIO_ENDPOINT=localhost # TODO update this to external hostname
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=shoutoutdevuser
       - MINIO_SECRET_KEY=shoutoutdevuser
@@ -69,14 +69,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    volumes:
-      - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.config
 
   worker:
     build:
       context: worker
       args:
-        - HUGGINGFACE_APIKEY=not_a_real_api_key  # TODO replace with a real one
+        - HUGGINGFACE_APIKEY=not_a_real_api_key # TODO replace with a real one
     restart: always
     environment:
       - DATABASE_HOST=postgres

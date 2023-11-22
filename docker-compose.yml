@@ -1,20 +1,20 @@
 version: "3.9"
 
 services:
-  frontend:
+  dashboard:
     build: dashboard
     restart: always
     ports:
       - "8000:80"
     environment:
-      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
-      - QUEUE_NAME=jobs
       - MINIO_ENDPOINT=localhost # TODO update this to external hostname
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=shoutoutdevuser
       - MINIO_SECRET_KEY=shoutoutdevuser
       - MINIO_JOB_BUCKET=shoutout-job-bucket
-      - MINIO_SSL_ENABLED=false
+      - MINIO_SSL_ENABLED=false # TODO toggle if your endpoint is supporting valid https 
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
+      - QUEUE_NAME=jobs
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
       - DOWNLOAD_FILE_TARGET_DIR=finished-files/
       - UPLOAD_FILE_TARGET_DIR=to-transcribe/
@@ -52,7 +52,7 @@ services:
     image: minio/mc
     entrypoint: >
       /bin/sh -c "
-      /bin/bash -c 'while ! $((echo >/dev/tcp/minio/9000) &>/dev/null); do echo waiting for minio; sleep 3; done; echo minio healtcheck successfull;';
+      /bin/bash -c 'while ! $((echo >/dev/tcp/minio/9000) &>/dev/null); do echo waiting for minio; sleep 3; done; echo minio healthcheck successful;';
       /usr/bin/mc config host add minio http://minio:9000 minioadmin minioadmin;
       /usr/bin/mc mb minio/shoutout-job-bucket;
       /usr/bin/mc admin user add minio shoutoutdevuser shoutoutdevuser;
@@ -98,6 +98,7 @@ services:
       - postgres
       - minio
       - rabbitmq
+
 volumes:
   shoutout-db-data:
   minio_data:

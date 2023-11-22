@@ -9,22 +9,23 @@
 Its recommended to use [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
 
 
-### Docker:
+### Docker
 
 To setup all services just run following command in the root directory.
 
-**Before running the following command, please update the environment variable `MINIO_ENDPOINT` inside the docker compose to the external reachable hostname! This container is called directly from the frontend.**
+**Before running the following command, please update the environment variable `MINIO_ENDPOINT` inside the `docker-compose.yml` to an external reachable hostname! This container is called directly from the frontend.**
 
-```bash
+```sh
 docker compose up -d
 ```
 
-It will setup 5 containers.
+It will setup 6 containers:
 1. Build of the dashboard at [localhost:8000](http://localhost:8000)
-2. PostgresDB on port 5433
-3. Minio S3 Bucket at [localhost:9001](http://localhost:9001)
-4. RabbitMQ at [localhost:15672](http://localhost:15672)
-5. Worker-Container
+2. PostgresDB on port `5433`
+3. MinIO S3 Bucket at [localhost:9001](http://localhost:9001)
+4. A MinIO client initializing the s3 bucket permissions
+5. RabbitMQ at [localhost:15672](http://localhost:15672)
+6. Worker-Container (gpu support)
 
 ## Development:
 
@@ -110,5 +111,5 @@ python3 main.py
 | `TMP_FILE_DIR` | `tmp_downloads` | Local directory where all temporary files which are needed for transcription are stored |
 | `UPLOAD_FILE_TARGET_DIR` | `finished-files/` | Folder on S3-Bucket to upload finished transcription to |
 | `DOWNLOAD_FILE_DIR` | `to-transcribe/` | Folder on S3-Bucket containing mp3 files to transcribe |
-| `WHISPER_MODEL` | `small` | openai whisper [model size](https://github.com/openai/whisper#available-models-and-languages) |
+| `WHISPER_MODEL` | `large-v3` | openai whisper [model size](https://github.com/openai/whisper#available-models-and-languages) |
 | `FINISHED_FILE_FORMAT` | `.txt` | File format of the transcribed file |

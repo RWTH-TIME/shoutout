@@ -53,7 +53,7 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
         )
 
 
-def _execute_job(channel, method, _, body, args) -> None:
+def _execute_job(_, method, _1, body, args) -> None:
     """
     This function is the callback of the rabbitMQ "listener", it takes the job
     information and starts the thread for transcribing the job

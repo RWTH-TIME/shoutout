@@ -4,9 +4,9 @@ class TranscriptionException(Exception):
     job
     """
 
-    def __init__(self, job, channel, method):
+    def __init__(self, job, ack, delivery_tag):
         self.jobName = job
-        self.channel = channel
-        self.method = method
+        self.ack = ack
+        self.delivery_tag = delivery_tag
         message = "Job Transcription failed"
         super().__init__(message)

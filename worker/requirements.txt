@@ -17,4 +17,4 @@ torch==2.0.0
 torchaudio==2.0.0
 pydub==0.25.1
 pyannote.audio==3.0.0
-openai-whisper==20230918
+openai-whisper==20231117

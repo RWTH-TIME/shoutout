@@ -9,7 +9,7 @@ services:
     environment:
       - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
       - QUEUE_NAME=jobs
-      - MINIO_ENDPOINT=localhost  # TODO update this to external hostname
+      - MINIO_ENDPOINT=localhost # TODO update this to external hostname
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=shoutoutdevuser
       - MINIO_SECRET_KEY=shoutoutdevuser
@@ -50,10 +50,9 @@ services:
 
   mc:
     image: minio/mc
-    depends_on:
-      - minio
     entrypoint: >
       /bin/sh -c "
+      /bin/bash -c 'while [[ "$(curl --connect-timeout 2 -s -o /dev/null -w ''%{http_code}'' http://minio:9000/minio/health/live)" != "200" ]]; do echo waiting for minio; sleep 3; done; echo minio healtcheck successfull;';
       /usr/bin/mc config host add minio http://minio:9000 minioadmin minioadmin;
       /usr/bin/mc mb minio/shoutout-job-bucket;
       /usr/bin/mc admin user add minio shoutoutdevuser shoutoutdevuser;
@@ -69,14 +68,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    volumes:
-      - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.config
 
   worker:
     build:
       context: worker
       args:
-        - HUGGINGFACE_APIKEY=not_a_real_api_key  # TODO replace with a real one
+        - HUGGINGFACE_APIKEY=not_a_real_api_key # TODO replace with a real one
     restart: always
     environment:
       - DATABASE_HOST=postgres

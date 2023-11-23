@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     UPLOAD_FILE_TARGET_DIR: str = "finished-files/"
     DOWNLOAD_FILE_DIR: str = "to-transcribe/"
 
-    WHISPER_MODEL: str = "small"
+    WHISPER_MODEL: str = "large-v3"
     FINISHED_FILE_FORMAT: str = ".txt"
 
     model_config = SettingsConfigDict(

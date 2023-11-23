@@ -21,7 +21,7 @@ export const GET = async (req: NextRequest) => {
     });
 
     const presignedUrl = await minioClient.presignedPutObject(
-      env.MINIO_JOB_BUCKET || "shoutout-job-bucket",
+      env.MINIO_JOB_BUCKET,
       env.UPLOAD_FILE_TARGET_DIR + uuid + fileFormat,
       24 * 60 * 60
     );

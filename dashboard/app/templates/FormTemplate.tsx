@@ -5,6 +5,7 @@ import {
   TextField,
   MenuItem,
   TextFieldVariants,
+  CircularProgress
 } from "@mui/material";
 import { ChangeEvent } from "react";
 import { useState } from "react";
@@ -65,6 +66,7 @@ export function FormTemplate<T>({
   const [validationError, setValidationError] = useState<ValidationErrors<T>>(
     {}
   );
+  const [isLoading, setLoading] = useState(false)
   const { setAlert } = useAlert();
 
   const handleChange = (
@@ -107,6 +109,7 @@ export function FormTemplate<T>({
   };
 
   async function submitForm() {
+    setLoading(true)
     // Check if all fields are valid
     setValidationError(validateAll<T>(inputs, formData));
     if (
@@ -124,6 +127,7 @@ export function FormTemplate<T>({
     } else {
       setAlert("Überprüfen Sie ihre Eingaben", "error");
     }
+    setLoading(false)
   }
 
   const abortForm = () => {
@@ -156,6 +160,7 @@ export function FormTemplate<T>({
                 key={idx}
                 inputProps={input.inputProps}
                 {...commonProps}
+                disabled={isLoading}
               ></TextField>
             );
           } else {
@@ -165,6 +170,7 @@ export function FormTemplate<T>({
                 select={input.type === "select"}
                 value={formData[input.name] === 0 ? "" : formData[input.name]}
                 {...commonProps}
+                disabled={isLoading}
               >
                 {input.selectOptions?.map((opt, idx) => (
                   <MenuItem key={idx} value={opt.value}>
@@ -187,10 +193,17 @@ export function FormTemplate<T>({
           variant="contained"
           color="success"
           onClick={submitForm}
+          disabled={isLoading}
         >
-          {SUBMIT_BUTTON_TEXT}
+          {isLoading ? <CircularProgress size={25}/> : SUBMIT_BUTTON_TEXT}
         </Button>
-        <Button fullWidth variant="contained" color="error" onClick={abortForm}>
+        <Button 
+          fullWidth 
+          variant="contained" 
+          color="error" 
+          onClick={abortForm} 
+          disabled={isLoading}
+        >
           {ABORT_BUTTON_TEXT}
         </Button>
       </Stack>

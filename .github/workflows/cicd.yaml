@@ -81,4 +81,4 @@ jobs:
           context: ${{matrix.context}}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labes }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,0 +1,84 @@
+name: CI
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{github.repository}}
+
+jobs:
+  
+  lint-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup nodejs
+        uses: actions/setup-node@v3
+
+      - name: Install dependencies
+        working-directory: ./dashboard
+        run: npm install
+
+      - run: |
+          cd dashboard &&
+          npm run lint
+
+  lint-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+          
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          cache: 'pip'
+        
+      - name: Run flake8
+        uses: py-actions/flake8@v2
+        with:
+          path: "worker"
+  
+  build:
+    name: Build docker image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - context: dashboard
+            image: dashboard
+          - context: worker
+            image: worker
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.image }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{matrix.context}}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labes }}

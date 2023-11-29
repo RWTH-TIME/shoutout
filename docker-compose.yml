@@ -99,6 +99,9 @@ services:
       - minio
       - rabbitmq
     deploy:
+      mode: replicated
+      replicas: 2
+      # If you haven't installed the nividia-container-toolkit delete the following part:
       resources:
         reservations:
           devices:

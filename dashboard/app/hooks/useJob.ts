@@ -4,6 +4,7 @@ import { Job } from "../types/types";
 
 const STATUS = {
   Pending: "PENDING",
+  Running: "RUNNING",
   Finished: "FINISHED",
   Failed: "FAILED",
 };
@@ -83,10 +84,11 @@ export default function useJobs(id: number | undefined = undefined) {
     }
   }
 
-  function getStatusColor(status: string): "default" | "error" | "success" {
+  function getStatusColor(status: string): "default" | "error" | "success" | "warning"{
     if (status === STATUS.Pending) return "default";
     if (status === STATUS.Failed) return "error";
     if (status === STATUS.Finished) return "success";
+    if (status === STATUS.Running) return "warning";
     return "default";
   }
 

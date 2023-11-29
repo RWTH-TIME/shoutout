@@ -1,5 +1,4 @@
 import logging
-import traceback
 import shutil
 import threading
 import functools
@@ -9,7 +8,14 @@ from utils.postgres_manager import PostgresManager, Status
 from utils.bucket_manager import BucketManager
 from utils.transcription_manager import TranscriptionManager
 from config.environment import ConfigEntry
-from exceptions.TranscriptionException import TranscriptionException
+
+
+def _ack(connection, ack_callback, delivery_tag):
+    """
+    This function acks threadsafe
+    """
+    ack = functools.partial(ack_callback, delivery_tag)
+    connection.add_callback_threadsafe(ack)
 
 
 def _run_job(connection, ack_callback, delivery_tag, job_name):
@@ -25,6 +31,7 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
         )
         bucket.downloadFile(file_name)
 
+        postgres.updateJobStatus(status=Status.RUNNING, jobName=job_name)
         logging.info(job_name + " Diarization started.")
         transcription.diarize(
             ConfigEntry.TMP_FILE_DIR, file_name,
@@ -43,14 +50,16 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
         shutil.rmtree(ConfigEntry.TMP_FILE_DIR)
         postgres.updateJobStatus(status=Status.FINISHED, jobName=job_name)
 
-        ack = functools.partial(ack_callback, delivery_tag)
-        connection.add_callback_threadsafe(ack)
+        _ack(connection, ack_callback, delivery_tag)
     except Exception:
-        traceback.print_exc()
-        raise TranscriptionException(
-            job=job_name, ack=ack_callback,
-            delivery_tag=delivery_tag
+        # If the job fails, update the job status and ack the job and exit
+        logging.info(job_name + " failed.")
+        postgres.updateJobStatus(
+            status=Status.FAILED,
+            jobName=job_name
         )
+        _ack(connection, ack_callback, delivery_tag)
+        return
 
 
 def _execute_job(_, method, _1, body, args) -> None:
@@ -96,13 +105,6 @@ if __name__ == "__main__":
 
         for thread in threads:
             thread.join()
-    except TranscriptionException as job_exception:
-        # If the job fails, the job status will be updated
-        postgres = PostgresManager()
-        postgres.updateJobStatus(status=Status.FAILED,
-                                 jobName=job_exception.jobName
-                                 )
-        job_exception.ack(job_exception.delivery_tag)
     except Exception as e:
         print(e)
         logging.error("Job Failed")

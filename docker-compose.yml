@@ -12,7 +12,7 @@ services:
       - MINIO_ACCESS_KEY=shoutoutdevuser
       - MINIO_SECRET_KEY=shoutoutdevuser
       - MINIO_JOB_BUCKET=shoutout-job-bucket
-      - MINIO_SSL_ENABLED=false # TODO toggle if your endpoint is supporting valid https 
+      - MINIO_SSL_ENABLED=false # TODO toggle if your endpoint is supporting valid https
       - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
       - QUEUE_NAME=jobs
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
@@ -98,6 +98,16 @@ services:
       - postgres
       - minio
       - rabbitmq
+    deploy:
+      mode: replicated
+      replicas: 2
+      # If you haven't installed the nividia-container-toolkit delete the following part:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
 volumes:
   shoutout-db-data:

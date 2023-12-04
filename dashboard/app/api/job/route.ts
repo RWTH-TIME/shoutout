@@ -17,7 +17,7 @@ async function getAllJobs() {
 }
 
 async function insertJob(data: Job) {
-  return await prisma.$transaction(async (tx) => {
+  const res = await prisma.$transaction(async (tx) => {
     try {
       const res = await tx.job.create({
         data: {
@@ -27,12 +27,13 @@ async function insertJob(data: Job) {
           language: data.language === "" ? undefined : data.language,
         },
       });
-      await pushToQueue(data);
-      return res;
+      return res
     } catch (error) {
       throw new Error("Something went wrong");
     }
   });
+  await pushToQueue(data);
+  return res;
 }
 
 export const GET = async () => {

@@ -9,6 +9,7 @@ class Status(Enum):
     PENDING = "PENDING"
     FINISHED = "FINISHED"
     FAILED = "FAILED"
+    RUNNING = "RUNNING"
 
 
 class PostgresManager:

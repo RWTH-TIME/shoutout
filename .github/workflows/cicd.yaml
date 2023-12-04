@@ -53,7 +53,14 @@ jobs:
           - context: dashboard
             image: dashboard
           - context: worker
-            image: worker
+            model: large-v3
+            image:  worker-large
+          - context: worker
+            model: medium
+            image: worker-medium
+          - context: worker
+            model: small
+            image: worker-small
     permissions:
       contents: read
       packages: write
@@ -74,11 +81,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.image }}
+          tags: |
+            type=ref, event=pr
+            type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' }} # tags for model-sizes
+            type=raw, value=latest , enable=${{ github.ref == format('refs/heads/{0}', 'main') }} # tag main branch as latest
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
         with:
           context: ${{matrix.context}}
           push: true
+          build-args: |
+            WHISPER_MODEL_SIZE=${{ matrix.model }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

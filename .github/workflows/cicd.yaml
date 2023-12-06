@@ -52,12 +52,6 @@ jobs:
           - context: dashboard
             image: dashboard
           - context: worker
-            model: large-v3
-            image:  worker-large
-          - context: worker
-            model: medium
-            image: worker-medium
-          - context: worker
             model: small
             image: worker-small
     permissions:
@@ -79,7 +73,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.context }}
           tags: |
             type=ref, event=pr
             type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' }} # tags for model-sizes

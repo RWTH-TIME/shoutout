@@ -9,7 +9,6 @@ env:
   IMAGE_NAME: ${{github.repository}}
 
 jobs:
-  
   lint-dashboard:
     runs-on: ubuntu-latest
     steps:
@@ -92,7 +91,7 @@ jobs:
           context: ${{matrix.context}}
           push: true
           build-args: |
-            WHISPER_MODEL_SIZE=${{ matrix.model }}
+            WHISPER_MODEL=${{ matrix.model }}
             HUGGINGFACE_APIKEY=${{ secrets.HUGGINGFACE_APIKEY }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

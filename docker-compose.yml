@@ -74,6 +74,7 @@ services:
       context: worker
       args:
         - HUGGINGFACE_APIKEY=not_a_real_api_key # TODO replace with a real one
+        - WHISPER_MODEL=small # TODO GPU: use `large-v3` for more precise results
     restart: always
     environment:
       - DATABASE_HOST=postgres
@@ -92,7 +93,6 @@ services:
       - TMP_FILE_DIR=tmp_downloads/
       - UPLOAD_FILE_TARGET_DIR=finished-files/
       - DOWNLOAD_FILE_DIR=to-transcribe/
-      - WHISPER_MODEL=small
       - FINISHED_FILE_FORMAT=.txt
     depends_on:
       - postgres
@@ -101,7 +101,7 @@ services:
     deploy:
       mode: replicated
       replicas: 2
-      # If you haven't installed the nividia-container-toolkit delete the following part:
+      # TODO GPU: If you haven't installed the nividia-container-toolkit delete the following part:
       resources:
         reservations:
           devices:

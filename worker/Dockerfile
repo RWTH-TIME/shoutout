@@ -21,7 +21,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # load diarization model
 RUN python -c "from pyannote.audio import Pipeline; model=Pipeline.from_pretrained('pyannote/speaker-diarization-3.0', use_auth_token='${HUGGINGFACE_APIKEY}')"
 # load whisper model
-RUN python -c "import whisper; whisper.load_model(${WHISPER_MODEL_SIZE})"
+RUN python -c "import whisper; whisper.load_model('${WHISPER_MODEL_SIZE}')"
 
 COPY . /app
 

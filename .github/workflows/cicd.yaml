@@ -84,7 +84,7 @@ jobs:
           tags: |
             type=ref, event=pr
             type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' }} # tags for model-sizes
-            type=raw, value=latest , enable=${{ github.ref == format('refs/heads/{0}', 'main') }} # tag main branch as latest
+            type=raw, value=latest , enable=${{ github.ref == format('refs/heads/{0}', 'main') && matrix.image == 'worker-large' || matrix.image == 'dashboard'}} # tag worker large and dashboard branch as latest
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5

@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:80"
     environment:
-      - MINIO_ENDPOINT=134.130.176.188 # TODO update this to external hostname
+      - MINIO_ENDPOINT=localhost # TODO update this to external hostname
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=shoutoutdevuser
       - MINIO_SECRET_KEY=shoutoutdevuser
@@ -73,8 +73,7 @@ services:
     build:
       context: worker
       args:
-        - HUGGINGFACE_APIKEY=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 # TODO replace with a real one
-        - WHISPER_MODEL_SIZE=small
+        - HUGGINGFACE_APIKEY=not_a_real_api_key # TODO replace with a real one
     restart: always
     environment:
       - DATABASE_HOST=postgres
@@ -93,6 +92,7 @@ services:
       - TMP_FILE_DIR=tmp_downloads/
       - UPLOAD_FILE_TARGET_DIR=finished-files/
       - DOWNLOAD_FILE_DIR=to-transcribe/
+      - WHISPER_MODEL=small
       - FINISHED_FILE_FORMAT=.txt
     depends_on:
       - postgres

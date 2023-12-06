@@ -93,5 +93,6 @@ jobs:
           push: true
           build-args: |
             WHISPER_MODEL_SIZE=${{ matrix.model }}
+            HUGGINGFACE_APIKEY=${{ secrets.HUGGINGFACE_APIKEY }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

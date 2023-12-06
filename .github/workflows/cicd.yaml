@@ -44,6 +44,7 @@ jobs:
   
   build:
     name: Build docker image
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -51,6 +52,12 @@ jobs:
         include:
           - context: dashboard
             image: dashboard
+          - context: worker
+            model: large-v3
+            image:  worker-large
+          - context: worker
+            model: medium
+            image: worker-medium
           - context: worker
             model: small
             image: worker-small

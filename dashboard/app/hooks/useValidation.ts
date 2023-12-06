@@ -32,9 +32,7 @@ type ValidationErrors<T> = {
 
 /* This hook is to provide validationFunction across components */
 export default function useValidation() {
-  const JOB_NAME = "jobname";
   const NUMBERS = "numbers";
-  const AUDIO_FILE_NAME = "audioFileName";
 
   const validationPatterns: validationPattern[] = [
     {

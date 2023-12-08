@@ -1,5 +1,8 @@
 # shoutout
 
+shoutout is a web application for transcribing audiofiles on your own server.  
+Powered by models like whisper-v3 and pyannote/speaker-diarization. Try it yourself!  
+
 ## Architecture
 
 ![.assets/arch.png](.assets/arch.png)
@@ -17,7 +20,7 @@ To setup all services just run following command in the root directory.
 **If you want the worker to support your gpu you have to install the [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host**
 
 ```sh
-docker compose up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 It will setup 6 containers:
@@ -28,7 +31,7 @@ It will setup 6 containers:
 5. RabbitMQ at [localhost:15672](http://localhost:15672)
 6. Worker-Container (gpu support)
 
-## Development:
+## Development
 
 Make sure that all services (postgres, minio, rabbitmq) are running
 
@@ -113,3 +116,4 @@ python3 main.py
 | `DOWNLOAD_FILE_DIR`      | `to-transcribe/`        | Folder on S3-Bucket containing mp3 files to transcribe                                        |
 | `WHISPER_MODEL`          | `large-v3`              | openai whisper [model size](https://github.com/openai/whisper#available-models-and-languages) |
 | `FINISHED_FILE_FORMAT`   | `.txt`                  | File format of the transcribed file                                                           |
+

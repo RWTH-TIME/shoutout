@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   dashboard:
-    build: dashboard
+    image: ghcr.io/rwth-time/shoutout/dashboard
     restart: always
     ports:
       - "8000:80"
@@ -25,11 +25,7 @@ services:
       - rabbitmq
 
   worker:
-    build:
-      context: worker
-      args:
-        - HUGGINGFACE_APIKEY=not_a_real_api_key # TODO replace with a real one
-        - WHISPER_MODEL=small # TODO GPU: use `large-v3` for more precise results
+    image: ghcr.io/rwth-time/shoutout/worker
     restart: always
     environment:
       - DATABASE_HOST=postgres

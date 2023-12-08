@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { Job } from "../types/types";
+import { BulkJob, Job } from "../types/types";
 
 const STATUS = {
   Pending: "PENDING",
@@ -84,6 +84,10 @@ export default function useJobs(id: number | undefined = undefined) {
     }
   }
 
+  async function createBulkJob(job: BulkJob) : Promise<boolean> {
+    throw new Error("not implemented.")
+  }
+
   function getStatusColor(status: string): "default" | "error" | "success" | "warning"{
     if (status === STATUS.Pending) return "default";
     if (status === STATUS.Failed) return "error";
@@ -126,6 +130,7 @@ export default function useJobs(id: number | undefined = undefined) {
     jobs,
     error: error,
     createJob: createJob,
+    createBulkJob: createBulkJob,
     getStatusColor: getStatusColor,
     downloadFile: downloadFile,
     LANGUAGE_DATA: LANGUAGE_DATA,

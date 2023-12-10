@@ -40,7 +40,7 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
         logging.info(job_name + " Diarization ended.")
 
         logging.info(job_name + " Transcription started.")
-        transcription.transcribe(ConfigEntry.TMP_FILE_DIR, file_name)
+        transcription.transcribe(ConfigEntry.TMP_FILE_DIR, file_name, language)
         logging.info(job_name + " Transcription ended.")
 
         bucket.uploadFile(

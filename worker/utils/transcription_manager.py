@@ -90,7 +90,7 @@ class TranscriptionManager:
 
         del diarization_pl
 
-    def transcribe(self, path, audio):
+    def transcribe(self, path, audio, language):
         model = whisper.load_model(ConfigEntry.WHISPER_MODEL)
         df = pd.read_csv(
             rf"{path}/{audio.rsplit('.',1)[0]}_diarized.rttm",
@@ -114,7 +114,7 @@ class TranscriptionManager:
         sections = self._create_section_table(
             self._aggregate_section(df[df.Duration > 1].copy())
         )
-        self._run_whisper(path, audio, sections, model)
+        self._run_whisper(path, audio, sections, model, language)
         del model.encoder
         del model.decoder
         torch.cuda.empty_cache()
@@ -217,7 +217,7 @@ class TranscriptionManager:
             last_stop_time = row.End
         return sections
 
-    def _run_whisper(self, path, audio, sections, model):
+    def _run_whisper(self, path, audio, sections, model, language):
         # Transcriptions for every audio section are created and concatenated.
         # If a section dataframe is provided as argument.
         result = ""
@@ -239,7 +239,8 @@ class TranscriptionManager:
             ].export(tempfile_path, format="WAV")
             result_section = model.transcribe(
                 tempfile_path,
-            )  # option: language="de"
+                language=language
+            )
 
             # inserting Speaker and timestamp
             result += (

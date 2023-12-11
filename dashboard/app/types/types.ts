@@ -8,8 +8,8 @@ export type Job = {
 
 export type BulkJob = {
   name: string;
-  files: File | string | undefined;
-}
+  audioFile: File | string | undefined;
+};
 
 // returns true when validation successfull, error message if not
 export type ValidationFunction = (data: any) => string | boolean

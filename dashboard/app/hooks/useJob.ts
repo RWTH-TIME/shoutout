@@ -30,10 +30,10 @@ export default function useJobs(id: number | undefined = undefined) {
     mutate,
   } = useSWR<Job[], Error>(id ? `/api/job/${id}` : "/api/job/", fetcher);
 
-  async function createJob(job: Job) {
+  async function createJob(job: Job | BulkJob) {
     try {
       if (job.audioFile instanceof File) {
-        // get presigned url to send audio file directly to minio from frontend
+        // get presigned url to send audio file directly to minio from frontend   
         const presignedUrlData = await fetch(
           `/api/minio?fileName=${job.audioFile?.name}`,
           {
@@ -63,8 +63,8 @@ export default function useJobs(id: number | undefined = undefined) {
           method: "POST",
           body: JSON.stringify({
             name: job.name,
-            participants: parseInt(job.participants as unknown as string, 10),
-            language: job.language,
+            participants: "participants" in job ? parseInt(job.participants as unknown as string, 10) : undefined,
+            language: "language" in job ? job.language : undefined,
             audioFile: uuidFileName,
           }),
         });
@@ -82,10 +82,6 @@ export default function useJobs(id: number | undefined = undefined) {
       console.log(error);
       return false;
     }
-  }
-
-  async function createBulkJob(job: BulkJob) : Promise<boolean> {
-    throw new Error("not implemented.")
   }
 
   function getStatusColor(status: string): "default" | "error" | "success" | "warning"{
@@ -130,7 +126,6 @@ export default function useJobs(id: number | undefined = undefined) {
     jobs,
     error: error,
     createJob: createJob,
-    createBulkJob: createBulkJob,
     getStatusColor: getStatusColor,
     downloadFile: downloadFile,
     LANGUAGE_DATA: LANGUAGE_DATA,

@@ -60,7 +60,7 @@ const LANGUAGE_INPUT_LABEL = "Sprache";
 /** This function is a Modal for creating a Job, it also makes the API-Call */
 export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
   const handleClose = () => setOpen(false);
-  const { createJob, createBulkJob, LANGUAGE_DATA } = useJobs();
+  const { createJob, LANGUAGE_DATA } = useJobs();
   const { NUMBERS } = useValidation();
   const [ isSingleInput, setIsSingleInput ] = useState(true)
 
@@ -74,8 +74,8 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
 
   const emptyBulkState: BulkJob = {
     name: "",
-    files: undefined,
-  }
+    audioFile: undefined,
+  };
 
   const validateName = (data: string) => {
     if (data.length > 10) {
@@ -131,7 +131,7 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
       validationType: validateName,
     },
     {
-      name: "files",
+      name: "audioFile",
       type: "file",
       label: AUDIO_FILE_LABEL,
       required: true,
@@ -148,7 +148,7 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     <>
       <Modal open={isOpen}>
         <Fade in={isOpen}>
-          <Box sx={style}>
+          <Box sx={style}> 
             <Stack
               direction="row"
               justifyContent="space-between"
@@ -172,7 +172,7 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
             <FormTemplate<BulkJob>
               emptyState={emptyBulkState}
               inputs={bulkInputs}
-              addFunction={ createBulkJob }
+              addFunction={createJob}
               abortFunction={() => {
                 handleClose();
               }}

@@ -139,7 +139,7 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
         shrink: true,
       },
       inputProps: {
-        accept: "audio/*",
+        accept: ".zip",
       },
     },
   ];

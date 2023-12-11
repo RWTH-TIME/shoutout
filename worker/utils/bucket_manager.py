@@ -1,5 +1,6 @@
 import boto3
 
+import zipfile
 import os
 
 from config.environment import ConfigEntry
@@ -20,17 +21,32 @@ class BucketManager:
     def _getBucket(self):
         return self.s3.Bucket(ConfigEntry.MINIO_JOB_BUCKET)
 
-    def downloadFile(self, fileName: str) -> str:
+    def downloadFile(self, fileName: str) -> list[str]:
         bucket = self._getBucket()
         file_path = ConfigEntry.TMP_FILE_DIR
+        uuid, file_format = os.path.splitext(fileName)
+        
+        files = []  # contains all file names
+
+        source = os.path.join(ConfigEntry.DOWNLOAD_FILE_DIR, uuid, fileName)
         target = os.path.join(file_path, fileName)
 
         if not os.path.exists(file_path):
             os.makedirs(file_path)
+        
+        bucket.download_file(source, target)
 
-        bucket.download_file(ConfigEntry.DOWNLOAD_FILE_DIR + fileName, target)
-
-        return target
+        if file_format == ".zip":
+            with zipfile.ZipFile(target, "r") as zip_ref:
+                zip_ref.extractall(
+                    file_path
+                )
+                files = zip_ref.namelist()
+            os.remove(target)  # remove zip file again
+        else:
+            files.append(fileName)
+        
+        return files
 
     def uploadFile(self, file_path: str) -> None:
         """

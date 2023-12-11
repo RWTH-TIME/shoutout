@@ -18,6 +18,14 @@ def _ack(connection, ack_callback, delivery_tag):
     connection.add_callback_threadsafe(ack)
 
 
+def _extract_from_filename(filename: str):
+    data = filename.split("_")
+    for i in range(len(data)):
+        if i == ConfigEntry.ZIP_NOT_DEFINED_USER_INPUT:
+            data[i] = None        
+    return data[0], data[1], data[2]
+
+
 def _run_job(connection, ack_callback, delivery_tag, job_name):
     """
     This function handles the transcription
@@ -29,22 +37,34 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
         file_name, participants, language = postgres.getJobDetails(
             jobName=job_name
         )
-        bucket.downloadFile(file_name)
+        files = bucket.downloadFile(file_name)
 
-        postgres.updateJobStatus(status=Status.RUNNING, jobName=job_name)
-        logging.info(job_name + " Diarization started.")
-        transcription.diarize(
-            ConfigEntry.TMP_FILE_DIR, file_name,
-            participants
-        )
-        logging.info(job_name + " Diarization ended.")
+        for filename in files:
+            postgres.updateJobStatus(status=Status.RUNNING, jobName=job_name)
+            if len(files) > 1:
+                # update job info
+                participants, language = _extract_from_filename(filename)
 
-        logging.info(job_name + " Transcription started.")
-        transcription.transcribe(ConfigEntry.TMP_FILE_DIR, file_name, language)
-        logging.info(job_name + " Transcription ended.")
+            logging.info(job_name + file_name + " Diarization started.")
+            transcription.diarize(
+                ConfigEntry.TMP_FILE_DIR,
+                filename,
+                participants,
+            )
+            logging.info(job_name + file_name + " Diarization ended.")
 
+            logging.info(job_name + file_name + " Transcription started.")
+            transcription.transcribe(
+                ConfigEntry.TMP_FILE_DIR,
+                filename,
+                language
+            )
+            logging.info(job_name + file_name + " Transcription ended.")
+
+        # TODO: Differ between one transcribed file and zip file
         bucket.uploadFile(
-            ConfigEntry.TMP_FILE_DIR + f"{file_name.rsplit('.',1)[0]}.txt"
+            ConfigEntry.TMP_FILE_DIR +
+            f"{file_name.rsplit('.',1)[0]}.txt"
         )
 
         shutil.rmtree(ConfigEntry.TMP_FILE_DIR)

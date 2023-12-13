@@ -28,7 +28,7 @@ class BucketManager:
         
         files = []  # contains all file names
 
-        source = os.path.join(ConfigEntry.DOWNLOAD_FILE_DIR, uuid, fileName)
+        source = os.path.join(ConfigEntry.DOWNLOAD_FILE_DIR, fileName)
         target = os.path.join(file_path, fileName)
 
         if not os.path.exists(file_path):
@@ -48,18 +48,17 @@ class BucketManager:
         
         return files
 
-    def uploadFile(self, file_path: str) -> None:
+    def uploadFile(self, name, files: list[str]):
         """
-        :param: file_path = The file path of the finished file, relative from
-        root dir
+        :param: files = List containing all the filnames of the transcribed files
         """
         bucket = self._getBucket()
+        with zipfile.ZipFile(f"{ConfigEntry.TMP_FILE_DIR}{name}.zip", "w") as obj:
+            for filename in files:
+                real_name = filename.split(".")[0]
+                obj.write(f"{ConfigEntry.TMP_FILE_DIR}{real_name}{ConfigEntry.FINISHED_FILE_FORMAT}", f"{real_name}{ConfigEntry.FINISHED_FILE_FORMAT}")
 
-        targetFileName = os.path.basename(
-            file_path
-        )  # Extract fileName from path
-
-        upload_target_path = ConfigEntry.UPLOAD_FILE_TARGET_DIR
-        upload_target = os.path.join(upload_target_path, targetFileName)
-
-        bucket.upload_file(file_path, upload_target)
+        to_be_uploaded_filename = f"{ConfigEntry.TMP_FILE_DIR}/{name}.zip"
+        upload_target = os.path.join(ConfigEntry.UPLOAD_FILE_TARGET_DIR, name)
+        bucket.upload_file(to_be_uploaded_filename, upload_target + ".zip")
+                

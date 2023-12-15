@@ -50,8 +50,8 @@ class BucketManager:
 
     def uploadFile(self, uuid: str, files: list[str], job_name: str):
         """
-        :param: uuid = uuid of the job name 
-        :param: files = List containing all the filnames of the transcribed files
+        :param: uuid = uuid of the job name
+        :param: files = List of all the filnames of the transcribed files
         :param: job_name = Name of the job
         """
         bucket = self._getBucket()
@@ -60,9 +60,13 @@ class BucketManager:
         with zipfile.ZipFile(to_be_uploaded_filename, "w") as obj:
             for filename in files:
                 source_name = filename.split(".")[0]
-                target_name = filename.split(".")[0] if len(files) > 1 else job_name
-                obj.write(f"{ConfigEntry.TMP_FILE_DIR}{source_name}{ConfigEntry.FINISHED_FILE_FORMAT}",
-                          f"{target_name}{ConfigEntry.FINISHED_FILE_FORMAT}")
+                target_name = filename.split(".")[0] \
+                    if len(files) > 1 else job_name
+                obj.write(
+                    f"{ConfigEntry.TMP_FILE_DIR}"
+                    f"{source_name}{ConfigEntry.FINISHED_FILE_FORMAT}",
+                    f"{target_name}{ConfigEntry.FINISHED_FILE_FORMAT}"
+                )
 
         upload_target = os.path.join(
             ConfigEntry.UPLOAD_FILE_TARGET_DIR, uuid + ".zip")

@@ -2,7 +2,6 @@ import logging
 import shutil
 import threading
 import functools
-import traceback
 
 from utils.rabbitmq_manager import RabbitManager
 from utils.postgres_manager import PostgresManager, Status
@@ -49,7 +48,8 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
                 file_name, participants, language = _extract_from_filename(
                     filename
                 )
-            else: file_name = uuid_with_extention
+            else:
+                file_name = uuid_with_extention
 
             logging.info(f"{job_name} {file_name} Diarization started")
             transcription.diarize(
@@ -129,5 +129,5 @@ if __name__ == "__main__":
 
         for thread in threads:
             thread.join()
-    except Exception as e:
+    except Exception:
         logging.error("Job Failed")

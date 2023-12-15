@@ -77,7 +77,6 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
         _ack(connection, ack_callback, delivery_tag)
     except Exception:
         # If the job fails, update the job status and ack the job and exit
-        traceback.print_exc()
         logging.info(job_name + " failed.")
         postgres.updateJobStatus(
             status=Status.FAILED,
@@ -131,5 +130,4 @@ if __name__ == "__main__":
         for thread in threads:
             thread.join()
     except Exception as e:
-        print(e)
         logging.error("Job Failed")

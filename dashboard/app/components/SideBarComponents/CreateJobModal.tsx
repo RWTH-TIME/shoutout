@@ -7,7 +7,10 @@ import {
   Switch,
   Stack,
   FormControlLabel,
+  InputAdornment,
+  Tooltip,
 } from "@mui/material";
+import InfoIcon from "@mui/icons-material/Info"
 import { Job, BulkJob, ValidationFunction } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 import useValidation from "../../hooks/useValidation";
@@ -42,6 +45,7 @@ type Input<T> = {
   helperText?: string;
   inputProps?: {
     accept: string;
+    endAdornment?: any
   };
 };
 
@@ -53,6 +57,7 @@ type selectOptions = {
 const MODAL_TITLE = "Neuen Job hinzufügen:";
 const NAME_INPUT_LABEL = "Name";
 const AUDIO_FILE_LABEL = "Audio File";
+const ZIP_FILE_LABEL = "Zip File";
 const PARTICIPANTS_INPUT_LABEL = "Teilnehmer";
 const PARTICIPANTS_HELPER_TEXT = "0 wenn Sie es nicht eindeutig sagen können";
 const LANGUAGE_INPUT_LABEL = "Sprache";
@@ -133,13 +138,30 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     {
       name: "audioFile",
       type: "file",
-      label: AUDIO_FILE_LABEL,
+      label: ZIP_FILE_LABEL,
       required: true,
       inputLabelProps: {
         shrink: true,
       },
       inputProps: {
-        accept: ".zip",
+          accept: ".zip",
+          endAdornment: (
+            <InputAdornment position="end">
+              <Tooltip title={
+                <div style={{ fontSize: 15 , lineHeight: 1.2}}>
+                  <p>{"Die Dateien in der .zip-Datei müssen das folgende Format haben:"}
+                  <Typography color="inherit">{"name_AnzahlTeilnehmer_sprache.typ"}</Typography>
+                  </p>
+                  <p><b>{"Verfügbare Sprachen:"}</b><i>{ " 'de', 'en' "}</i><br/>
+                  {"Beispiel: muster_2_de.mp3"}</p>
+                  <p><b>{"Falls unsicher, kann 'auto' als Platzhalter verwendet werden."}</b><br/>
+                  {"Beispiel: muster_auto_auto.wav"}</p>
+                </div>
+                } >
+                <InfoIcon />
+              </Tooltip>
+            </InputAdornment>
+          )
       },
     },
   ];
@@ -158,7 +180,7 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
               <Typography id="modal-modal-title" variant="h6" component="h2">
                 {MODAL_TITLE}
               </Typography>
-              <FormControlLabel control={<Switch />} label="Multiple Files" onChange={() => {setIsSingleInput(!isSingleInput)}} />
+              <FormControlLabel control={<Switch />} label="Multiple Files" onChange={() => {setIsSingleInput(!isSingleInput)}} checked={!isSingleInput} />
             </Stack>
             { isSingleInput ? 
             <FormTemplate<Job>

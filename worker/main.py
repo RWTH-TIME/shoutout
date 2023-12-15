@@ -24,7 +24,7 @@ def _extract_from_filename(filename: str):
     data = name_data.split("_")
     for i in range(len(data)):
         if data[i] == ConfigEntry.ZIP_NOT_DEFINED_USER_INPUT:
-            data[i] = None  
+            data[i] = None
     return filename, data[1], data[2]
 
 
@@ -35,6 +35,7 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
     postgres = PostgresManager()
     bucket = BucketManager()
     transcription = TranscriptionManager()
+
     try:
         uuid_with_extention, participants, language = postgres.getJobDetails(
             jobName=job_name
@@ -48,24 +49,27 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
                 file_name, participants, language = _extract_from_filename(
                     filename
                 )
+            else: file_name = uuid_with_extention
 
             logging.info(f"{job_name} {file_name} Diarization started")
             transcription.diarize(
                 ConfigEntry.TMP_FILE_DIR,
                 file_name,
-                participants,
+                participants or 0,
             )
             logging.info(f"{job_name} {file_name} Diarization ended.")
 
-            logging.info(f"{job_name} {file_name} Transcription started.")
+            logging.info(
+                f"{job_name} {file_name} Transcription started.")
             transcription.transcribe(
                 ConfigEntry.TMP_FILE_DIR,
                 file_name,
                 language
             )
-            logging.info(f"{job_name} {file_name} Transcription ended.")
+            logging.info(
+                f"{job_name} {file_name} Transcription ended.")
 
-        bucket.uploadFile(uuid_with_extention.split(".")[0], files)
+        bucket.uploadFile(uuid_with_extention.split(".")[0], files, job_name)
 
         shutil.rmtree(ConfigEntry.TMP_FILE_DIR)
         postgres.updateJobStatus(status=Status.FINISHED, jobName=job_name)

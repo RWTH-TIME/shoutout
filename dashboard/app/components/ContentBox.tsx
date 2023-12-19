@@ -10,8 +10,9 @@ import {
   Stack,
   TypographyProps,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
-import { GetApp } from "@mui/icons-material";
+import { DeleteOutlined, GetApp, } from "@mui/icons-material";
 import { useState } from "react";
 
 type ContentBoxProps = {
@@ -33,7 +34,7 @@ const TYPOGRAPHY_PROPS: TypographyProps = {
 /** This function contains the logicalContext belonging to a task/job */
 export default function ContentBox({ jobDetail }: ContentBoxProps) {
   const { setAlert } = useAlert();
-  const { getStatusColor, LANGUAGE_DATA, downloadFile } = useJobs();
+  const { getStatusColor, LANGUAGE_DATA, downloadFile, deleteJob } = useJobs();
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   async function onDownload() {
@@ -62,6 +63,11 @@ export default function ContentBox({ jobDetail }: ContentBoxProps) {
     else return DEFAULT;
   }
 
+  async function delJob() {
+    // TODO: unselect the selected job
+    const success = await deleteJob(jobDetail)
+  }
+
   if (jobDetail) {
     return (
       <div
@@ -79,8 +85,18 @@ export default function ContentBox({ jobDetail }: ContentBoxProps) {
           />
           <CardContent>
             <Stack spacing={{ xs: 1, sm: 2, md: 2 }}>
-              <Typography {...TYPOGRAPHY_PROPS}>{NAME_HEADER}</Typography>
-              {jobDetail.name}
+              <Stack direction="row" justifyContent="space-between">
+                <div>
+                  <Typography {...TYPOGRAPHY_PROPS}>{NAME_HEADER}</Typography>
+                  {jobDetail.name}
+                </div>
+                { jobDetail?.status != "RUNNING" ? 
+                  <IconButton aria-label="settings" onClick={delJob}>
+                    <DeleteOutlined color="error" sx={{ fontSize: 30 }} />
+                  </IconButton> : 
+                  <></> 
+                }
+              </Stack>
               <Typography {...TYPOGRAPHY_PROPS}>
                 {PARTICIPANTS_HEADER}
               </Typography>

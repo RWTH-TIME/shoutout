@@ -8,3 +8,10 @@ export type Job = {
 
 // returns true when validation successfull, error message if not
 export type ValidationFunction = (data: any) => string | boolean
+
+export enum STATUS {
+  Pending = "PENDING",
+  Running = "RUNNING",
+  Finished = "FINISHED",
+  Failed = "FAILED"
+}

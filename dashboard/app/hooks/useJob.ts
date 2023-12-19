@@ -1,13 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { Job } from "../types/types";
-
-const STATUS = {
-  Pending: "PENDING",
-  Running: "RUNNING",
-  Finished: "FINISHED",
-  Failed: "FAILED",
-};
+import { Job, STATUS } from "../types/types";
 
 async function fetcher<JSON>(
   input: RequestInfo,
@@ -99,12 +92,46 @@ export default function useJobs(id: number | undefined = undefined) {
         method: "GET",
       }
     );
-
     if (!presignedURLData.ok)
       throw new Error("Could not get minio presigned url");
 
     const { presignedUrl } = await presignedURLData.json();
     return presignedUrl;
+  }
+
+  async function deleteJob(job: Job): Promise<boolean>{
+    try {
+      // Delete files from minio
+      const bucket_delete = await fetch(
+        `/api/minio?fileName=${job.audioFile}&status=${job.status}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      if (!bucket_delete.ok) throw new Error("Could not delete from minio");
+
+      // Delete files from db
+      const deleteJobResponse = await fetch("/api/job/delete", {
+        headers: new Headers({
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        }),
+        method: "POST",
+        body: JSON.stringify({
+          name: job.name,
+        }),
+      });
+      if (!deleteJobResponse.ok) throw new Error("Could not delete from DB");
+
+      // TODO: Delete from queue
+
+      const updatedJobs = jobs?.filter(t => t.name !== job.name)
+      mutate(updatedJobs, false);
+      return true
+    }catch(e) {
+      return false
+    }
   }
 
   const LANGUAGE_DATA = [
@@ -128,6 +155,7 @@ export default function useJobs(id: number | undefined = undefined) {
     createJob: createJob,
     getStatusColor: getStatusColor,
     downloadFile: downloadFile,
+    deleteJob: deleteJob,
     LANGUAGE_DATA: LANGUAGE_DATA,
   };
 }

@@ -16,6 +16,7 @@ import { DeleteOutlined, GetApp, } from "@mui/icons-material";
 import { useState } from "react";
 
 type ContentBoxProps = {
+  setSelectedJob: React.Dispatch<React.SetStateAction<Job | undefined>>;
   jobDetail: Job | undefined;
 };
 const DEFAULT = "Automatisch";
@@ -32,10 +33,11 @@ const TYPOGRAPHY_PROPS: TypographyProps = {
 };
 
 /** This function contains the logicalContext belonging to a task/job */
-export default function ContentBox({ jobDetail }: ContentBoxProps) {
+export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProps) {
   const { setAlert } = useAlert();
   const { getStatusColor, LANGUAGE_DATA, downloadFile, deleteJob } = useJobs();
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [ deleteLoading, setDeleteLoading ] = useState(false);
 
   async function onDownload() {
     if (jobDetail?.status != "FINISHED") {
@@ -65,7 +67,10 @@ export default function ContentBox({ jobDetail }: ContentBoxProps) {
 
   async function delJob() {
     // TODO: unselect the selected job
+    setDeleteLoading(true)
     const success = await deleteJob(jobDetail)
+    setSelectedJob(undefined)
+    setDeleteLoading(false)
   }
 
   if (jobDetail) {
@@ -90,12 +95,17 @@ export default function ContentBox({ jobDetail }: ContentBoxProps) {
                   <Typography {...TYPOGRAPHY_PROPS}>{NAME_HEADER}</Typography>
                   {jobDetail.name}
                 </div>
-                { jobDetail?.status != "RUNNING" ? 
+                {jobDetail?.status != "RUNNING" ? (
                   <IconButton aria-label="settings" onClick={delJob}>
-                    <DeleteOutlined color="error" sx={{ fontSize: 30 }} />
-                  </IconButton> : 
-                  <></> 
-                }
+                    {deleteLoading ? (
+                      <CircularProgress size={26} color="inherit" />
+                    ) : (
+                      <DeleteOutlined color="error" sx={{ fontSize: 30 }} />
+                    )}
+                  </IconButton>
+                ) : (
+                  <></>
+                )}
               </Stack>
               <Typography {...TYPOGRAPHY_PROPS}>
                 {PARTICIPANTS_HEADER}

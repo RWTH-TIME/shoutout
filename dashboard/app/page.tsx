@@ -21,10 +21,17 @@ export default function Home() {
         <AlertPopup />
         <Grid container spacing="0">
           <Grid item xs={2}>
-            <SideBar setSelectedJob={setSelectedJob} jobList={jobList} setJobList={setJobList}/>
+            <SideBar
+              setSelectedJob={setSelectedJob}
+              jobList={jobList}
+              setJobList={setJobList}
+            />
           </Grid>
           <Grid item xs={10}>
-            <ContentBox jobDetail={selectedJob} jobList={jobList} setJobList={setJobList} />
+            <ContentBox
+              setSelectedJob={setSelectedJob}
+              jobDetail={selectedJob}
+            />
           </Grid>
         </Grid>
       </AlertProvider>

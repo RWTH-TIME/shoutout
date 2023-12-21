@@ -21,14 +21,14 @@ class BucketManager:
     def _getBucket(self):
         return self.s3.Bucket(ConfigEntry.MINIO_JOB_BUCKET)
 
-    def downloadFile(self, fileName: str) -> list[str]:
+    def downloadFile(self, filename: str) -> list[str]:
         bucket = self._getBucket()
 
-        _, file_format = os.path.splitext(fileName)
+        _, file_format = os.path.splitext(filename)
         files = []  # contains all file names
 
-        source = os.path.join(ConfigEntry.DOWNLOAD_FILE_DIR, fileName)
-        target = os.path.join(ConfigEntry.TMP_FILE_DIR, fileName)
+        source = os.path.join(ConfigEntry.DOWNLOAD_FILE_DIR, filename)
+        target = os.path.join(ConfigEntry.TMP_FILE_DIR, filename)
 
         if not os.path.exists(ConfigEntry.TMP_FILE_DIR):
             os.makedirs(ConfigEntry.TMP_FILE_DIR)
@@ -42,9 +42,16 @@ class BucketManager:
                     ConfigEntry.TMP_FILE_DIR
                 )
                 files = zip_ref.namelist()
+
+            # rename files which contain spaces for diarization
+            for old in files:
+                os.rename(ConfigEntry.TMP_FILE_DIR + old,
+                          ConfigEntry.TMP_FILE_DIR + old.replace(" ", ""))
+            files = [new.replace(" ", "") for new in files]
+
             os.remove(target)  # remove zip file again
         else:
-            files.append(fileName)
+            files.append(filename)
 
         return files
 

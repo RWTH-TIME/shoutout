@@ -44,7 +44,7 @@ const getConfig = (): ENV => {
     MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY ?? "shoutoutdevuser",
     MINIO_JOB_BUCKET: process.env.MINIO_JOB_BUCKET ?? "shoutout-job-bucket",
     DOWNLOAD_FILE_TARGET_DIR: process.env.DOWNLOAD_FILE_TARGET_DIR ?? "finished-files/",
-    FINISHED_FILE_FORMAT: process.env.FINISHED_FILE_FORMAT ?? ".txt",
+    FINISHED_FILE_FORMAT: process.env.FINISHED_FILE_FORMAT ?? ".zip",
     UPLOAD_FILE_TARGET_DIR: process.env.UPLOAD_FILE_TARGET_DIR ?? "to-transcribe/",
     MINIO_SSL_ENABLED: process.env.MINIO_SSL_ENABLED
       ? toBool(process.env.MINIO_SSL_ENABLED)

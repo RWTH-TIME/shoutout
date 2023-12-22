@@ -24,6 +24,7 @@ type Input<T> = {
   helperText?: string;
   inputProps?: {
     accept: string;
+    endAdornment?: any;
   };
 };
 
@@ -158,7 +159,7 @@ export function FormTemplate<T>({
             return (
               <TextField
                 key={idx}
-                inputProps={input.inputProps}
+                InputProps={input.inputProps}
                 {...commonProps}
                 disabled={isLoading}
               ></TextField>

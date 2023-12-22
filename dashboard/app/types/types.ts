@@ -6,5 +6,10 @@ export type Job = {
   status: string;
 };
 
+export type BulkJob = {
+  name: string;
+  audioFile: File | string | undefined;
+};
+
 // returns true when validation successfull, error message if not
 export type ValidationFunction = (data: any) => string | boolean

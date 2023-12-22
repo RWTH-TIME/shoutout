@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     WHISPER_MODEL: str = "large-v3"
     FINISHED_FILE_FORMAT: str = ".txt"
+    ZIP_NOT_DEFINED_USER_INPUT: str = "auto"
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",

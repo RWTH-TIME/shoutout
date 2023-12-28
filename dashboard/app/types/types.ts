@@ -3,12 +3,13 @@ export type Job = {
   audioFile: File | string | undefined;
   participants: number;
   language: string;
-  status: string;
+  status: STATUS;
 };
 
 export type BulkJob = {
   name: string;
   audioFile: File | string | undefined;
+  status: STATUS;
 };
 
 // returns true when validation successfull, error message if not

@@ -1,5 +1,6 @@
 import boto3
 
+import zipfile
 import os
 
 from config.environment import ConfigEntry
@@ -20,30 +21,60 @@ class BucketManager:
     def _getBucket(self):
         return self.s3.Bucket(ConfigEntry.MINIO_JOB_BUCKET)
 
-    def downloadFile(self, fileName: str) -> str:
-        bucket = self._getBucket()
-        file_path = ConfigEntry.TMP_FILE_DIR
-        target = os.path.join(file_path, fileName)
-
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-
-        bucket.download_file(ConfigEntry.DOWNLOAD_FILE_DIR + fileName, target)
-
-        return target
-
-    def uploadFile(self, file_path: str) -> None:
-        """
-        :param: file_path = The file path of the finished file, relative from
-        root dir
-        """
+    def downloadFile(self, filename: str) -> list[str]:
         bucket = self._getBucket()
 
-        targetFileName = os.path.basename(
-            file_path
-        )  # Extract fileName from path
+        _, file_format = os.path.splitext(filename)
+        files = []  # contains all file names
 
-        upload_target_path = ConfigEntry.UPLOAD_FILE_TARGET_DIR
-        upload_target = os.path.join(upload_target_path, targetFileName)
+        source = os.path.join(ConfigEntry.DOWNLOAD_FILE_DIR, filename)
+        target = os.path.join(ConfigEntry.TMP_FILE_DIR, filename)
 
-        bucket.upload_file(file_path, upload_target)
+        if not os.path.exists(ConfigEntry.TMP_FILE_DIR):
+            os.makedirs(ConfigEntry.TMP_FILE_DIR)
+
+        bucket.download_file(source, target)
+
+        if file_format == ".zip":
+            # extract zip to tmp_file_dir
+            with zipfile.ZipFile(target, "r") as zip_ref:
+                zip_ref.extractall(
+                    ConfigEntry.TMP_FILE_DIR
+                )
+                files = zip_ref.namelist()
+
+            # rename files which contain spaces for diarization
+            for old in files:
+                os.rename(ConfigEntry.TMP_FILE_DIR + old,
+                          ConfigEntry.TMP_FILE_DIR + old.replace(" ", ""))
+            files = [new.replace(" ", "") for new in files]
+
+            os.remove(target)  # remove zip file again
+        else:
+            files.append(filename)
+
+        return files
+
+    def uploadFile(self, uuid: str, files: list[str], job_name: str):
+        """
+        :param: uuid = uuid of the job name
+        :param: files = List of all the filnames of the transcribed files
+        :param: job_name = Name of the job
+        """
+        bucket = self._getBucket()
+        to_be_uploaded_filename = f"{ConfigEntry.TMP_FILE_DIR}{uuid}.zip"
+        # pack zip containing all files
+        with zipfile.ZipFile(to_be_uploaded_filename, "w") as obj:
+            for filename in files:
+                source_name = filename.split(".")[0]
+                target_name = filename.split(".")[0] \
+                    if len(files) > 1 else job_name
+                obj.write(
+                    f"{ConfigEntry.TMP_FILE_DIR}"
+                    f"{source_name}{ConfigEntry.FINISHED_FILE_FORMAT}",
+                    f"{target_name}{ConfigEntry.FINISHED_FILE_FORMAT}"
+                )
+
+        upload_target = os.path.join(
+            ConfigEntry.UPLOAD_FILE_TARGET_DIR, uuid + ".zip")
+        bucket.upload_file(to_be_uploaded_filename, upload_target)

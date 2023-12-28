@@ -18,7 +18,7 @@ services:
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
       - DOWNLOAD_FILE_TARGET_DIR=finished-files/
       - UPLOAD_FILE_TARGET_DIR=to-transcribe/
-      - FINISHED_FILE_FORMAT=.txt
+      - FINISHED_FILE_FORMAT=.zip
     depends_on:
       - postgres
       - minio

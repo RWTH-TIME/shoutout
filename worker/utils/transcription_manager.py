@@ -78,7 +78,10 @@ class TranscriptionManager:
         if num_speaker == 0:
             diarization = diarization_pl(audio_file)
         else:
-            diarization = diarization_pl(audio_file, num_speakers=num_speaker)
+            diarization = diarization_pl(
+                audio_file,
+                num_speakers=int(num_speaker)
+            )
 
         # dump the diarization output using RTTM format
         with open(

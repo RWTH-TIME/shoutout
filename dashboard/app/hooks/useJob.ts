@@ -1,13 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { BulkJob, Job } from "../types/types";
-
-const STATUS = {
-  Pending: "PENDING",
-  Running: "RUNNING",
-  Finished: "FINISHED",
-  Failed: "FAILED",
-};
+import { BulkJob, Job, STATUS } from "../types/types";
 
 async function fetcher<JSON>(
   input: RequestInfo,
@@ -79,7 +72,6 @@ export default function useJobs(id: number | undefined = undefined) {
         return true;
       } else throw new Error("Audio file does not exist");
     } catch (error) {
-      console.log(error);
       return false;
     }
   }
@@ -99,12 +91,40 @@ export default function useJobs(id: number | undefined = undefined) {
         method: "GET",
       }
     );
-
     if (!presignedURLData.ok)
       throw new Error("Could not get minio presigned url");
 
     const { presignedUrl } = await presignedURLData.json();
     return presignedUrl;
+  }
+
+  async function deleteJob(job: Job | BulkJob): Promise<boolean>{
+    try {
+      // Delete files from minio
+      const bucket_delete = await fetch(
+        `/api/minio?fileName=${job.audioFile}&status=${job.status}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      if (!bucket_delete.ok) throw new Error("Could not delete from minio");
+
+      // Delete files from db & queue
+      const deleteJobResponse = await fetch(`/api/job?jobName=${job.name}`, {
+        headers: new Headers({
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        }),
+        method: "DELETE",
+      });
+      if (!deleteJobResponse.ok) throw new Error("Could not delete from DB");
+      const updatedJobs = jobs?.filter(t => t.name !== job.name)
+      mutate(updatedJobs, false);
+      return true
+    }catch(e) {
+      return false
+    }
   }
 
   const LANGUAGE_DATA = [
@@ -128,6 +148,7 @@ export default function useJobs(id: number | undefined = undefined) {
     createJob: createJob,
     getStatusColor: getStatusColor,
     downloadFile: downloadFile,
+    deleteJob: deleteJob,
     LANGUAGE_DATA: LANGUAGE_DATA,
   };
 }

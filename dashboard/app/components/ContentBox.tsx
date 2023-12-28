@@ -10,11 +10,13 @@ import {
   Stack,
   TypographyProps,
   CircularProgress,
+  IconButton,
 } from "@mui/material";
-import { GetApp } from "@mui/icons-material";
+import { DeleteOutlined, GetApp, } from "@mui/icons-material";
 import { useState } from "react";
 
 type ContentBoxProps = {
+  setSelectedJob: React.Dispatch<React.SetStateAction<Job | undefined>>;
   jobDetail: Job | undefined;
 };
 const DEFAULT = "Automatisch";
@@ -31,10 +33,11 @@ const TYPOGRAPHY_PROPS: TypographyProps = {
 };
 
 /** This function contains the logicalContext belonging to a task/job */
-export default function ContentBox({ jobDetail }: ContentBoxProps) {
+export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProps) {
   const { setAlert } = useAlert();
-  const { getStatusColor, LANGUAGE_DATA, downloadFile } = useJobs();
+  const { getStatusColor, LANGUAGE_DATA, downloadFile, deleteJob } = useJobs();
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [ deleteLoading, setDeleteLoading ] = useState(false);
 
   async function onDownload() {
     if (jobDetail?.status != "FINISHED") {
@@ -62,6 +65,19 @@ export default function ContentBox({ jobDetail }: ContentBoxProps) {
     else return DEFAULT;
   }
 
+  async function onDelete() {
+    setDeleteLoading(true)
+    if(!jobDetail) return
+    const success = await deleteJob(jobDetail)
+    if(success) {
+      setAlert("Job erfolgreich gelöscht!", "success")
+      setSelectedJob(undefined)
+    } else {
+      setAlert("Beim löschen ist etwas schiefgelaufen!", "error")
+    }
+    setDeleteLoading(false)
+  }
+
   if (jobDetail) {
     return (
       <div
@@ -79,8 +95,23 @@ export default function ContentBox({ jobDetail }: ContentBoxProps) {
           />
           <CardContent>
             <Stack spacing={{ xs: 1, sm: 2, md: 2 }}>
-              <Typography {...TYPOGRAPHY_PROPS}>{NAME_HEADER}</Typography>
-              {jobDetail.name}
+              <Stack direction="row" justifyContent="space-between">
+                <div>
+                  <Typography {...TYPOGRAPHY_PROPS}>{NAME_HEADER}</Typography>
+                  {jobDetail.name}
+                </div>
+                {jobDetail?.status != "RUNNING" ? (
+                  <IconButton aria-label="settings" onClick={onDelete}>
+                    {deleteLoading ? (
+                      <CircularProgress size={26} color="inherit" />
+                    ) : (
+                      <DeleteOutlined color="error" sx={{ fontSize: 30 }} />
+                    )}
+                  </IconButton>
+                ) : (
+                  <></>
+                )}
+              </Stack>
               <Typography {...TYPOGRAPHY_PROPS}>
                 {PARTICIPANTS_HEADER}
               </Typography>

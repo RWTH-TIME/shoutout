@@ -1,7 +1,7 @@
 import { Job } from "../../../app/types/types";
 import { PrismaClient } from "@prisma/client";
 import { NextResponse, NextRequest } from "next/server";
-import { pushToQueue } from "../utility/amqp";
+import { pushToQueue, removeFromQueue } from "../utility/amqp";
 import env from "../utility/environment/config";
 
 const prisma = new PrismaClient({
@@ -36,6 +36,20 @@ async function insertJob(data: Job) {
   return res;
 }
 
+async function deleteJob(jobName: string) {
+    try {
+      const res = await prisma.job.delete({
+        where: {
+          name: jobName,
+        },
+      });
+      await removeFromQueue(jobName)
+      return res
+    } catch (error) {
+      throw new Error("Something went wrong")
+    }    
+}
+
 export const GET = async () => {
   const res = await getAllJobs();
   return NextResponse.json({ jobs: res }, { status: 200 });
@@ -47,3 +61,12 @@ export const POST = async (request: NextRequest) => {
 
   return NextResponse.json({ res }, { status: 200 });
 };
+
+export const DELETE = async (request: NextRequest) => {
+  const query = request.nextUrl.searchParams;
+  const jobName = query.get("jobName")
+  if(jobName === null || jobName == "") throw new Error("invalid argument")
+  const res = await deleteJob(jobName)
+
+  return NextResponse.json({res}, {status: 200})
+}

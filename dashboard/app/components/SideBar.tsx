@@ -16,13 +16,14 @@ const ADD_JOB_TEXT = "Job hinzufügen";
 
 type SideBarProps = {
   setSelectedJob: React.Dispatch<React.SetStateAction<Job | undefined>>;
+  jobList: Array<Job> | undefined,
+  setJobList: React.Dispatch<React.SetStateAction<Array<Job> | undefined>>,
 };
 
 /** This function is the SideBar, it contains the job/task list */
-export default function SideBar({ setSelectedJob }: SideBarProps) {
+export default function SideBar({ setSelectedJob, jobList, setJobList }: SideBarProps) {
   //Get all Jobs
   const { jobs } = useJobs();
-  const [jobList, setJobList] = useState<Job[]>();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
 
   useEffect(() => {

@@ -12,5 +12,21 @@ async function connect() {
 
 export async function pushToQueue(job: Job) {
   const channel: amqplib.Channel = await connect();
+  // TODO: use id instad of name Issue#24
   await channel.sendToQueue(env.QUEUE_NAME, Buffer.from(job.name));
+  await channel.close()
+}
+
+export async function removeFromQueue(jobName: string) {
+  const channel: amqplib.Channel = await connect();
+  // iterate over all jobs in queue, only ack the right one
+  // TODO: use id instead of name Issue#24 
+  await channel.consume(env.QUEUE_NAME, async (message) => {
+    if(message && message.content.toString() == jobName) {
+      await channel.ack(message)
+    }
+  },
+  {noAck: false}
+  )
+  await channel.close()
 }

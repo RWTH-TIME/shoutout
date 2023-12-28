@@ -112,19 +112,14 @@ export default function useJobs(id: number | undefined = undefined) {
       if (!bucket_delete.ok) throw new Error("Could not delete from minio");
 
       // Delete files from db
-      const deleteJobResponse = await fetch("/api/job/delete", {
+      const deleteJobResponse = await fetch(`/api/job?jobName=${job.name}`, {
         headers: new Headers({
           "Content-Type": "application/json",
           Accept: "application/json",
         }),
-        method: "POST",
-        body: JSON.stringify({
-          name: job.name,
-        }),
+        method: "DELETE",
       });
       if (!deleteJobResponse.ok) throw new Error("Could not delete from DB");
-
-      // TODO: Delete from queue
 
       const updatedJobs = jobs?.filter(t => t.name !== job.name)
       mutate(updatedJobs, false);

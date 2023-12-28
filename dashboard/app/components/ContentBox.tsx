@@ -65,11 +65,16 @@ export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProp
     else return DEFAULT;
   }
 
-  async function delJob() {
-    // TODO: unselect the selected job
+  async function onDelete() {
     setDeleteLoading(true)
+    if(!jobDetail) return
     const success = await deleteJob(jobDetail)
-    setSelectedJob(undefined)
+    if(success) {
+      setAlert("Job erfolgreich gelöscht!", "success")
+      setSelectedJob(undefined)
+    } else {
+      setAlert("Beim löschen ist etwas schiefgelaufen!", "error")
+    }
     setDeleteLoading(false)
   }
 
@@ -96,7 +101,7 @@ export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProp
                   {jobDetail.name}
                 </div>
                 {jobDetail?.status != "RUNNING" ? (
-                  <IconButton aria-label="settings" onClick={delJob}>
+                  <IconButton aria-label="settings" onClick={onDelete}>
                     {deleteLoading ? (
                       <CircularProgress size={26} color="inherit" />
                     ) : (

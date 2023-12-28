@@ -48,9 +48,13 @@ export const DELETE = async (req: NextRequest) => {
     const fileName = query.get("fileName");
     const status = query.get("status");
 
+    if(fileName == null || fileName === "") throw new Error("invalid argument")
+    const finishedFileName = (fileName.substring(0, fileName.lastIndexOf(".")) +
+        env.FINISHED_FILE_FORMAT)
+
     const toBeRemoved = [env.UPLOAD_FILE_TARGET_DIR + fileName];
     if(status == STATUS.Finished) {
-      toBeRemoved.push(env.DOWNLOAD_FILE_TARGET_DIR + fileName) 
+      toBeRemoved.push(env.DOWNLOAD_FILE_TARGET_DIR + finishedFileName )
     }
 
     minioClient.removeObjects(env.MINIO_JOB_BUCKET, toBeRemoved);

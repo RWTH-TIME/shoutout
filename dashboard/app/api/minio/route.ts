@@ -62,8 +62,8 @@ export const DELETE = async (req: NextRequest) => {
     return NextResponse.json(
       {status:200}
     )
-    
   } catch (error) {
-    console.log("error")
+    // TODO: Proper Error handling Issue#24
+    console.log("Error deleting files from minio", error)
   }
 }

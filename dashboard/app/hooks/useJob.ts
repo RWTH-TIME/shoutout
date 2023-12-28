@@ -72,7 +72,6 @@ export default function useJobs(id: number | undefined = undefined) {
         return true;
       } else throw new Error("Audio file does not exist");
     } catch (error) {
-      console.log(error);
       return false;
     }
   }

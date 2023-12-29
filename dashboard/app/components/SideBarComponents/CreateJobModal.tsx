@@ -9,6 +9,7 @@ import {
   FormControlLabel,
   InputAdornment,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info"
 import { Job, BulkJob, ValidationFunction } from "../../types/types";
@@ -16,6 +17,7 @@ import useJobs from "../../hooks/useJob";
 import useValidation from "../../hooks/useValidation";
 import { FormTemplate } from "../../templates/FormTemplate";
 import { useState } from "react";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const style = {
   position: "absolute",
@@ -39,12 +41,13 @@ type Input<T> = {
   type: string;
   label: string;
   required: boolean;
+  useFullWidth: boolean;
   validationType?: string | ValidationFunction;
   inputLabelProps?: InputLabelProps;
   selectOptions?: selectOptions[];
   helperText?: string;
   inputProps?: {
-    accept: string;
+    accept?: string;
     endAdornment?: any
   };
 };
@@ -61,6 +64,8 @@ const ZIP_FILE_LABEL = "Zip File";
 const PARTICIPANTS_INPUT_LABEL = "Teilnehmer";
 const PARTICIPANTS_HELPER_TEXT = "0 wenn Sie es nicht eindeutig sagen können";
 const LANGUAGE_INPUT_LABEL = "Sprache";
+const PASSWORD_INPUT_LABEL = "Passwort";
+const PASSWORD_REPEAT_INPUT_LABEL = "Passwort wiederholen";
 
 /** This function is a Modal for creating a Job, it also makes the API-Call */
 export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
@@ -68,19 +73,21 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
   const { createJob, LANGUAGE_DATA } = useJobs();
   const { NUMBERS } = useValidation();
   const [ isSingleInput, setIsSingleInput ] = useState(true)
-
-  const emptyState: Job = {
-    name: "",
-    audioFile: undefined,
-    participants: 0,
-    language: "",
-    status: "PENDING",
-  };
+  const [ showPassword, setShowPassword ] = useState(false)
+  const [ showPasswordRepeat, setShowPasswordRepeat ] = useState(false)
 
   const emptyBulkState: BulkJob = {
     name: "",
     audioFile: undefined,
-  };
+    password: undefined,
+    status: "PENDING",
+  }
+
+  const emptyState: Job = {
+    ...emptyBulkState,
+    participants: 0,
+    language: "",
+  }
 
   const validateName = (data: string) => {
     if (data.length > 10) {
@@ -90,13 +97,14 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     }
   }
 
-  const inputs: Input<Job>[] = [
+  const bulkInputs: Input<BulkJob>[] = [
     {
       name: "name",
       type: "text",
       label: NAME_INPUT_LABEL,
       required: true,
       validationType: validateName,
+      useFullWidth: true,
     },
     {
       name: "audioFile",
@@ -108,44 +116,8 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
       },
       inputProps: {
         accept: "audio/*",
-      },
-    },
-    {
-      name: "participants",
-      type: "text",
-      label: PARTICIPANTS_INPUT_LABEL,
-      required: false,
-      helperText: PARTICIPANTS_HELPER_TEXT,
-      validationType: NUMBERS,
-    },
-    {
-      name: "language",
-      type: "select",
-      label: LANGUAGE_INPUT_LABEL,
-      required: false,
-      selectOptions: LANGUAGE_DATA,
-    },
-  ];
-
-  const bulkInputs: Input<BulkJob>[] = [
-    {
-      name: "name",
-      type: "text",
-      label: NAME_INPUT_LABEL,
-      required: true,
-      validationType: validateName,
-    },
-    {
-      name: "audioFile",
-      type: "file",
-      label: ZIP_FILE_LABEL,
-      required: true,
-      inputLabelProps: {
-        shrink: true,
-      },
-      inputProps: {
-          accept: ".zip",
-          endAdornment: (
+        endAdornment: isSingleInput ? undefined: 
+          (
             <InputAdornment position="end">
               <Tooltip title={
                 <div style={{ fontSize: 15 , lineHeight: 1.2}}>
@@ -162,7 +134,74 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
               </Tooltip>
             </InputAdornment>
           )
+      
       },
+      useFullWidth: true,
+    },
+    {
+      name: "password",
+      type: showPassword ? "text" : "password",
+      label: PASSWORD_INPUT_LABEL,
+      required: false,
+      inputProps: {
+          accept: ".zip",
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                style={{padding: 0}}
+                size="small"
+                disableRipple
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          )
+      },
+      useFullWidth: false
+    },
+    {
+      name: "password_repeat",
+      type: showPasswordRepeat ? "text" : "password",
+      label: PASSWORD_REPEAT_INPUT_LABEL,
+      required: false,
+      inputProps: {
+          accept: ".zip",
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                style={{padding: 0}}
+                size="small"
+                disableRipple
+                onClick={() => setShowPasswordRepeat(!showPasswordRepeat)}
+              >
+                {showPasswordRepeat ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          )
+      },
+      useFullWidth: false
+    },
+  ]
+
+  const inputs: Input<Job>[] = [
+    ...bulkInputs,
+    {
+      name: "participants",
+      type: "text",
+      label: PARTICIPANTS_INPUT_LABEL,
+      required: false,
+      helperText: PARTICIPANTS_HELPER_TEXT,
+      validationType: NUMBERS,
+      useFullWidth: true
+    },
+    {
+      name: "language",
+      type: "select",
+      label: LANGUAGE_INPUT_LABEL,
+      required: false,
+      selectOptions: LANGUAGE_DATA,
+      useFullWidth: true
     },
   ];
 

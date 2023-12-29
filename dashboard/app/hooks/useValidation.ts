@@ -17,7 +17,7 @@ type InputConfig<T> = {
   selectOptions?: selectOptions[];
   helperText?: string;
   inputProps?: {
-    accept: string;
+    accept?: string;
   };
 };
 

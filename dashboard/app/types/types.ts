@@ -1,15 +1,15 @@
-export type Job = {
-  name: string;
+export interface BulkJob {
+  name: string,
   audioFile: File | string | undefined;
-  participants: number;
-  language: string;
+  password?: string;
+  password_repeat?: string;
   status: string;
-};
+}
 
-export type BulkJob = {
-  name: string;
-  audioFile: File | string | undefined;
-};
+export interface Job extends BulkJob {
+  language: string;
+  participants: number;
+}
 
 // returns true when validation successfull, error message if not
 export type ValidationFunction = (data: any) => string | boolean

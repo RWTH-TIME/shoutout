@@ -18,12 +18,13 @@ type Input<T> = {
   type: string;
   label: string;
   required: boolean;
+  useFullWidth: boolean;
   validationType?: string | ValidationFunction;
   inputLabelProps?: InputLabelProps;
   selectOptions?: selectOptions[];
   helperText?: string;
   inputProps?: {
-    accept: string;
+    accept?: string;
     endAdornment?: any;
   };
 };
@@ -137,7 +138,7 @@ export function FormTemplate<T>({
 
   return (
     <div>
-      <Stack direction="column">
+      <Stack direction="row" useFlexGap flexWrap="wrap" >
         {inputs.map((input, idx) => {
           const commonProps = {
             ...TEXT_FIELD_PROPS,
@@ -159,6 +160,7 @@ export function FormTemplate<T>({
             return (
               <TextField
                 key={idx}
+                fullWidth={input.useFullWidth}
                 InputProps={input.inputProps}
                 {...commonProps}
                 disabled={isLoading}
@@ -169,7 +171,9 @@ export function FormTemplate<T>({
               <TextField
                 key={idx}
                 select={input.type === "select"}
+                style={{width: (input.useFullWidth ? "100%" : "50%")}}
                 value={formData[input.name] === 0 ? "" : formData[input.name]}
+                InputProps={input.inputProps}
                 {...commonProps}
                 disabled={isLoading}
               >

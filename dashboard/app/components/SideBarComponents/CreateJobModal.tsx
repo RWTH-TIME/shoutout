@@ -79,7 +79,8 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
   const emptyBulkState: BulkJob = {
     name: "",
     audioFile: undefined,
-    password: undefined,
+    password: "",
+    password_repeat: "",
     status: "PENDING",
   }
 
@@ -109,13 +110,13 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     {
       name: "audioFile",
       type: "file",
-      label: AUDIO_FILE_LABEL,
+      label: isSingleInput ? AUDIO_FILE_LABEL : ZIP_FILE_LABEL,
       required: true,
       inputLabelProps: {
         shrink: true,
       },
       inputProps: {
-        accept: "audio/*",
+        accept: isSingleInput ? "audio/*" : ".zip",
         endAdornment: isSingleInput ? undefined: 
           (
             <InputAdornment position="end">

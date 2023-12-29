@@ -164,6 +164,9 @@ export function FormTemplate<T>({
                 InputProps={input.inputProps}
                 {...commonProps}
                 disabled={isLoading}
+                sx={{
+                  marginTop: "10px"
+                }}
               ></TextField>
             );
           } else {

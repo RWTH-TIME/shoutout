@@ -76,6 +76,9 @@ export default function useValidation() {
           It returns all errors inside a obj
         */
     const errors: ValidationErrors<T> = {};
+    
+    // Validate Password 
+    if(formData["password" as keyof T] !== formData["password_repeat" as keyof T]) errors["password" as keyof T] = "Die Passwörter stimmen nicht überein!"
 
     inputs.map((obj) => {
       const errMessage = validateInput(

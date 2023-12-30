@@ -66,6 +66,7 @@ export default function useJobs(id: number | undefined = undefined) {
             participants: "participants" in job ? parseInt(job.participants as unknown as string, 10) : undefined,
             language: "language" in job ? job.language : undefined,
             audioFile: uuidFileName,
+            password: job.password
           }),
         });
 

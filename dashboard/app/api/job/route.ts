@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { NextResponse, NextRequest } from "next/server";
 import { pushToQueue } from "../utility/amqp";
 import env from "../utility/environment/config";
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient({
   datasources: {
@@ -17,6 +18,8 @@ async function getAllJobs() {
 }
 
 async function insertJob(data: Job) {
+  let passwordHash: string | undefined = undefined
+  if(data.password !== "") passwordHash = await bcrypt.hash(data.password, 10)
   const res = await prisma.$transaction(async (tx) => {
     try {
       const res = await tx.job.create({
@@ -25,6 +28,7 @@ async function insertJob(data: Job) {
           audioFile: data.audioFile as string,
           participants: data.participants === 0 ? undefined : data.participants,
           language: data.language === "" ? undefined : data.language,
+          password: passwordHash
         },
       });
       return res

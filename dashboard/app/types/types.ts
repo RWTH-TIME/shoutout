@@ -1,8 +1,8 @@
 export interface BulkJob {
   name: string,
   audioFile: File | string | undefined;
-  password?: string;
-  password_repeat?: string;
+  password: string;
+  password_repeat: string;
   status: string;
 }
 

@@ -17,6 +17,7 @@ model job {
   participants Int?
   language     String?
   status       Status  @default(PENDING)
+  password     String?
 }
 
 enum Status {

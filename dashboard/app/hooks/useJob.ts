@@ -66,6 +66,7 @@ export default function useJobs(id: number | undefined = undefined) {
             participants: "participants" in job ? parseInt(job.participants as unknown as string, 10) : undefined,
             language: "language" in job ? job.language : undefined,
             audioFile: uuidFileName,
+            password: job.password
           }),
         });
 
@@ -107,6 +108,28 @@ export default function useJobs(id: number | undefined = undefined) {
     return presignedUrl;
   }
 
+  async function authenticate(job: Job, password: string) {
+    try {
+      const authResponse = await fetch("api/job/authenticate", {
+      headers: new Headers({
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      }),
+      method: "POST",
+      body: JSON.stringify({
+        name: job.name,
+        password: password
+      })
+      });
+
+      if(!authResponse.ok) throw new Error("could not authenticate.")
+      
+      return true
+    }catch(error) {
+      return false
+    }
+  }
+
   const LANGUAGE_DATA = [
     {
       value: "",
@@ -128,6 +151,7 @@ export default function useJobs(id: number | undefined = undefined) {
     createJob: createJob,
     getStatusColor: getStatusColor,
     downloadFile: downloadFile,
+    authenticate: authenticate,
     LANGUAGE_DATA: LANGUAGE_DATA,
   };
 }

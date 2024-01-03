@@ -1,6 +1,5 @@
 import {
   Button,
-  InputLabelProps,
   Stack,
   TextField,
   MenuItem,
@@ -12,26 +11,7 @@ import { useState } from "react";
 import { ValidationFunction } from "../types/types";
 import useValidation from "../hooks/useValidation";
 import useAlert from "../hooks/useAlert";
-
-type Input<T> = {
-  name: keyof T;
-  type: string;
-  label: string;
-  required: boolean;
-  validationType?: string | ValidationFunction;
-  inputLabelProps?: InputLabelProps;
-  selectOptions?: selectOptions[];
-  helperText?: string;
-  inputProps?: {
-    accept: string;
-    endAdornment?: any;
-  };
-};
-
-type selectOptions = {
-  name: string;
-  value: string | number;
-};
+import { Input }from "../types/types";
 
 type FormTemplateProps<T> = {
   inputs: Input<T>[];
@@ -49,7 +29,6 @@ const TEXT_FIELD_PROPS = {
   variant: "outlined" as TextFieldVariants,
   margin: "dense" as const,
 };
-
 const SUBMIT_BUTTON_TEXT = "Hinzufügen";
 const ABORT_BUTTON_TEXT = "Abbrechen";
 
@@ -137,7 +116,7 @@ export function FormTemplate<T>({
 
   return (
     <div>
-      <Stack direction="column">
+      <Stack direction="row" useFlexGap flexWrap="wrap" >
         {inputs.map((input, idx) => {
           const commonProps = {
             ...TEXT_FIELD_PROPS,
@@ -159,9 +138,13 @@ export function FormTemplate<T>({
             return (
               <TextField
                 key={idx}
+                fullWidth={input.useFullWidth}
                 InputProps={input.inputProps}
                 {...commonProps}
                 disabled={isLoading}
+                sx={{
+                  marginTop: "10px"
+                }}
               ></TextField>
             );
           } else {
@@ -169,7 +152,9 @@ export function FormTemplate<T>({
               <TextField
                 key={idx}
                 select={input.type === "select"}
+                style={{width: (input.useFullWidth ? "100%" : "50%")}}
                 value={formData[input.name] === 0 ? "" : formData[input.name]}
+                InputProps={input.inputProps}
                 {...commonProps}
                 disabled={isLoading}
               >

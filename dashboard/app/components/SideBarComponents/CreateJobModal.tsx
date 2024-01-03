@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Fade,
-  InputLabelProps,
   Switch,
   Stack,
   FormControlLabel,
@@ -12,7 +11,7 @@ import {
   IconButton,
 } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info"
-import { Job, BulkJob, ValidationFunction } from "../../types/types";
+import { Job, BulkJob, Input } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 import useValidation from "../../hooks/useValidation";
 import { FormTemplate } from "../../templates/FormTemplate";
@@ -34,27 +33,6 @@ const style = {
 type ModalProps = {
   isOpen: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-type Input<T> = {
-  name: keyof T;
-  type: string;
-  label: string;
-  required: boolean;
-  useFullWidth: boolean;
-  validationType?: string | ValidationFunction;
-  inputLabelProps?: InputLabelProps;
-  selectOptions?: selectOptions[];
-  helperText?: string;
-  inputProps?: {
-    accept?: string;
-    endAdornment?: any
-  };
-};
-
-type selectOptions = {
-  name: string;
-  value: string | number;
 };
 
 const MODAL_TITLE = "Neuen Job hinzufügen:";
@@ -145,7 +123,6 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
       label: PASSWORD_INPUT_LABEL,
       required: false,
       inputProps: {
-          accept: ".zip",
           endAdornment: (
             <InputAdornment position="end">
               <IconButton

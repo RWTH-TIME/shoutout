@@ -14,7 +14,11 @@ const prisma = new PrismaClient({
 });
 
 async function getAllJobs() {
-  return await prisma.job.findMany();
+  const res = await prisma.job.findMany();
+  return res.map(({ password, ...rest }) => ({
+    ...rest,
+    isProtected: password !== null && password !== undefined,
+  }));
 }
 
 async function insertJob(data: Job) {

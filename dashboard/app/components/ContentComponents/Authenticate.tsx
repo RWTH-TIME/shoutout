@@ -7,22 +7,29 @@ import {
   Button,
   InputAdornment,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import { ChangeEvent, useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import useJobs from "../../hooks/useJob";
 import { Job } from "../../types/types";
+import useAlert from "../../hooks/useAlert";
 
 type AuthenticateProps = {
   jobDetail: Job | undefined;
+  setAuthenticationArray: React.Dispatch<React.SetStateAction<Array<string>>>;
 };
 
-/** This function contains the authentication ui */
-export default function Authenticate({jobDetail}: AuthenticateProps) {
-    const [ showPassword, setShowPassword ] = useState(false)
-    const { authenticate } = useJobs()
+const SUBMIT_BUTTON_TEXT = "LogIn";
 
+/** This function contains the authentication ui */
+export default function Authenticate({jobDetail, setAuthenticationArray}: AuthenticateProps) {
+    const { authenticate } = useJobs();
+    const { setAlert } = useAlert();
+  
+    const [showPassword, setShowPassword] = useState(false)
     const [passwordInput, setPasswordInput] = useState("")
+    const [isLoading, setIsLoading] = useState(false)
 
     const handleChange = (
         e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -33,7 +40,12 @@ export default function Authenticate({jobDetail}: AuthenticateProps) {
     }
 
     async function onAuth() {
-        if(jobDetail) authenticate(jobDetail, passwordInput);
+      setIsLoading(true);
+      if(!jobDetail) return
+      const success = await authenticate(jobDetail, passwordInput);
+      if (success) setAuthenticationArray((old) => [...old, jobDetail.name]);
+      else setAlert("Falsches Passwort!", "error")
+      setIsLoading(false);
     }
 
     return (
@@ -66,8 +78,8 @@ export default function Authenticate({jobDetail}: AuthenticateProps) {
                 ),
               }}
             />
-            <Button variant="contained" onClick={onAuth}>
-              LogIn
+            <Button variant="contained" onClick={onAuth} disabled={isLoading}>
+              {isLoading ? <CircularProgress size={25} /> : SUBMIT_BUTTON_TEXT}
             </Button>
           </Stack>
         </CardContent>

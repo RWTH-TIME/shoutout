@@ -109,7 +109,7 @@ if __name__ == "__main__":
     bucket = BucketManager()
     logging.basicConfig(
         format='%(asctime)s %(levelname)-8s %(message)s',
-        level=logging.INFO,
+        level=ConfigEntry.LOG_LEVEL,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     try:

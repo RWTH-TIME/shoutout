@@ -49,6 +49,7 @@ services:
       - UPLOAD_FILE_TARGET_DIR=finished-files/
       - DOWNLOAD_FILE_DIR=to-transcribe/
       - FINISHED_FILE_FORMAT=.txt
+      - LOG_LEVEL=INFO
     depends_on:
       - postgres
       - minio

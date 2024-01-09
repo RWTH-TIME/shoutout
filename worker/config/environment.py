@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     FINISHED_FILE_FORMAT: str = ".txt"
     ZIP_NOT_DEFINED_USER_INPUT: str = "auto"
 
-    LOG_LEVEL: str = "DEBUG"
+    LOG_LEVEL: str = "INFO"
 
     model_config = SettingsConfigDict(
         env_file_encoding="utf-8",

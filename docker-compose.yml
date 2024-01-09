@@ -11,14 +11,9 @@ services:
       - MINIO_PORT=9000
       - MINIO_ACCESS_KEY=shoutoutdevuser
       - MINIO_SECRET_KEY=shoutoutdevuser
-      - MINIO_JOB_BUCKET=shoutout-job-bucket
       - MINIO_SSL_ENABLED=false # TODO toggle if your endpoint is supporting valid https
       - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
-      - QUEUE_NAME=jobs
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
-      - DOWNLOAD_FILE_TARGET_DIR=finished-files/
-      - UPLOAD_FILE_TARGET_DIR=to-transcribe/
-      - FINISHED_FILE_FORMAT=.zip
     depends_on:
       - postgres
       - minio
@@ -40,15 +35,9 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_USER=rabbit
       - RABBITMQ_PASSWORD=rabbit
-      - RABBITMQ_QUEUE=jobs
-      - MINIO_JOB_BUCKET=shoutout-job-bucket
       - MINIO_SECRET_KEY=shoutoutdevuser
       - MINIO_ACCESS_KEY=shoutoutdevuser
       - MINIO_URL=http://minio:9000/
-      - TMP_FILE_DIR=tmp_downloads/
-      - UPLOAD_FILE_TARGET_DIR=finished-files/
-      - DOWNLOAD_FILE_DIR=to-transcribe/
-      - FINISHED_FILE_FORMAT=.txt
       - LOG_LEVEL=INFO
     depends_on:
       - postgres

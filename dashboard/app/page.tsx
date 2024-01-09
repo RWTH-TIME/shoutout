@@ -13,6 +13,7 @@ import { useState } from "react";
 /** This function represents the Home-Screen */
 export default function Home() {
   const [selectedJob, setSelectedJob] = useState<Job>();
+  const [jobList, setJobList] = useState<Job[]>();
 
   return (
     <div>
@@ -20,10 +21,17 @@ export default function Home() {
         <AlertPopup />
         <Grid container spacing="0">
           <Grid item xs={2}>
-            <SideBar setSelectedJob={setSelectedJob} />
+            <SideBar
+              setSelectedJob={setSelectedJob}
+              jobList={jobList}
+              setJobList={setJobList}
+            />
           </Grid>
           <Grid item xs={10}>
-            <ContentBox jobDetail={selectedJob} />
+            <ContentBox
+              setSelectedJob={setSelectedJob}
+              jobDetail={selectedJob}
+            />
           </Grid>
         </Grid>
       </AlertProvider>

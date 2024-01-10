@@ -15,6 +15,7 @@
     "@mui/material": "^5.13.3",
     "@prisma/client": "^4.14.0",
     "amqplib": "^0.10.3",
+    "jszip": "^3.10.1",
     "minio": "^7.1.2",
     "next": "13.4.2",
     "prisma": "^4.14.0",

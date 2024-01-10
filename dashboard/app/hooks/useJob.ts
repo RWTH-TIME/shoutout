@@ -46,7 +46,7 @@ export default function useJobs(id: number | undefined = undefined) {
 
       // Extract Filenames
       const fileExtention = fileName.slice(
-        ((fileName.lastIndexOf(".") - 1) >>> 0) + 2
+        ((fileName.lastIndexOf(".")) + 1)
       );
       const fileNames = await extractFileNames(job.audioFile, fileExtention);
 

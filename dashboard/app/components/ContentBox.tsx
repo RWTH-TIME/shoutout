@@ -36,7 +36,7 @@ export default function ContentBox({ jobDetail }: ContentBoxProps) {
         )}
       </div>
     );
-  }else {
+  } else {
     return (
       <></>
     )

@@ -125,7 +125,8 @@ export default function useJobs(id: number | undefined = undefined) {
       if(!authResponse.ok) throw new Error("could not authenticate.")
       
       return true
-    }catch(error) {
+    } catch(error) {
+      console.error("error while authenticating", error)
       return false
     }
   }

@@ -48,6 +48,7 @@ export default function JobDetail({ jobDetail }: JobDetailProps) {
       link.href = await downloadFile(jobDetail);
       link.click();
     } catch (error) {
+      console.error("error while downloading file:", error)
       setAlert("Beim Download ist etwas schiefgelaufen!", "error");
     } finally {
       setDownloadLoading(false);

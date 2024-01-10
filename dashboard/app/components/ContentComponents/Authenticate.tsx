@@ -31,12 +31,10 @@ export default function Authenticate({jobDetail, setAuthenticationArray}: Authen
     const [passwordInput, setPasswordInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
 
-    const handleChange = (
-        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
-        const inputElement = e.target as HTMLInputElement | HTMLTextAreaElement;
-        const value = inputElement.value        
-        setPasswordInput(value)
+    function handleChange(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+      const inputElement = e.target as HTMLInputElement | HTMLTextAreaElement;
+      const value = inputElement.value
+      setPasswordInput(value)
     }
 
     async function onAuth() {

@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info"
-import { Job, BulkJob, ValidationFunction } from "../../types/types";
+import { Job, BulkJob, ValidationFunction, STATUS } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 import useValidation from "../../hooks/useValidation";
 import { FormTemplate } from "../../templates/FormTemplate";
@@ -74,12 +74,13 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     audioFile: undefined,
     participants: 0,
     language: "",
-    status: "PENDING",
+    status: STATUS.Pending,
   };
 
   const emptyBulkState: BulkJob = {
     name: "",
     audioFile: undefined,
+    status: STATUS.Pending
   };
 
   const validateName = (data: string) => {

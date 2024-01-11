@@ -26,6 +26,7 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV DATABASE_URL="postgresql://admin:admin@postgres:5432/postgres?schema=public"
+ENV PORT=80
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
@@ -36,4 +37,4 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 80
 
-CMD npx prisma migrate deploy && npm start -- -p 80
+CMD npx prisma migrate deploy && npm start -- -p $PORT

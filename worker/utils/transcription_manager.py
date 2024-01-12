@@ -62,7 +62,7 @@ class TranscriptionManager:
     def diarize(self, path, audio, num_speaker):
         audio_file = rf"{path}{audio.rsplit('.',1)[0]}.wav"
         diarization_pl = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.0"
+            "pyannote/speaker-diarization@2.1"
         )
         if torch.cuda.is_available():
             diarization_pl.to(torch.device("cuda"))

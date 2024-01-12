@@ -16,5 +16,5 @@ urllib3==1.26.17
 torch==2.0.0
 torchaudio==2.0.0
 pydub==0.25.1
-pyannote.audio==3.0.0
+pyannote.audio==3.1.1
 openai-whisper==20231117

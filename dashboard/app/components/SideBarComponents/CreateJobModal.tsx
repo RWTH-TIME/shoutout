@@ -83,21 +83,12 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     status: STATUS.Pending
   };
 
-  const validateName = (data: string) => {
-    if (data.length > 10) {
-      return "Es sind maximal 10 Zeichen erlaubt"
-    } else {
-      return true
-    }
-  }
-
   const inputs: Input<Job>[] = [
     {
       name: "name",
       type: "text",
       label: NAME_INPUT_LABEL,
       required: true,
-      validationType: validateName,
     },
     {
       name: "audioFile",
@@ -134,7 +125,6 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
       type: "text",
       label: NAME_INPUT_LABEL,
       required: true,
-      validationType: validateName,
     },
     {
       name: "audioFile",

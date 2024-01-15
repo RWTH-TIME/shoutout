@@ -45,9 +45,7 @@ export default function useJobs(id: number | undefined = undefined) {
         throw new Error("Could not send audio file to miniobucket");
 
       // Extract Filenames
-      const fileExtention = fileName.slice(
-        ((fileName.lastIndexOf(".")) + 1)
-      );
+      const fileExtention = fileName.slice(fileName.lastIndexOf(".") + 1);
       const fileNames = await extractFileNames(job.audioFile, fileExtention);
 
       // send job to backend with url to minio file
@@ -94,7 +92,9 @@ export default function useJobs(id: number | undefined = undefined) {
       if (arrayBuffer) {
         const zip = new JSZip();
         const zipObject = await zip.loadAsync(arrayBuffer);
-        const fileNames = Object.keys(zipObject.files);
+        const fileNames = Object.keys(zipObject.files).filter(
+          (fileName) => !fileName.includes("/")
+        );
         return fileNames;
       } else {
         return [];
@@ -164,7 +164,7 @@ export default function useJobs(id: number | undefined = undefined) {
       mutate(updatedJobs, false);
       return true;
     } catch (error) {
-      console.error("error while deleting", error)
+      console.error("error while deleting", error);
       return false;
     }
   }

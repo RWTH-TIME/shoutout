@@ -153,7 +153,7 @@ class TranscriptionManager:
                             (df_section.End <= df_section.iloc[row].End)
                         ].iloc[row:]
                     )
-                    > 1
+                    >= 1
                 ):
                     # Recursive call for nested interupts
                     df_section = pd.concat(

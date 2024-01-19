@@ -113,9 +113,9 @@ class TranscriptionManager:
             ],
         )
         df["End"] = df.Start + df.Duration
-        df = self._remove_overlaps(df)
+        df = self._remove_overlaps(df[df.Duration > 0.8])
         sections = self._create_section_table(
-            self._aggregate_section(df[df.Duration > 1].copy())
+            self._aggregate_section(df[df.Duration > 0.8].copy())
         )
         self._run_whisper(path, audio, sections, model, language)
         del model.encoder

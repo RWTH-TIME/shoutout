@@ -95,7 +95,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     volumes: 
-      - ./conf/advanced.config:/etc/rabbitmq/advanced.config
+      - ./conf/advanced.config:/etc/rabbitmq/advanced.config:ro
 volumes:
   shoutout-db-data:
   minio_data:

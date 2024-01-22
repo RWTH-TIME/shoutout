@@ -38,10 +38,21 @@ class BucketManager:
         if file_format == ".zip":
             # extract zip to tmp_file_dir
             with zipfile.ZipFile(target, "r") as zip_ref:
-                zip_ref.extractall(
-                    ConfigEntry.TMP_FILE_DIR
-                )
-                files = zip_ref.namelist()
+                for file_info in zip_ref.infolist():
+                    if (
+                        not file_info.is_dir() and
+                        "/" not in file_info.filename
+                    ):
+                        zip_ref.extract(
+                            file_info,
+                            ConfigEntry.TMP_FILE_DIR
+                        )
+
+                files = [
+                    filename
+                    for filename in zip_ref.namelist()
+                    if "/" not in filename
+                ]
 
             # rename files which contain spaces for diarization
             for old in files:

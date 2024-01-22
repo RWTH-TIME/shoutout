@@ -237,8 +237,10 @@ class TranscriptionManager:
             )
 
             # create temporary wav-file for current section and transcribing it
-            startTime=(section.Start-0.2)*1000 if section.Start >= 0.2 else 0.0
-            endTime=(section.End+0.1)*1000
+            startTime = (
+                section.Start-0.2
+                )*1000 if section.Start >= 0.2 else 0.0
+            endTime = (section.End+0.1)*1000
             audiofile[
                 startTime:endTime
             ].export(tempfile_path, format="WAV")

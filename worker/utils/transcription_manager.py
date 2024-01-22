@@ -113,9 +113,9 @@ class TranscriptionManager:
             ],
         )
         df["End"] = df.Start + df.Duration
-        df = self._remove_overlaps(df)
+        df = self._remove_overlaps(df[df.Duration > 0.8])
         sections = self._create_section_table(
-            self._aggregate_section(df[df.Duration > 1].copy())
+            self._aggregate_section(df[df.Duration > 0.8].copy())
         )
         self._run_whisper(path, audio, sections, model, language)
         del model.encoder
@@ -237,8 +237,12 @@ class TranscriptionManager:
             )
 
             # create temporary wav-file for current section and transcribing it
+            startTime = (
+                section.Start-0.2
+                )*1000 if section.Start >= 0.2 else 0.0
+            endTime = (section.End+0.1)*1000
             audiofile[
-                section.Start * 1000: (section.End + 0.3) * 1000
+                startTime:endTime
             ].export(tempfile_path, format="WAV")
             result_section = model.transcribe(
                 tempfile_path,

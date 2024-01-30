@@ -195,6 +195,8 @@ class TranscriptionManager:
             df.iloc[i, 4] = df.iloc[i].End - df.iloc[i].Start
             df.iloc[-1, 3] = df.iloc[i + next_gap].End
             df.iloc[-1, 4] = df.iloc[-1].End - df.iloc[-1].Start
+            if df.iloc[-1, 4] == 0.0:
+                df = df.iloc[:-1].copy()
             df.sort_values("Start", ascending=True, inplace=True)
 
             i += next_gap + 1

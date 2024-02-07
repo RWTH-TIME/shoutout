@@ -5,8 +5,8 @@ Powered by models like whisper-v3 and pyannote/speaker-diarization. Try it yours
 Shoutout is a state of the art web application for transcribing audiofiles including speaker diarization and time stamps. Due to its high accuracy level, ideal data privacy and easy navigation, shoutout is perfectly suited for transcriptions of interviews in qualitative research or sensitive corporate recordings.
 
 Shoutout provides:
-- A **simple to use** web-interface.
-- **highly accurate** transcriptions leveraing the open source transcription model whisper-v3.
+- a **simple to use** web-interface.
+- **highly accurate** transcriptions leveraging the open source transcription model whisper-v3.
 - automatic **speaker detection** including timestamps.
 - perfect **data privacy**: Shoutout runs **100% local** and does not share any of your data with external services.
 - highly **efficient and fast** transcriptions using GPU acceleration and a scalable architecture.

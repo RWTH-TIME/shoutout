@@ -1,7 +1,43 @@
-# shoutout
-
-shoutout is a web application for transcribing audiofiles on your own server.  
+A modern web application for transcribing audiofiles on your own server.  
 Powered by models like whisper-v3 and pyannote/speaker-diarization. Try it yourself!  
+
+# Why Shoutout?
+Shoutout is a state of the art web application for transcribing audiofiles including speaker diarization and time stamps. Due to its high accuracy level, ideal data privacy and easy navigation, shoutout is perfectly suited for transcriptions of interviews in qualitative research or sensitive corporate recordings.
+
+Shoutout provides:
+- A **simple to use** web-interface.
+- **highly accurate** transcriptions leveraing the open source transcription model whisper-v3.
+- automatic **speaker detection** including timestamps.
+- perfect **data privacy**: Shoutout runs **100% local** and does not share any of your data with external services.
+- highly **efficient and fast** transcriptions using GPU acceleration and a scalable architecture.
+- **easy deployment** due to a completely dockerized build.
+
+# Screenshots
+### Creating a new job
+![.assets/Shoutout_1.png](.assets/Shoutout_1.png)
+
+### Web-interface with an overview of all jobs
+![.assets/Shoutout_2.png](.assets/Shoutout_2.png)
+
+### Downloading transcripts after finishing a job
+![.assets/Shoutout_3.png](.assets/Shoutout_3.png)
+
+### Results example:
+
+```
+SPEAKER_00 00:00:00
+Sure, okay, so for documentation purposes. Are you okay with me recording the interview?
+
+SPEAKER_01 00:00:12
+Yes, I agree to the audio recording.
+
+SPEAKER_00 00:00:17
+Okay, then let's start. Could you first briefly introduce yourself, describe your background and what your doing...
+
+SPEAKER_01 00:00:28
+Well, my name is ...
+```
+
 
 ## Architecture
 

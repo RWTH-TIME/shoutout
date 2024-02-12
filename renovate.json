@@ -18,11 +18,16 @@
         "dependencyDashboardApproval": true
     },
     "rangeStrategy": "pin",
-    "ignorePaths": [
-        "**/node_modules/**",
-        "**/bower_components/**"
-    ],
     "packageRules": [
+        {
+            "matchPackagePatterns": [
+                "speaker-diarization"
+            ],
+            "matchManagers": [
+                "transcription_manager",
+                "Dockerfile"
+            ]
+        },
         {
             "groupName": "all non-major {{manager}} dependencies",
             "matchUpdateTypes": [

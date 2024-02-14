@@ -44,7 +44,6 @@ jobs:
   
   build:
     name: Build docker image
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -52,15 +51,23 @@ jobs:
         include:
           - context: dashboard
             image: dashboard
+            build_always: true
           - context: worker
             model: large-v3
             image:  worker-large
+            build_always: false
           - context: worker
             model: medium
             image: worker-medium
+            build_always: false 
           - context: worker
             model: small
             image: worker-small
+            build_always: false
+          - context: worker
+            model: tiny
+            image: worker-tiny
+            build_always: true
     permissions:
       contents: read
       packages: write
@@ -68,13 +75,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
+        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -85,6 +94,7 @@ jobs:
             type=ref, event=pr
             type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' }} # tags for model-sizes
             type=raw, value=latest , enable=${{ (github.ref == format('refs/heads/{0}', 'main')) && (matrix.image == 'worker-large' || matrix.image == 'dashboard')}} # tag worker large and dashboard branch as latest
+        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
@@ -96,3 +106,5 @@ jobs:
             HUGGINGFACE_APIKEY=${{ secrets.HUGGINGFACE_APIKEY }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
+

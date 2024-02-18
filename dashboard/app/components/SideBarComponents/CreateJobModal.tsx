@@ -45,7 +45,7 @@ type Input<T> = {
   helperText?: string;
   inputProps?: {
     accept: string;
-    endAdornment?: any
+    endAdornment?: JSX.Element
   };
 };
 

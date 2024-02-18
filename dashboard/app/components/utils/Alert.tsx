@@ -1,4 +1,4 @@
-import { Alert, AlertClassKey, AlertColor, Snackbar } from "@mui/material";
+import { Alert, AlertColor, Snackbar } from "@mui/material";
 import useAlert from "../../hooks/useAlert";
 
 const AlertPopup = () => {

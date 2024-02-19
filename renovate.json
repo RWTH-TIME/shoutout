@@ -20,6 +20,15 @@
     "rangeStrategy": "pin",
     "packageRules": [
         {
+            "matchPackagePatterns": [
+                "urllib3"
+            ],
+            "matchManagers": [
+                "pip_requirements"
+            ],
+            "enabled": false
+        },
+        {
             "groupName": "all non-major {{manager}} dependencies",
             "matchUpdateTypes": [
                 "minor",

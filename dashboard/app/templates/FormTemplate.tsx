@@ -24,7 +24,7 @@ type Input<T> = {
   helperText?: string;
   inputProps?: {
     accept: string;
-    endAdornment?: any;
+    endAdornment?: JSX.Element;
   };
 };
 
@@ -98,7 +98,7 @@ export function FormTemplate<T>({
       } else {
         // If the error disappears, delete the key from validationError Obj
         const cleanedObj = { ...validationError };
-        delete (cleanedObj as any)[name];
+        delete (cleanedObj as ValidationErrors<T>)[name as keyof T];
         setValidationError(cleanedObj);
       }
     }

@@ -153,3 +153,5 @@ python3 main.py
 | `WHISPER_MODEL`          | `large-v3`              | openai whisper [model size](https://github.com/openai/whisper#available-models-and-languages) |
 | `FINISHED_FILE_FORMAT`   | `.txt`                  | File format of the transcribed file                                                           |
 
+
+asdpaljsd

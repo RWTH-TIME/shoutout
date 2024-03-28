@@ -39,11 +39,16 @@ class BucketManager:
             # extract zip to tmp_file_dir
             with zipfile.ZipFile(target, "r") as zip_ref:
                 for file_info in zip_ref.infolist():
-                    if not file_info.is_dir() and "/" not in file_info.filename:
+                    if (
+                        not file_info.is_dir()
+                        and "/" not in file_info.filename
+                    ):
                         zip_ref.extract(file_info, ConfigEntry.TMP_FILE_DIR)
 
                 files = [
-                    filename for filename in zip_ref.namelist() if "/" not in filename
+                    filename
+                    for filename in zip_ref.namelist()
+                    if "/" not in filename
                 ]
 
             # rename files which contain spaces for diarization
@@ -72,12 +77,16 @@ class BucketManager:
         with zipfile.ZipFile(to_be_uploaded_filename, "w") as obj:
             for filename in files:
                 source_name = filename.split(".")[0]
-                target_name = filename.split(".")[0] if len(files) > 1 else job_name
+                target_name = (
+                    filename.split(".")[0] if len(files) > 1 else job_name
+                )
                 obj.write(
                     f"{ConfigEntry.TMP_FILE_DIR}"
                     f"{source_name}{ConfigEntry.FINISHED_FILE_FORMAT}",
                     f"{target_name}{ConfigEntry.FINISHED_FILE_FORMAT}",
                 )
 
-        upload_target = os.path.join(ConfigEntry.UPLOAD_FILE_TARGET_DIR, uuid + ".zip")
+        upload_target = os.path.join(
+            ConfigEntry.UPLOAD_FILE_TARGET_DIR, uuid + ".zip"
+        )
         bucket.upload_file(to_be_uploaded_filename, upload_target)

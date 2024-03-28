@@ -63,18 +63,24 @@ class TranscriptionManager:
 
     def diarize(self, path, audio, num_speaker):
         audio_file = rf"{path}{audio.rsplit('.', 1)[0]}.wav"
-        diarization_pl = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1")
+        diarization_pl = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1"
+        )
         if torch.cuda.is_available():
             diarization_pl = diarization_pl.to(torch.device("cuda"))
 
         # create wav-file
         if audio.rsplit(".", 1)[1] != "wav":
             fileformat = audio.rsplit(".", 1)[1]
-            track = AudioSegment.from_file(rf"{path}{audio}", format=fileformat)
+            track = AudioSegment.from_file(
+                rf"{path}{audio}", format=fileformat
+            )
             track.export(audio_file, format="wav")
 
-        # This is done to fix the issue, common on RTX 4090 GPUs, which lead to very low GPU utilization.
-        # Beware, OOM error possible if very long audiofiles are diarized or insufficient amounts of RAM are available.
+        # This is done to fix the issue, common on RTX 4090 GPUs,
+        # which lead to very low GPU utilization.
+        # Beware, OOM error possible if very long audiofiles are diarized
+        # or insufficient amounts of RAM are available.
         # https://github.com/pyannote/pyannote-audio/issues/1403
         waveform, sample_rate = torchaudio.load(audio_file)
 
@@ -151,9 +157,9 @@ class TranscriptionManager:
             while row < len(df_section) - 1:
                 if (
                     len(
-                        df_section[(df_section.End <= df_section.iloc[row].End)].iloc[
-                            row:
-                        ]
+                        df_section[
+                            (df_section.End <= df_section.iloc[row].End)
+                        ].iloc[row:]
                     )
                     >= 1
                 ):
@@ -161,7 +167,9 @@ class TranscriptionManager:
                     df_section = pd.concat(
                         [
                             df_section.iloc[:row].copy(),
-                            self._remove_overlaps(df_section.iloc[row:].copy()),
+                            self._remove_overlaps(
+                                df_section.iloc[row:].copy()
+                            ),
                         ]
                     )
 
@@ -171,7 +179,7 @@ class TranscriptionManager:
                 [
                     df.iloc[:i].copy(),
                     self._split_overlap(df_section),
-                    df.iloc[i + len(df_section) :].copy(),
+                    df.iloc[i + len(df_section):].copy(),
                 ]
             )
 
@@ -182,7 +190,10 @@ class TranscriptionManager:
         while i < len(df) - 1:
             next_gap = 1
             while next_gap + i < len(df) - 1:
-                if df.iloc[i + next_gap].End >= df.iloc[i + next_gap + 1].Start:
+                if (
+                    df.iloc[i + next_gap].End
+                    >= df.iloc[i + next_gap + 1].Start
+                ):
                     next_gap += 1
                 else:
                     break
@@ -231,10 +242,14 @@ class TranscriptionManager:
         )
 
         for _, section in sections.iterrows():
-            tempfile_path = rf"{path}/{audio.rsplit('.', 1)[0]}_current_section.wav"
+            tempfile_path = (
+                rf"{path}/{audio.rsplit('.', 1)[0]}_current_section.wav"
+            )
 
             # create temporary wav-file for current section and transcribing it
-            startTime = (section.Start - 0.2) * 1000 if section.Start >= 0.2 else 0.0
+            startTime = (
+                (section.Start - 0.2) * 1000 if section.Start >= 0.2 else 0.0
+            )
             endTime = (section.End + 0.1) * 1000
             audiofile[startTime:endTime].export(tempfile_path, format="WAV")
             result_section = model.transcribe(tempfile_path, language=language)

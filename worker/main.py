@@ -45,7 +45,9 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
             postgres.updateJobStatus(status=Status.RUNNING, jobName=job_name)
             if len(files) > 1:
                 # update job info through file name
-                filename, participants, language = _extract_from_filename(filename)
+                filename, participants, language = _extract_from_filename(
+                    filename
+                )
             else:
                 filename = uuid_with_extention
 
@@ -58,7 +60,9 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
             logging.info(f"{job_name} {filename} Diarization ended.")
 
             logging.info(f"{job_name} {filename} Transcription started.")
-            transcription.transcribe(ConfigEntry.TMP_FILE_DIR, filename, language)
+            transcription.transcribe(
+                ConfigEntry.TMP_FILE_DIR, filename, language
+            )
             logging.info(f"{job_name} {filename} Transcription ended.")
 
         bucket.uploadFile(uuid_with_extention.split(".")[0], files, job_name)
@@ -86,7 +90,8 @@ def _execute_job(_, method, _1, body, args) -> None:
 
     # start thread:
     t = threading.Thread(
-        target=_run_job, args=(connection, ack_callback, delivery_tag, job_name)
+        target=_run_job,
+        args=(connection, ack_callback, delivery_tag, job_name),
     )
 
     t.start()

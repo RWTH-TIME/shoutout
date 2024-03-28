@@ -92,6 +92,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.context }}
           tags: |
             type=ref, event=pr
+            type=ref, event=branch
             type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' }} # tags for model-sizes
             type=raw, value=latest , enable=${{ (github.ref == format('refs/heads/{0}', 'main')) && (matrix.image == 'worker-large' || matrix.image == 'dashboard')}} # tag worker large and dashboard branch as latest
         if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 

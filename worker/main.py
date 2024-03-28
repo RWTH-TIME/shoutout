@@ -45,9 +45,7 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
             postgres.updateJobStatus(status=Status.RUNNING, jobName=job_name)
             if len(files) > 1:
                 # update job info through file name
-                filename, participants, language = _extract_from_filename(
-                    filename
-                )
+                filename, participants, language = _extract_from_filename(filename)
             else:
                 filename = uuid_with_extention
 
@@ -59,15 +57,9 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
             )
             logging.info(f"{job_name} {filename} Diarization ended.")
 
-            logging.info(
-                f"{job_name} {filename} Transcription started.")
-            transcription.transcribe(
-                ConfigEntry.TMP_FILE_DIR,
-                filename,
-                language
-            )
-            logging.info(
-                f"{job_name} {filename} Transcription ended.")
+            logging.info(f"{job_name} {filename} Transcription started.")
+            transcription.transcribe(ConfigEntry.TMP_FILE_DIR, filename, language)
+            logging.info(f"{job_name} {filename} Transcription ended.")
 
         bucket.uploadFile(uuid_with_extention.split(".")[0], files, job_name)
 
@@ -78,10 +70,7 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
     except Exception:
         # If the job fails, update the job status and ack the job and exit
         logging.info(job_name + " failed.")
-        postgres.updateJobStatus(
-            status=Status.FAILED,
-            jobName=job_name
-        )
+        postgres.updateJobStatus(status=Status.FAILED, jobName=job_name)
         _ack(connection, ack_callback, delivery_tag)
         return
 
@@ -97,8 +86,7 @@ def _execute_job(_, method, _1, body, args) -> None:
 
     # start thread:
     t = threading.Thread(
-        target=_run_job,
-        args=(connection, ack_callback, delivery_tag, job_name)
+        target=_run_job, args=(connection, ack_callback, delivery_tag, job_name)
     )
 
     t.start()
@@ -108,7 +96,7 @@ def _execute_job(_, method, _1, body, args) -> None:
 if __name__ == "__main__":
     bucket = BucketManager()
     logging.basicConfig(
-        format='%(asctime)s %(levelname)-8s %(message)s',
+        format="%(asctime)s %(levelname)-8s %(message)s",
         level=ConfigEntry.LOG_LEVEL,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
@@ -122,7 +110,7 @@ if __name__ == "__main__":
                 rabbitMQ.connection,
                 threads,
                 rabbitMQ.ack_message,
-            )
+            ),
         )
 
         rabbitMQ.consume(callback=transcription_callback)

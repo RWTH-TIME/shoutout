@@ -4,16 +4,17 @@ import logging
 from config.environment import ConfigEntry
 
 
-class RabbitManager():
+class RabbitManager:
     def __init__(self) -> None:
         self.queue = ConfigEntry.RABBITMQ_QUEUE
-        self.connection = None,
-        self._channel = None,
+        self.connection = (None,)
+        self._channel = (None,)
         self._create_connection()
 
     def _create_connection(self) -> pika.BlockingConnection:
         credentials = pika.PlainCredentials(
-            ConfigEntry.RABBITMQ_USER, ConfigEntry.RABBITMQ_PASSWORD)
+            ConfigEntry.RABBITMQ_USER, ConfigEntry.RABBITMQ_PASSWORD
+        )
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=ConfigEntry.RABBITMQ_HOST,
@@ -25,8 +26,7 @@ class RabbitManager():
 
     def _get_channel(self):
         channel = self.connection.channel()
-        channel.queue_declare(
-            queue=ConfigEntry.RABBITMQ_QUEUE, durable=True)
+        channel.queue_declare(queue=ConfigEntry.RABBITMQ_QUEUE, durable=True)
         return channel
 
     def _consume(self, callback, ack: bool = False):

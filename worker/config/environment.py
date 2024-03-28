@@ -29,10 +29,7 @@ class Settings(BaseSettings):
 
     LOG_LEVEL: str = "INFO"
 
-    model_config = SettingsConfigDict(
-        env_file_encoding="utf-8",
-        case_sensitive=True
-    )
+    model_config = SettingsConfigDict(env_file_encoding="utf-8", case_sensitive=True)
 
 
 ConfigEntry = Settings(_env_file=".env", _env_file_encoding="utf-8")

@@ -7,6 +7,7 @@ import torch
 import whisper
 from pydub import AudioSegment
 import pandas as pd
+import torchaudio
 from pyannote.audio import Pipeline
 
 from config.environment import ConfigEntry
@@ -62,7 +63,7 @@ class TranscriptionManager:
     def diarize(self, path, audio, num_speaker):
         audio_file = rf"{path}{audio.rsplit('.',1)[0]}.wav"
         diarization_pl = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization@2.1"
+            "pyannote/speaker-diarization-3.1"
         )
         if torch.cuda.is_available():
             diarization_pl = diarization_pl.to(torch.device("cuda"))
@@ -75,13 +76,14 @@ class TranscriptionManager:
             )
             track.export(audio_file, format="wav")
 
-        if num_speaker == 0:
-            diarization = diarization_pl(audio_file)
-        else:
-            diarization = diarization_pl(
-                audio_file,
-                num_speakers=int(num_speaker)
-            )
+        # This is done to fix the issue, common on RTX 4090 GPUs, which lead to very low GPU utilization.
+        # Beware, OOM error possible if very long audiofiles are diarized or insufficient amounts of RAM are available.
+        # https://github.com/pyannote/pyannote-audio/issues/1403
+        waveform, sample_rate = torchaudio.load(audio_file)
+
+        num_speakers = int(num_speaker) if num_speaker > 0 else None
+
+        diarization = diarization_pl({"waveform": waveform, "sample_rate": sample_rate}, num_speakers=num_speakers)
 
         # dump the diarization output using RTTM format
         with open(

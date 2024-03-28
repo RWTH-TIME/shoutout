@@ -65,7 +65,7 @@ class TranscriptionManager:
             "pyannote/speaker-diarization@2.1"
         )
         if torch.cuda.is_available():
-            diarization_pl.to(torch.device("cuda"))
+            diarization_pl = diarization_pl.to(torch.device("cuda"))
 
         # create wav-file
         if audio.rsplit(".", 1)[1] != "wav":

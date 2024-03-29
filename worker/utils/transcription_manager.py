@@ -2,11 +2,13 @@
 This module runs diarization and Transcription algorithm (whisper)
 on an audio file and store results
 """
+
 import time
 import torch
 import whisper
 from pydub import AudioSegment
 import pandas as pd
+import torchaudio
 from pyannote.audio import Pipeline
 
 from config.environment import ConfigEntry
@@ -60,12 +62,12 @@ class TranscriptionManager:
         return aggregated_df
 
     def diarize(self, path, audio, num_speaker):
-        audio_file = rf"{path}{audio.rsplit('.',1)[0]}.wav"
+        audio_file = rf"{path}{audio.rsplit('.', 1)[0]}.wav"
         diarization_pl = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization@2.1"
+            "pyannote/speaker-diarization-3.1"
         )
         if torch.cuda.is_available():
-            diarization_pl.to(torch.device("cuda"))
+            diarization_pl = diarization_pl.to(torch.device("cuda"))
 
         # create wav-file
         if audio.rsplit(".", 1)[1] != "wav":
@@ -75,17 +77,23 @@ class TranscriptionManager:
             )
             track.export(audio_file, format="wav")
 
-        if num_speaker == 0:
-            diarization = diarization_pl(audio_file)
-        else:
-            diarization = diarization_pl(
-                audio_file,
-                num_speakers=int(num_speaker)
-            )
+        # This is done to fix the issue, common on RTX 4090 GPUs,
+        # which lead to very low GPU utilization.
+        # Beware, OOM error possible if very long audiofiles are diarized
+        # or insufficient amounts of RAM are available.
+        # https://github.com/pyannote/pyannote-audio/issues/1403
+        waveform, sample_rate = torchaudio.load(audio_file)
+
+        num_speakers = int(num_speaker) if num_speaker > 0 else None
+
+        diarization = diarization_pl(
+            {"waveform": waveform, "sample_rate": sample_rate},
+            num_speakers=num_speakers,
+        )
 
         # dump the diarization output using RTTM format
         with open(
-            rf"{path}/{audio.rsplit('.',1)[0]}_diarized.rttm",
+            rf"{path}/{audio.rsplit('.', 1)[0]}_diarized.rttm",
             "w",
             encoding="utf-8",
         ) as rttm:
@@ -96,7 +104,7 @@ class TranscriptionManager:
     def transcribe(self, path, audio, language):
         model = whisper.load_model(ConfigEntry.WHISPER_MODEL)
         df = pd.read_csv(
-            rf"{path}/{audio.rsplit('.',1)[0]}_diarized.rttm",
+            rf"{path}/{audio.rsplit('.', 1)[0]}_diarized.rttm",
             sep=" ",
             header=None,
             names=[
@@ -230,26 +238,21 @@ class TranscriptionManager:
         # Transcribing each section by splitting the audiofile,
         # transcribing seperately and concatenating the results.
         audiofile = AudioSegment.from_file(
-            rf"{path}/{audio.rsplit('.',1)[0]}.wav", format="wav"
+            rf"{path}/{audio.rsplit('.', 1)[0]}.wav", format="wav"
         )
 
         for _, section in sections.iterrows():
             tempfile_path = (
-                rf"{path}/{audio.rsplit('.',1)[0]}_current_section.wav"
+                rf"{path}/{audio.rsplit('.', 1)[0]}_current_section.wav"
             )
 
             # create temporary wav-file for current section and transcribing it
             startTime = (
-                section.Start-0.2
-                )*1000 if section.Start >= 0.2 else 0.0
-            endTime = (section.End+0.1)*1000
-            audiofile[
-                startTime:endTime
-            ].export(tempfile_path, format="WAV")
-            result_section = model.transcribe(
-                tempfile_path,
-                language=language
+                (section.Start - 0.2) * 1000 if section.Start >= 0.2 else 0.0
             )
+            endTime = (section.End + 0.1) * 1000
+            audiofile[startTime:endTime].export(tempfile_path, format="WAV")
+            result_section = model.transcribe(tempfile_path, language=language)
 
             # inserting Speaker and timestamp
             result += (
@@ -261,7 +264,7 @@ class TranscriptionManager:
             result += result_section["text"] + "\n" + "\n"
 
         with open(
-            f"{ConfigEntry.TMP_FILE_DIR}/{audio.rsplit('.',1)[0]}"
+            f"{ConfigEntry.TMP_FILE_DIR}/{audio.rsplit('.', 1)[0]}"
             f"{ConfigEntry.FINISHED_FILE_FORMAT}",
             "w",
             encoding="utf-8",

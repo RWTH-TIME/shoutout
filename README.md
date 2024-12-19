@@ -153,3 +153,18 @@ python3 main.py
 | `WHISPER_MODEL`          | `large-v3`              | openai whisper [model size](https://github.com/openai/whisper#available-models-and-languages) |
 | `FINISHED_FILE_FORMAT`   | `.txt`                  | File format of the transcribed file                                                           |
 
+# Citation
+
+BiBTex:
+
+```
+@software{shoutout_2024,
+title = {{shoutout: A modern web application for transcribing audio files on your own server}},
+doi = {10.5281/zenodo.14527349},
+url = {https://github.com/RWTH-TIME/shoutout},
+version = {v1.0.0},
+year = {2024}
+author = {Selzner, Paul and Evers, Felix and Kalhorn, Paul and Beckers, Lukas},
+note = {Published by RWTH Technology and Innovation Management Institute (TIME Research Area)}
+}
+```

@@ -1,0 +1,18 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Selzner
+    given-names: Paul
+  - family-names: Evers
+    given-names: Felix
+  - family-names: Kalhorn
+    given-names: Paul
+  - family-names: Beckers
+    given-names: Lukas
+title: Shoutout
+version: v1.0.0
+date-released: 2024-12-19
+url: https://github.com/RWTH-TIME/shoutout
+repository-code: https://github.com/RWTH-TIME/shoutout
+doi: 10.5281/zenodo.14527349
+                          

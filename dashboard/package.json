@@ -9,33 +9,33 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@emotion/react": "11.13.3",
-    "@emotion/styled": "11.13.0",
-    "@mui/icons-material": "5.16.7",
-    "@mui/material": "5.16.7",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.0",
+    "@mui/icons-material": "5.16.13",
+    "@mui/material": "5.16.13",
     "@prisma/client": "5.22.0",
-    "amqplib": "0.10.4",
+    "amqplib": "0.10.5",
     "minio": "7.1.4",
-    "next": "14.2.18",
+    "next": "14.2.21",
     "prisma": "5.22.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "swr": "2.2.5",
+    "swr": "2.3.0",
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "@types/amqplib": "0.10.5",
-    "@types/node": "20.17.6",
-    "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
+    "@types/amqplib": "0.10.6",
+    "@types/node": "20.17.10",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
     "@types/uuid": "9.0.8",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
     "eslint": "8.57.1",
-    "eslint-config-next": "14.2.18",
+    "eslint-config-next": "14.2.21",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-prettier": "5.2.1",
-    "prettier": "3.3.3",
-    "typescript": "5.6.3"
+    "prettier": "3.4.2",
+    "typescript": "5.7.2"
   }
 }

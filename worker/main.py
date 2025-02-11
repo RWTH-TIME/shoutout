@@ -2,6 +2,7 @@ import logging
 import shutil
 import threading
 import functools
+import traceback
 
 from utils.rabbitmq_manager import RabbitManager
 from utils.postgres_manager import PostgresManager, Status
@@ -71,9 +72,11 @@ def _run_job(connection, ack_callback, delivery_tag, job_name):
         postgres.updateJobStatus(status=Status.FINISHED, jobName=job_name)
 
         _ack(connection, ack_callback, delivery_tag)
-    except Exception:
+    except Exception as e:
         # If the job fails, update the job status and ack the job and exit
-        logging.info(job_name + " failed.")
+        logging.error(f'{job_name} failed due to an error: {e}')
+        logging.error(traceback.format_exc())
+
         postgres.updateJobStatus(status=Status.FAILED, jobName=job_name)
         _ack(connection, ack_callback, delivery_tag)
         return

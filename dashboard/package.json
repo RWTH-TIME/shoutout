@@ -16,7 +16,7 @@
     "@prisma/client": "5.22.0",
     "amqplib": "0.10.5",
     "minio": "7.1.4",
-    "next": "14.2.23",
+    "next": "14.2.24",
     "prisma": "5.22.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -25,17 +25,17 @@
   },
   "devDependencies": {
     "@types/amqplib": "0.10.6",
-    "@types/node": "20.17.17",
+    "@types/node": "20.17.19",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
     "@types/uuid": "9.0.8",
     "@typescript-eslint/eslint-plugin": "7.18.0",
     "@typescript-eslint/parser": "7.18.0",
     "eslint": "8.57.1",
-    "eslint-config-next": "14.2.23",
+    "eslint-config-next": "14.2.24",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-prettier": "5.2.3",
-    "prettier": "3.5.0",
+    "prettier": "3.5.1",
     "typescript": "5.7.3"
   }
 }

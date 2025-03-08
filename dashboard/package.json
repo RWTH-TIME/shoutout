@@ -20,12 +20,12 @@
     "prisma": "5.22.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "swr": "2.3.2",
+    "swr": "2.3.3",
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "@types/amqplib": "0.10.6",
-    "@types/node": "20.17.19",
+    "@types/amqplib": "0.10.7",
+    "@types/node": "20.17.24",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
     "@types/uuid": "9.0.8",
@@ -35,7 +35,7 @@
     "eslint-config-next": "14.2.24",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-prettier": "5.2.3",
-    "prettier": "3.5.1",
-    "typescript": "5.7.3"
+    "prettier": "3.5.3",
+    "typescript": "5.8.2"
   }
 }

@@ -1,0 +1,1 @@
+0 0 * * * /usr/local/bin/cleanup_jobs.sh >> /proc/1/fd/1 2>&1

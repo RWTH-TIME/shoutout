@@ -96,6 +96,17 @@ services:
       - "15672:15672"
     volumes: 
       - ./conf/advanced.config:/etc/rabbitmq/advanced.config:ro
+
+  job-cleaner:
+    build: sanity_check
+    environment:
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+    depends_on:
+      - postgres
 volumes:
   shoutout-db-data:
   minio_data:

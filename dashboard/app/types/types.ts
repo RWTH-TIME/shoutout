@@ -4,12 +4,14 @@ export type Job = {
   participants: number;
   language: string;
   status: STATUS;
+  createdAt: Date
 };
 
 export type BulkJob = {
   name: string;
   audioFile: File | string | undefined;
   status: STATUS;
+  createdAt: Date;
 };
 
 /* returns true when validation successful, error message if not.

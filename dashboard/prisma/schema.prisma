@@ -17,6 +17,7 @@ model job {
   participants Int?
   language     String?
   status       Status  @default(PENDING)
+  createdAt    DateTime @default(now())
 }
 
 enum Status {

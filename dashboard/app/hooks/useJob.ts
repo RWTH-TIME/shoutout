@@ -76,7 +76,7 @@ export default function useJobs(id: number | undefined = undefined) {
     }
   }
 
-  function getStatusColor(status: string): "default" | "error" | "success" | "warning"{
+  function getStatusColor(status: string): "default" | "error" | "success" | "warning" {
     if (status === STATUS.Pending) return "default";
     if (status === STATUS.Failed) return "error";
     if (status === STATUS.Finished) return "success";
@@ -98,7 +98,7 @@ export default function useJobs(id: number | undefined = undefined) {
     return presignedUrl;
   }
 
-  async function deleteJob(job: Job | BulkJob): Promise<boolean>{
+  async function deleteJob(job: Job | BulkJob): Promise<boolean> {
     try {
       // Delete files from minio
       const bucket_delete = await fetch(
@@ -122,7 +122,7 @@ export default function useJobs(id: number | undefined = undefined) {
       const updatedJobs = jobs?.filter(t => t.name !== job.name)
       mutate(updatedJobs, false);
       return true
-    }catch(e) {
+    } catch (e) {
       return false
     }
   }

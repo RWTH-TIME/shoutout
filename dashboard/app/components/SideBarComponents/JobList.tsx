@@ -20,9 +20,13 @@ type JobListProps = {
 export default function JobList({ jobs, setSelectedJob }: JobListProps) {
   const { getStatusColor } = useJobs();
 
+  const sortedJobs = [...(jobs ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   return (
     <List>
-      {jobs?.map((job, idx) => (
+      {sortedJobs?.map((job, idx) => (
         <div key={idx}>
           <ListItem
             disablePadding

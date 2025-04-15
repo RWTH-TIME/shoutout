@@ -1,14 +1,13 @@
-"use client";
+"use client"
 
-import SideBar from "./components/SideBar";
 import ContentBox from "./components/ContentBox";
-
 import { Job } from "./types/types";
 import { AlertProvider } from "./context/AlertContext";
 import AlertPopup from "./components/utils/Alert";
 
-import { Grid } from "@mui/material";
+import { Box } from "@mui/material";
 import { useState } from "react";
+import SideBar from "./components/SideBar"; // Assuming this exists
 
 /** This function represents the Home-Screen */
 export default function Home() {
@@ -16,25 +15,24 @@ export default function Home() {
   const [jobList, setJobList] = useState<Job[]>();
 
   return (
-    <div>
-      <AlertProvider>
-        <AlertPopup />
-        <Grid container spacing="0">
-          <Grid item xs={2}>
-            <SideBar
-              setSelectedJob={setSelectedJob}
-              jobList={jobList}
-              setJobList={setJobList}
-            />
-          </Grid>
-          <Grid item xs={10}>
-            <ContentBox
-              setSelectedJob={setSelectedJob}
-              jobDetail={selectedJob}
-            />
-          </Grid>
-        </Grid>
-      </AlertProvider>
-    </div>
+    <AlertProvider>
+      <AlertPopup />
+      <Box display="flex">
+        <Box width={{ xs: "100%", md: "300px" }} flexShrink={0}>
+          <SideBar
+            setSelectedJob={setSelectedJob}
+            jobList={jobList}
+            setJobList={setJobList}
+          />
+        </Box>
+        <Box flexGrow={1} >
+          <ContentBox
+            setSelectedJob={setSelectedJob}
+            jobDetail={selectedJob}
+          />
+        </Box>
+      </Box>
+    </AlertProvider>
   );
 }
+

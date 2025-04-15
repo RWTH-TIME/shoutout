@@ -37,11 +37,11 @@ export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProp
   const { setAlert } = useAlert();
   const { getStatusColor, LANGUAGE_DATA, downloadFile, deleteJob } = useJobs();
   const [downloadLoading, setDownloadLoading] = useState(false);
-  const [ deleteLoading, setDeleteLoading ] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   async function onDownload() {
     if (jobDetail?.status != "FINISHED") {
-        return;
+      return;
     }
 
     try {
@@ -50,6 +50,7 @@ export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProp
       link.href = await downloadFile(jobDetail);
       link.click();
     } catch (error) {
+      console.error("Error downloading file", error)
       setAlert("Beim Download ist etwas schiefgelaufen!", "error");
     } finally {
       setDownloadLoading(false);
@@ -67,9 +68,9 @@ export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProp
 
   async function onDelete() {
     setDeleteLoading(true)
-    if(!jobDetail) return
+    if (!jobDetail) return
     const success = await deleteJob(jobDetail)
-    if(success) {
+    if (success) {
       setAlert("Job erfolgreich gelöscht!", "success")
       setSelectedJob(undefined)
     } else {

@@ -20,13 +20,13 @@
     "rangeStrategy": "pin",
     "packageRules": [
         {
-            "matchPackagePatterns": [
-                "urllib3"
-            ],
             "matchManagers": [
                 "pip_requirements"
             ],
-            "enabled": false
+            "enabled": false,
+            "matchPackageNames": [
+                "/urllib3/"
+            ]
         },
         {
             "groupName": "all non-major {{manager}} dependencies",

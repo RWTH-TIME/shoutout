@@ -28,7 +28,7 @@ export default function SideBar({ setSelectedJob, jobList, setJobList }: SideBar
 
   useEffect(() => {
     setJobList(jobs);
-  }, [jobs]);
+  }, [jobs, setJobList]);
 
   return (
     <div

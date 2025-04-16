@@ -15,7 +15,7 @@ import { Job, BulkJob, ValidationFunction, STATUS } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 import useValidation from "../../hooks/useValidation";
 import { FormTemplate } from "../../templates/FormTemplate";
-import { useState } from "react";
+import React, { useState } from "react";
 
 const style = {
   position: "absolute",
@@ -45,7 +45,7 @@ type Input<T> = {
   helperText?: string;
   inputProps?: {
     accept: string;
-    endAdornment?: JSX.Element
+    endAdornment?: React.ReactNode;
   };
 };
 
@@ -67,7 +67,7 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
   const handleClose = () => setOpen(false);
   const { createJob, LANGUAGE_DATA } = useJobs();
   const { NUMBERS } = useValidation();
-  const [ isSingleInput, setIsSingleInput ] = useState(true)
+  const [isSingleInput, setIsSingleInput] = useState(true)
 
   const emptyState: Job = {
     name: "",
@@ -135,24 +135,24 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
         shrink: true,
       },
       inputProps: {
-          accept: ".zip",
-          endAdornment: (
-            <InputAdornment position="end">
-              <Tooltip title={
-                <div style={{ fontSize: 15 , lineHeight: 1.2}}>
-                  <p>{"Die Dateien in der .zip-Datei müssen das folgende Format haben:"}
+        accept: ".zip",
+        endAdornment: (
+          <InputAdornment position="end">
+            <Tooltip title={
+              <div style={{ fontSize: 15, lineHeight: 1.2 }}>
+                <p>{"Die Dateien in der .zip-Datei müssen das folgende Format haben:"}
                   <Typography color="inherit">{"name_AnzahlTeilnehmer_sprache.typ"}</Typography>
-                  </p>
-                  <p><b>{"Verfügbare Sprachen:"}</b><i>{ " 'de', 'en' "}</i><br/>
+                </p>
+                <p><b>{"Verfügbare Sprachen:"}</b><i>{" 'de', 'en' "}</i><br />
                   {"Beispiel: muster_2_de.mp3"}</p>
-                  <p><b>{"Falls unsicher, kann 'auto' als Platzhalter verwendet werden."}</b><br/>
+                <p><b>{"Falls unsicher, kann 'auto' als Platzhalter verwendet werden."}</b><br />
                   {"Beispiel: muster_auto_auto.wav"}</p>
-                </div>
-                } >
-                <InfoIcon />
-              </Tooltip>
-            </InputAdornment>
-          )
+              </div>
+            } >
+              <InfoIcon />
+            </Tooltip>
+          </InputAdornment>
+        )
       },
     },
   ];
@@ -161,7 +161,7 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     <>
       <Modal open={isOpen}>
         <Fade in={isOpen}>
-          <Box sx={style}> 
+          <Box sx={style}>
             <Stack
               direction="row"
               justifyContent="space-between"
@@ -171,26 +171,26 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
               <Typography id="modal-modal-title" variant="h6" component="h2">
                 {MODAL_TITLE}
               </Typography>
-              <FormControlLabel control={<Switch />} label="Multiple Files" onChange={() => {setIsSingleInput(!isSingleInput)}} checked={!isSingleInput} />
+              <FormControlLabel control={<Switch />} label="Multiple Files" onChange={() => { setIsSingleInput(!isSingleInput) }} checked={!isSingleInput} />
             </Stack>
-            { isSingleInput ? 
-            <FormTemplate<Job>
-              emptyState={emptyState}
-              inputs={inputs}
-              addFunction={createJob}
-              abortFunction={() => {
-                handleClose();
-              }}
-            ></FormTemplate> : 
-            <FormTemplate<BulkJob>
-              emptyState={emptyBulkState}
-              inputs={bulkInputs}
-              addFunction={createJob}
-              abortFunction={() => {
-                handleClose();
-              }}
-            ></FormTemplate>
-            }           
+            {isSingleInput ?
+              <FormTemplate<Job>
+                emptyState={emptyState}
+                inputs={inputs}
+                addFunction={createJob}
+                abortFunction={() => {
+                  handleClose();
+                }}
+              ></FormTemplate> :
+              <FormTemplate<BulkJob>
+                emptyState={emptyBulkState}
+                inputs={bulkInputs}
+                addFunction={createJob}
+                abortFunction={() => {
+                  handleClose();
+                }}
+              ></FormTemplate>
+            }
           </Box>
         </Fade>
       </Modal>

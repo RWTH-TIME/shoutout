@@ -53,6 +53,10 @@ jobs:
             image: dashboard
             build_always: true
           - context: worker
+            model: turbo
+            image:  worker-turbo
+            build_always: false
+          - context: worker
             model: large-v3
             image:  worker-large
             build_always: false

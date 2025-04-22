@@ -8,7 +8,7 @@ import {
   CircularProgress
 } from "@mui/material";
 import { ChangeEvent } from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { ValidationFunction } from "../types/types";
 import useValidation from "../hooks/useValidation";
 import useAlert from "../hooks/useAlert";
@@ -24,7 +24,7 @@ type Input<T> = {
   helperText?: string;
   inputProps?: {
     accept: string;
-    endAdornment?: JSX.Element;
+    endAdornment?: React.ReactNode;
   };
 };
 
@@ -53,7 +53,7 @@ const TEXT_FIELD_PROPS = {
 const SUBMIT_BUTTON_TEXT = "Hinzufügen";
 const ABORT_BUTTON_TEXT = "Abbrechen";
 
-/** This function is a Template for creating Forms, for creating objects, to define a form just have a look on the inputs type 
+/** This function is a Template for creating Forms, for creating objects, to define a form just have a look on the inputs type
   Be careful to use material ui texfield types and pass the right object type to the component
 **/
 export function FormTemplate<T>({
@@ -196,13 +196,13 @@ export function FormTemplate<T>({
           onClick={submitForm}
           disabled={isLoading}
         >
-          {isLoading ? <CircularProgress size={25}/> : SUBMIT_BUTTON_TEXT}
+          {isLoading ? <CircularProgress size={25} /> : SUBMIT_BUTTON_TEXT}
         </Button>
-        <Button 
-          fullWidth 
-          variant="contained" 
-          color="error" 
-          onClick={abortForm} 
+        <Button
+          fullWidth
+          variant="contained"
+          color="error"
+          onClick={abortForm}
           disabled={isLoading}
         >
           {ABORT_BUTTON_TEXT}

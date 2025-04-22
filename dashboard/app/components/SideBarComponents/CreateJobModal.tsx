@@ -15,7 +15,7 @@ import { Job, BulkJob, ValidationFunction, STATUS } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 import useValidation from "../../hooks/useValidation";
 import { FormTemplate } from "../../templates/FormTemplate";
-import { useState } from "react";
+import React, { useState } from "react";
 
 const style = {
   position: "absolute",
@@ -45,7 +45,7 @@ type Input<T> = {
   helperText?: string;
   inputProps?: {
     accept: string;
-    endAdornment?: JSX.Element
+    endAdornment?: React.ReactNode;
   };
 };
 

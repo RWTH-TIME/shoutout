@@ -29,6 +29,7 @@ async function insertJob(data: Job) {
       });
       return res
     } catch (error) {
+      console.error("Error inserting a job:", error)
       throw new Error("Something went wrong");
     }
   });
@@ -37,17 +38,18 @@ async function insertJob(data: Job) {
 }
 
 async function deleteJob(jobName: string) {
-    try {
-      const res = await prisma.job.delete({
-        where: {
-          name: jobName,
-        },
-      });
-      await removeFromQueue(jobName)
-      return res
-    } catch (error) {
-      throw new Error("Something went wrong")
-    }    
+  try {
+    const res = await prisma.job.delete({
+      where: {
+        name: jobName,
+      },
+    });
+    await removeFromQueue(jobName)
+    return res
+  } catch (error) {
+    console.error("Error deleting a job:", error)
+    throw new Error("Something went wrong")
+  }
 }
 
 export const GET = async () => {
@@ -65,8 +67,8 @@ export const POST = async (request: NextRequest) => {
 export const DELETE = async (request: NextRequest) => {
   const query = request.nextUrl.searchParams;
   const jobName = query.get("jobName")
-  if(jobName === null || jobName == "") throw new Error("invalid argument")
+  if (jobName === null || jobName == "") throw new Error("invalid argument")
   const res = await deleteJob(jobName)
 
-  return NextResponse.json({res}, {status: 200})
+  return NextResponse.json({ res }, { status: 200 })
 }

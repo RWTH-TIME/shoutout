@@ -50,6 +50,7 @@ export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProp
       link.href = await downloadFile(jobDetail);
       link.click();
     } catch (error) {
+      console.error("Error downloading file", error)
       setAlert("Beim Download ist etwas schiefgelaufen!", "error");
     } finally {
       setDownloadLoading(false);

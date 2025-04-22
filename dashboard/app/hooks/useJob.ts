@@ -26,7 +26,7 @@ export default function useJobs(id: number | undefined = undefined) {
   async function createJob(job: Job | BulkJob) {
     try {
       if (job.audioFile instanceof File) {
-        // get presigned url to send audio file directly to minio from frontend   
+        // get presigned url to send audio file directly to minio from frontend
         const presignedUrlData = await fetch(
           `/api/minio?fileName=${job.audioFile?.name}`,
           {
@@ -72,6 +72,7 @@ export default function useJobs(id: number | undefined = undefined) {
         return true;
       } else throw new Error("Audio file does not exist");
     } catch (error) {
+      console.error("Error while creating a job:", error)
       return false;
     }
   }
@@ -122,7 +123,8 @@ export default function useJobs(id: number | undefined = undefined) {
       const updatedJobs = jobs?.filter(t => t.name !== job.name)
       mutate(updatedJobs, false);
       return true
-    } catch (e) {
+    } catch (error) {
+      console.error("Error Deleting a Job", error)
       return false
     }
   }

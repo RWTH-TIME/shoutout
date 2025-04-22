@@ -49,6 +49,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - context: sanity_check
+            image: sanity_check
+            build_always: true
           - context: dashboard
             image: dashboard
             build_always: true
@@ -110,5 +113,4 @@ jobs:
             HUGGINGFACE_APIKEY=${{ secrets.HUGGINGFACE_APIKEY }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
-
+        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }}

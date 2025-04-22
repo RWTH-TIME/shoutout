@@ -75,12 +75,14 @@ export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
     participants: 0,
     language: "",
     status: STATUS.Pending,
+    createdAt: new Date(),
   };
 
   const emptyBulkState: BulkJob = {
     name: "",
     audioFile: undefined,
-    status: STATUS.Pending
+    status: STATUS.Pending,
+    createdAt: new Date(),
   };
 
   const inputs: Input<Job>[] = [

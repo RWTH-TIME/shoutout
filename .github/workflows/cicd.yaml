@@ -99,8 +99,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.context }}
           tags: |
             type=ref, event=pr
-            type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' }} # tags for model-sizes
-            type=raw, value=latest , enable=${{ (github.ref == format('refs/heads/{0}', 'main')) && (matrix.image == 'worker-turbo' || matrix.image == 'dashboard')}} # tag worker turbo and dashboard branch as latest
+            type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' && matrix.image != 'sanity_check' }} # tags for model-sizes
+            type=raw, value=latest , enable=${{ (github.ref == format('refs/heads/{0}', 'main')) && (matrix.image == 'worker-turbo' || matrix.image == 'dashboard' || matrix.image == 'sanity_check')}} # tag worker turbo and dashboard branch as latest
         if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
 
       - name: Build and push Docker images

@@ -13,7 +13,11 @@ const prisma = new PrismaClient({
 });
 
 async function getAllJobs() {
-  return await prisma.job.findMany();
+  return await prisma.job.findMany({
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
 }
 
 async function insertJob(data: Job) {

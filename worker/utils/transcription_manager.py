@@ -84,7 +84,7 @@ class TranscriptionManager:
         # https://github.com/pyannote/pyannote-audio/issues/1403
         waveform, sample_rate = torchaudio.load(audio_file)
 
-        num_speakers = int(num_speaker) if num_speaker > 0 else None
+        num_speakers = int(num_speaker) if int(num_speaker) > 0 else None
 
         diarization = diarization_pl(
             {"waveform": waveform, "sample_rate": sample_rate},

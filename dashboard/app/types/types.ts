@@ -4,7 +4,7 @@ export type Job = {
   participants: number;
   language: string;
   status: STATUS;
-  createdAt: Date
+  createdAt: Date;
 };
 
 export type BulkJob = {
@@ -15,10 +15,10 @@ export type BulkJob = {
 };
 
 /* returns true when validation successful, error message if not.
-disable no-explicit-any because we don't want to pre-define specific 
+disable no-explicit-any because we don't want to pre-define specific
 types for that function */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ValidationFunction = (data: any) => string | boolean
+export type ValidationFunction = (data: any) => string | boolean;
 
 export enum STATUS {
   Pending = "PENDING",

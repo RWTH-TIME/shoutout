@@ -12,6 +12,7 @@ datasource db {
 
 model job {
   id           Int     @id @default(autoincrement())
+  owner        String   @db.Uuid
   name         String  @unique
   audioFile    String?
   participants Int?

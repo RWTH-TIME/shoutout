@@ -1,6 +1,6 @@
-FROM pytorch/pytorch
+FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
 
-ARG HUGGINGFACE_APIKEY
+ARG HUGGINGFACE
 ARG WHISPER_MODEL=small
 
 RUN apt-get update && \ 
@@ -11,21 +11,16 @@ WORKDIR /app
 
 COPY requirements.txt /app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV PIP_NO_WARN_ABOUT_ROOT_USER 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_WARN_ABOUT_ROOT_USER=1
 ENV WHISPER_MODEL=${WHISPER_MODEL}
 ENV LOG_LEVEL=INFO
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# based on pyannote/pyannote-audio#1403
-# Fixed in transcription_manager.py
-#RUN apt install git -y && pip uninstall pyannote-audio -y && pip install "git+https://github.com/mllife/pyannote-audio-118.git@822db88f573d7923d921dac11486f713c1729a09"
+RUN python -c "from pyannote.audio import Pipeline; model=Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', use_auth_token='${HUGGINGFACE}')"
 
-# load diarization model (v2.1 for perfomance diarization)
-RUN python -c "from pyannote.audio import Pipeline; model=Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', use_auth_token='${HUGGINGFACE_APIKEY}')"
-# load whisper model
 RUN python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')"
 
 COPY . /app

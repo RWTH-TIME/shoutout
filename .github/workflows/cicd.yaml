@@ -110,7 +110,7 @@ jobs:
           push: true
           build-args: |
             WHISPER_MODEL=${{ matrix.model }}
-            HUGGINGFACE_APIKEY=${{ secrets.HUGGINGFACE_APIKEY }}
+            HUGGINGFACE=${{ secrets.HUGGINGFACE_APIKEY }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
         if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }}

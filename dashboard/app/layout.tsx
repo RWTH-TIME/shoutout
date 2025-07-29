@@ -1,6 +1,7 @@
 import AppBarCustom from "./components/AppBarCustom";
 
 import { Inter } from "next/font/google";
+import SessionWrapper from "./components/SessionWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,10 +18,12 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body style={{ margin: "0px" }} className={inter.className}>
-        <div>
-          <AppBarCustom />
-        </div>
-        <div>{children}</div>
+        <SessionWrapper>
+          <div>
+            <AppBarCustom />
+          </div>
+          <div>{children}</div>
+        </SessionWrapper>
       </body>
     </html>
   );

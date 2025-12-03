@@ -19,7 +19,7 @@ ENV LOG_LEVEL=INFO
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-RUN python -c "from pyannote.audio import Pipeline; model=Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', use_auth_token='${HUGGINGFACE}')"
+RUN python -c "from pyannote.audio import Pipeline; model=Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', token='${HUGGINGFACE}')"
 
 RUN python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')"
 

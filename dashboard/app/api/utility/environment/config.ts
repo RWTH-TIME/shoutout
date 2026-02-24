@@ -63,7 +63,7 @@ const getConfig = (): ENV => {
     MINIO_SSL_ENABLED: process.env.MINIO_SSL_ENABLED ? toBool(process.env.MINIO_SSL_ENABLED) : false,
 
     // OIDC / Keycloak
-    OIDC_PROVIDER: process.env.OIDC_PROVIDER ?? "http://localhost:8080/realms/main",
+    OIDC_PROVIDER: process.env.OIDC_PROVIDER ?? "http://localhost:8090/realms/main",
     OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID ?? "shoutout",
     OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET ?? "shoutout-client-secret",
     OIDC_REDIRECT_URI: process.env.OIDC_REDIRECT_URI ?? "http://localhost:3000/api/auth/callback/keycloak",

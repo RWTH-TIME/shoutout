@@ -5,13 +5,17 @@ import { pushToQueue, removeFromQueue } from "../utility/amqp";
 import { authOptions } from "../auth/[...nextauth]/authOptions";
 import { getServerSession } from "next-auth/next";
 import env from "../utility/environment/config";
+import { Pool } from "pg"
+import { PrismaPg } from "@prisma/adapter-pg"
+
+const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+})
+
+const adapter = new PrismaPg(pool)
 
 const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: env.DATABASE_URL
-    }
-  }
+  adapter,
 });
 
 async function getJobsByOwner(owner: string) {

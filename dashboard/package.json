@@ -18,8 +18,8 @@
         "@prisma/client": "7.7.0",
         "amqplib": "0.10.9",
         "minio": "8.0.7",
-        "next": "16.2.3",
-        "next-auth": "4.24.13",
+        "next": "16.2.4",
+        "next-auth": "4.24.14",
         "pg": "8.20.0",
         "prisma": "7.7.0",
         "react": "19.2.5",
@@ -34,13 +34,13 @@
         "@types/react": "19.2.14",
         "@types/react-dom": "19.2.3",
         "@types/uuid": "10.0.0",
-        "@typescript-eslint/eslint-plugin": "8.58.1",
-        "@typescript-eslint/parser": "8.58.1",
+        "@typescript-eslint/eslint-plugin": "8.59.0",
+        "@typescript-eslint/parser": "8.59.0",
         "eslint": "9.39.4",
-        "eslint-config-next": "16.2.3",
+        "eslint-config-next": "16.2.4",
         "eslint-config-prettier": "10.1.8",
         "eslint-plugin-prettier": "5.5.5",
-        "prettier": "3.8.2",
+        "prettier": "3.8.3",
         "typescript": "5.9.3"
     }
 }

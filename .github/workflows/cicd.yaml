@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
 
       - name: Setup nodejs
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
 
       - name: Install dependencies
         working-directory: ./dashboard
@@ -30,15 +30,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
           
       - name: Setup python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           cache: 'pip'
         
       - name: Run flake8
-        uses: py-actions/flake8@v2
+        uses: py-actions/flake8@v2.3.0
         with:
           path: "worker"
   
@@ -81,11 +81,11 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.7.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -94,7 +94,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5.10.0
         with:
           images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.context }}
           tags: |
@@ -104,7 +104,7 @@ jobs:
         if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
 
       - name: Build and push Docker images
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5.4.0
         with:
           context: ${{matrix.context}}
           push: true

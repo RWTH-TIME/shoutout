@@ -55,8 +55,19 @@
             '';
           };
           checks = {
-            dashboard = dashboard;
-            worker = worker;
+            dashboard-eval = pkgs.runCommand "shoutout-dashboard-eval" { } ''
+              test -n "${dashboard.name}"
+              echo ok > "$out"
+            '';
+            worker-eval = pkgs.runCommand "shoutout-worker-eval" { } ''
+              test -n "${worker.name}"
+              echo ok > "$out"
+            '';
+            modules-eval = pkgs.runCommand "shoutout-modules-eval" { } ''
+              test -f ${./nix/modules/shoutout.nix}
+              test -f ${./nix/modules/shoutout-worker.nix}
+              echo ok > "$out"
+            '';
           };
         }
       );

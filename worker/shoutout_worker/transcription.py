@@ -81,7 +81,13 @@ class TranscriptionManager:
             diarization.write_rttm(handle)
         return rttm_path
 
-    def transcribe(self, workdir: Path, filename: str, language: str | None, model_name: str) -> Path:
+    def transcribe(
+        self,
+        workdir: Path,
+        filename: str,
+        language: str | None,
+        model_name: str,
+    ) -> Path:
         self.ensure_whisper(model_name)
         assert self._whisper is not None
 

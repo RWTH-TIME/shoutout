@@ -11,6 +11,7 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
   const translation = useAppTranslation();
 
   const errorMessage = useMemo(() => {
@@ -28,9 +29,9 @@ function SignInContent() {
       return;
     }
     if (session) {
-      router.replace("/");
+      router.replace(callbackUrl);
     }
-  }, [session, status, router]);
+  }, [callbackUrl, session, status, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
@@ -47,7 +48,9 @@ function SignInContent() {
             {errorMessage}
           </div>
         ) : null}
-        <Button onClick={() => signIn("keycloak", { callbackUrl: "/" })}>
+        <Button
+          onClick={() => signIn("keycloak", { callbackUrl })}
+        >
           {translation("signInButton")}
         </Button>
       </div>

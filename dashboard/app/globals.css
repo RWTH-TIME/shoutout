@@ -17,7 +17,7 @@
 @layer components {
   [data-name="app-sidebar-container"] {
     @variant desktop {
-      @apply min-w-80 max-w-96;
+      @apply h-screen overflow-hidden w-[26rem] min-w-[26rem] max-w-[26rem];
     }
   }
 
@@ -26,7 +26,7 @@
   }
 
   .app-page-sidebar-with-navigation-header {
-    @apply w-full items-center justify-center px-3 pt-10 mb-8;
+    @apply w-full items-center justify-center px-3 pt-4 mb-4;
   }
 
   [data-name="dialog-content"] > .absolute.top-0.right-0 {

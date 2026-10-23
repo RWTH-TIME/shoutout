@@ -2,11 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import AppShell from "../AppShell";
-import JobsSidebar from "../SideBarComponents/JobsSidebar";
+import {
+  JobsSidebarAddButton,
+  JobsSidebarList,
+} from "../SideBarComponents/JobsSidebar";
 import useAppTranslation from "../../hooks/useAppTranslation";
 import ThemeSection from "./ThemeSection";
 import LanguageSection from "./LanguageSection";
 import ApiKeysSection from "./ApiKeysSection";
+import NotificationsSection from "./NotificationsSection";
 
 export default function SettingsClient() {
   const translation = useAppTranslation();
@@ -16,12 +20,13 @@ export default function SettingsClient() {
     <AppShell
       activeId="settings"
       sidebarContent={
-        <JobsSidebar
+        <JobsSidebarList
           onSelectJob={(job) => {
-            router.push(`/?job=${encodeURIComponent(job.name)}`);
+            router.push(`/job/${job.publicId}`);
           }}
         />
       }
+      sidebarFooter={<JobsSidebarAddButton />}
     >
       <div className="h-full min-h-0 overflow-y-auto p-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -35,6 +40,7 @@ export default function SettingsClient() {
           </div>
           <ThemeSection />
           <LanguageSection />
+          <NotificationsSection />
           <ApiKeysSection />
         </div>
       </div>

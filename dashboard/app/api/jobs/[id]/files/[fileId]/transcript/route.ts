@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticate } from "../../../../../../../lib/auth";
+import { authenticate } from "../../../../../../lib/auth";
 import {
   canViewJob,
   isJobExpired,
-} from "../../../../../../../services/accessService";
-import { getJobByPublicId } from "../../../../../../../services/jobService";
-import { getObjectText } from "../../../../../../../lib/storage";
+} from "../../../../../../services/accessService";
+import { getJobByPublicId } from "../../../../../../services/jobService";
+import { getObjectText } from "../../../../../../lib/storage";
 
 export const GET = async (
   request: NextRequest,

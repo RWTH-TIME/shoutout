@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Dialog, Input } from "@helpwave/hightide";
 import { FileAudio, Trash2 } from "lucide-react";
 import useJobs from "../../hooks/useJob";
@@ -9,11 +10,7 @@ import useAlert from "../../hooks/useAlert";
 import useAppTranslation from "../../hooks/useAppTranslation";
 import { BulkFileEntry } from "../../types/types";
 import { fileBaseName, formatFileSize } from "../../utils/file";
-import {
-  assignUniqueJobNames,
-  jobNameConflict,
-  uniqueJobNamesFromBase,
-} from "../../utils/jobName";
+import { jobNameConflict, nextUniqueJobName } from "../../utils/jobName";
 import AudioDropzone from "../upload/AudioDropzone";
 import LanguageToggle from "../jobs/LanguageToggle";
 import ModelSelect from "../jobs/ModelSelect";
@@ -33,13 +30,18 @@ export default function CreateJobModal({
   initialFiles = [],
   onInitialFilesConsumed,
 }: ModalProps) {
-  const { createJobs, jobs } = useJobs();
+  const { createJob, jobs } = useJobs();
   const { models } = useModels();
   const { setAlert } = useAlert();
   const translation = useAppTranslation();
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [entries, setEntries] = useState<BulkFileEntry[]>([]);
-  const [baseJobName, setBaseJobName] = useState("");
+  const [jobName, setJobName] = useState("");
+  const [model, setModel] = useState("");
+  const [participants, setParticipants] = useState(0);
+  const [language, setLanguage] = useState("");
+  const [notifyEnabled, setNotifyEnabled] = useState(true);
   const defaultModel = models[0]?.model ?? "";
 
   const existingNames = useMemo(
@@ -47,110 +49,63 @@ export default function CreateJobModal({
     [jobs]
   );
 
-  const batchNames = useMemo(
-    () => entries.map((entry) => entry.name),
-    [entries]
-  );
-
-  const nameConflicts = useMemo(
-    () =>
-      entries.map((entry, index) =>
-        jobNameConflict(entry.name, existingNames, batchNames, index)
-      ),
-    [batchNames, entries, existingNames]
-  );
-
-  const hasNameConflict = nameConflicts.some((conflict) => conflict !== null);
+  const nameConflict = jobNameConflict(jobName, existingNames);
 
   const canSubmit = useMemo(() => {
-    if (models.length === 0 || entries.length === 0 || hasNameConflict) {
+    if (models.length === 0 || entries.length === 0 || !jobName.trim()) {
       return false;
     }
-    return entries.every((entry) => entry.name.trim() && entry.model);
-  }, [entries, hasNameConflict, models.length]);
+    if (nameConflict) {
+      return false;
+    }
+    return Boolean(model || defaultModel);
+  }, [defaultModel, entries.length, jobName, model, models.length, nameConflict]);
 
   function close() {
     setOpen(false);
     setBusy(false);
     setEntries([]);
-    setBaseJobName("");
+    setJobName("");
+    setModel("");
+    setParticipants(0);
+    setLanguage("");
+    setNotifyEnabled(true);
   }
 
   function seedEntriesFromFiles(files: File[]) {
+    const selectedModel = model || defaultModel;
     const seeded: BulkFileEntry[] = files.map((file) => ({
       file,
-      name: fileBaseName(file),
-      model: defaultModel,
-      participants: 0,
-      language: "",
+      model: selectedModel,
+      participants,
+      language,
     }));
     const base = (seeded[0] ? fileBaseName(seeded[0].file) : "") || "job";
-    if (seeded.length > 1) {
-      setBaseJobName(base);
-      const names = uniqueJobNamesFromBase(base, seeded.length, existingNames);
-      setEntries(
-        seeded.map((entry, index) => ({
-          ...entry,
-          name: names[index] ?? entry.name,
-        }))
-      );
-      return;
+    setJobName(nextUniqueJobName(base, existingNames));
+    if (!model) {
+      setModel(selectedModel);
     }
-    const names = assignUniqueJobNames(
-      seeded.map((entry) => entry.name),
-      existingNames
-    );
-    setBaseJobName("");
-    setEntries(
-      seeded.map((entry, index) => ({
-        ...entry,
-        name: names[index] ?? entry.name,
-      }))
-    );
+    setEntries(seeded);
   }
 
   function onFilesAdded(files: File[]) {
+    const selectedModel = model || defaultModel;
     const merged: BulkFileEntry[] = [
       ...entries,
       ...files.map((file) => ({
         file,
-        name: fileBaseName(file),
-        model: defaultModel,
-        participants: 0,
-        language: "",
+        model: selectedModel,
+        participants,
+        language,
       })),
     ];
-    const base =
-      baseJobName.trim() ||
-      (merged[0] ? fileBaseName(merged[0].file) : "") ||
-      "job";
-    if (merged.length > 1) {
-      if (!baseJobName.trim()) {
-        setBaseJobName(base);
-      }
-      const names = uniqueJobNamesFromBase(
-        baseJobName.trim() || base,
-        merged.length,
-        existingNames
-      );
-      setEntries(
-        merged.map((entry, index) => ({
-          ...entry,
-          name: names[index] ?? entry.name,
-        }))
-      );
-      return;
+    if (!jobName.trim() && merged[0]) {
+      setJobName(nextUniqueJobName(fileBaseName(merged[0].file), existingNames));
     }
-    const names = assignUniqueJobNames(
-      merged.map((entry) => entry.name),
-      existingNames
-    );
-    setEntries(
-      merged.map((entry, index) => ({
-        ...entry,
-        name: names[index] ?? entry.name,
-      }))
-    );
+    if (!model) {
+      setModel(selectedModel);
+    }
+    setEntries(merged);
   }
 
   useEffect(() => {
@@ -161,60 +116,48 @@ export default function CreateJobModal({
     onInitialFilesConsumed?.();
   }, [initialFiles, isOpen]);
 
-  function onEntriesChange(next: BulkFileEntry[]) {
-    if (next.length <= 1) {
-      setEntries(next);
-      if (next.length === 0) {
-        setBaseJobName("");
-      }
+  useEffect(() => {
+    if (!isOpen) {
       return;
     }
-    const base =
-      baseJobName.trim() ||
-      (next[0] ? fileBaseName(next[0].file) : "") ||
-      "job";
-    if (!baseJobName.trim()) {
-      setBaseJobName(base);
-    }
-    const names = uniqueJobNamesFromBase(
-      baseJobName.trim() || base,
-      next.length,
-      existingNames
-    );
-    setEntries(
-      next.map((entry, index) => ({
-        ...entry,
-        name: names[index] ?? entry.name,
-      }))
-    );
-  }
+    let cancelled = false;
+    fetch("/api/settings/notifications")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.settings) {
+          setNotifyEnabled(Boolean(data.settings.notifyOnFinish));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   async function onSubmit() {
     setBusy(true);
-    const results = await createJobs(entries);
-    const failed = results.filter((item) => !item.ok);
-    if (failed.length === 0) {
-      setAlert(
-        entries.length === 1
-          ? translation("alertJobCreated")
-          : translation("alertJobsCreated"),
-        "success"
-      );
+    try {
+      const created = await createJob({
+        name: jobName.trim(),
+        model: model || defaultModel,
+        participants,
+        language,
+        notifyEnabled,
+        entries,
+      });
+      setAlert(translation("alertJobCreated"), "success");
       close();
-      return;
+      if (created.publicId) {
+        router.push(`/job/${created.publicId}`);
+      }
+    } catch (error) {
+      console.error(error);
+      setAlert(translation("alertCreateFailed"), "error");
+      setBusy(false);
     }
-    setAlert(
-      translation("alertJobsFailed", {
-        failed: failed.length,
-        total: results.length,
-      }),
-      "error"
-    );
-    setBusy(false);
   }
 
   const single = entries.length === 1 ? entries[0] : undefined;
-  const singleConflict = single ? nameConflicts[0] : null;
 
   return (
     <Dialog
@@ -237,86 +180,93 @@ export default function CreateJobModal({
 
         {entries.length === 0 ? (
           <AudioDropzone onFilesAdded={onFilesAdded} />
-        ) : single ? (
+        ) : (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
               <div className="text-xs text-description">
                 {translation("jobName")}
               </div>
               <Input
-                value={single.name}
-                onValueChange={(name) => setEntries([{ ...single, name }])}
+                value={jobName}
+                onValueChange={setJobName}
                 placeholder={translation("jobName")}
                 required
-                invalid={singleConflict !== null}
+                invalid={nameConflict !== null}
               />
-              {singleConflict ? (
+              {nameConflict ? (
                 <p className="text-xs text-negative">
-                  {singleConflict === "taken"
-                    ? translation("jobNameTaken")
-                    : translation("jobNameDuplicate")}
+                  {translation("jobNameTaken")}
                 </p>
               ) : null}
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-divider bg-surface px-3 py-2">
-              <FileAudio size={20} className="shrink-0 text-primary" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium">{single.file.name}</div>
-                <div className="text-xs text-description">
-                  {formatFileSize(single.file.size)}
+            {single ? (
+              <div className="flex items-center gap-3 rounded-xl border border-divider bg-surface px-3 py-2">
+                <FileAudio size={20} className="shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{single.file.name}</div>
+                  <div className="text-xs text-description">
+                    {formatFileSize(single.file.size)}
+                  </div>
                 </div>
+                <Button
+                  color="negative"
+                  coloringStyle="text"
+                  size="sm"
+                  onClick={() => setEntries([])}
+                  aria-label={translation("remove")}
+                >
+                  <Trash2 size={16} />
+                </Button>
               </div>
-              <Button
-                color="negative"
-                coloringStyle="text"
-                size="sm"
-                onClick={() => {
-                  setEntries([]);
-                  setBaseJobName("");
-                }}
-                aria-label={translation("remove")}
-              >
-                <Trash2 size={16} />
-              </Button>
-            </div>
+            ) : (
+              <BulkFileTable
+                entries={entries}
+                models={models}
+                onChange={setEntries}
+                sharedLanguage={language}
+                sharedParticipants={participants}
+                onSharedLanguageChange={setLanguage}
+                onSharedParticipantsChange={setParticipants}
+              />
+            )}
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <ModelSelect
-                value={single.model}
+                value={model || defaultModel}
                 models={models}
-                onChange={(model) => setEntries([{ ...single, model }])}
+                onChange={setModel}
                 showLabel
               />
-              <ParticipantsInput
-                value={single.participants}
-                onChange={(participants) =>
-                  setEntries([{ ...single, participants }])
-                }
-                showLabel
-              />
-              <div className="md:col-span-2">
-                <div className="mb-1 text-xs text-description">
-                  {translation("language")}
-                </div>
-                <LanguageToggle
-                  value={single.language}
-                  onChange={(language) =>
-                    setEntries([{ ...single, language }])
-                  }
-                />
-              </div>
+              {single ? (
+                <>
+                  <ParticipantsInput
+                    value={participants}
+                    onChange={setParticipants}
+                    showLabel
+                  />
+                  <div className="md:col-span-2">
+                    <div className="mb-1 text-xs text-description">
+                      {translation("language")}
+                    </div>
+                    <LanguageToggle
+                      value={language}
+                      onChange={setLanguage}
+                    />
+                  </div>
+                </>
+              ) : null}
             </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={notifyEnabled}
+                onChange={(event) => setNotifyEnabled(event.target.checked)}
+              />
+              {translation("notifyMe")}
+            </label>
           </div>
-        ) : (
-          <BulkFileTable
-            entries={entries}
-            models={models}
-            onChange={onEntriesChange}
-            existingNames={existingNames}
-            baseJobName={baseJobName}
-            onBaseJobNameChange={setBaseJobName}
-          />
         )}
 
         <div className="flex flex-col gap-3 border-t border-divider pt-3">
@@ -335,9 +285,7 @@ export default function CreateJobModal({
               disabled={!canSubmit || busy}
               onClick={onSubmit}
             >
-              {entries.length > 1
-                ? translation("createJobs", { count: entries.length })
-                : translation("createJob")}
+              {translation("createJob")}
             </Button>
           </div>
         </div>

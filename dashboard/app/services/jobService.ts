@@ -175,7 +175,7 @@ async function collectJobObjectKeys(jobRecord: JobWithFiles): Promise<string[]> 
     const prefix = `${config.DOWNLOAD_FILE_TARGET_DIR}${jobRecord.publicId}/`;
     keys.push(...(await listObjectKeys(prefix)));
   }
-  return [...new Set(keys)];
+  return Array.from(new Set(keys));
 }
 
 export async function deleteJobForOwner(jobName: string, owner: string) {

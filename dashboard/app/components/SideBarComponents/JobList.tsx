@@ -1,32 +1,36 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Job } from "../../types/types";
 import StatusChip from "../StatusChip";
+import VisibilityIcon from "../job/VisibilityIcon";
 
 type JobListProps = {
   jobs: Job[] | undefined;
-  selectedJobName?: string;
-  setSelectedJob?: React.Dispatch<React.SetStateAction<Job | undefined>>;
+  selectedJobPublicId?: string;
   onSelectJob?: (job: Job) => void;
 };
 
 export default function JobList({
   jobs,
-  selectedJobName,
-  setSelectedJob,
+  selectedJobPublicId,
   onSelectJob,
 }: JobListProps) {
+  const router = useRouter();
+
   return (
     <div className="flex flex-col gap-1 p-2">
       {(jobs ?? []).map((job) => {
-        const selected = job.name === selectedJobName;
+        const selected = job.publicId === selectedJobPublicId;
         return (
           <button
-            key={job.id ?? job.name}
+            key={job.publicId ?? job.id ?? job.name}
             type="button"
             onClick={() => {
-              setSelectedJob?.(job);
               onSelectJob?.(job);
+              if (job.publicId) {
+                router.push(`/job/${job.publicId}`);
+              }
             }}
             className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-4 py-3.5 text-left transition ${
               selected
@@ -34,7 +38,10 @@ export default function JobList({
                 : "hover:bg-surface-hover"
             }`}
           >
-            <span className="truncate pr-2 text-base font-medium">{job.name}</span>
+            <span className="flex min-w-0 items-center gap-2 pr-2">
+              <VisibilityIcon visibility={job.visibility} />
+              <span className="truncate text-base font-medium">{job.name}</span>
+            </span>
             <StatusChip status={job.status} size="sm" />
           </button>
         );

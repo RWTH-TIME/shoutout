@@ -44,7 +44,7 @@ async function main(): Promise<void> {
     }
     const prefix = `${config.DOWNLOAD_FILE_TARGET_DIR}${job.publicId}/`;
     keys.push(...(await listObjectKeys(prefix)));
-    await deleteObjects([...new Set(keys)]);
+    await deleteObjects(Array.from(new Set(keys)));
     await prisma.job.delete({ where: { id: job.id } });
   }
 

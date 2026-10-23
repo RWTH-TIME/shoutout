@@ -46,7 +46,7 @@ export const POST = async (request: NextRequest) => {
     }
 
     const fileInputs = [];
-    const errors = [];
+    const errors: Array<{ filename: string; error: string }> = [];
     for (const file of files) {
       const meta = metadata[file.filename] ?? {};
       fileInputs.push({

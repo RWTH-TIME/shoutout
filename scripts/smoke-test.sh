@@ -69,7 +69,9 @@ CREATE="$(curl -sf -X POST "${BASE_URL}/api/v1/jobs" \
   -F "model=tiny" \
   -F "participants=1" \
   -F "language=en")"
-printf '%s' "$CREATE" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["job"]["status"]=="PENDING", data'
+printf '%s' "$CREATE" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["job"]["status"]=="PENDING", data; assert data["job"].get("publicId"), data; assert len(data["job"].get("files") or [])==1, data'
+
+PUBLIC_ID="$(printf '%s' "$CREATE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["job"]["publicId"])')"
 
 echo "==> Worker claim"
 CLAIM=""
@@ -98,34 +100,61 @@ if [ -z "$CLAIM" ]; then
   exit 1
 fi
 JOB_ID="$(printf '%s' "$CLAIM" | python3 -c 'import json,sys; print(json.load(sys.stdin)["job"]["id"])')"
-RESULT_URL="$(printf '%s' "$CLAIM" | python3 -c 'import json,sys; print(json.load(sys.stdin)["resultUrl"])')"
+FILE_ID="$(printf '%s' "$CLAIM" | python3 -c 'import json,sys; print(json.load(sys.stdin)["files"][0]["id"])')"
+TEXT_URL="$(printf '%s' "$CLAIM" | python3 -c 'import json,sys; print(json.load(sys.stdin)["files"][0]["textUploadUrl"])')"
+JSON_URL="$(printf '%s' "$CLAIM" | python3 -c 'import json,sys; print(json.load(sys.stdin)["files"][0]["jsonUploadUrl"])')"
+ZIP_URL="$(printf '%s' "$CLAIM" | python3 -c 'import json,sys; print(json.load(sys.stdin)["zipUploadUrl"])')"
 
-echo "==> Upload fake result and complete"
+echo "==> Upload fake artifacts and complete"
 printf 'SPEAKER_00 00:00:00\nsmoke ok\n' > "${TMP_DIR}/result.txt"
+printf '{"segments":[{"speaker":"SPEAKER_00","start":0,"end":1,"text":"smoke ok"}]}' > "${TMP_DIR}/result.json"
 python3 - "$TMP_DIR" <<'PY'
 import zipfile, pathlib, sys
 workdir = pathlib.Path(sys.argv[1])
 with zipfile.ZipFile(workdir / "result.zip", "w") as archive:
     archive.write(workdir / "result.txt", "smoke.txt")
 PY
-PUT_CODE="$(curl -s -o "${TMP_DIR}/put.out" -w "%{http_code}" -X PUT \
-  --data-binary @"${TMP_DIR}/result.zip" \
-  -H "Content-Type: application/zip" \
-  "$RESULT_URL")"
-if [ "$PUT_CODE" != "200" ] && [ "$PUT_CODE" != "204" ]; then
-  echo "Result upload failed (${PUT_CODE})" >&2
-  cat "${TMP_DIR}/put.out" >&2 || true
-  exit 1
-fi
+
+upload_artifact() {
+  local kind="$1"
+  local url="$2"
+  local file="$3"
+  local type="$4"
+  local put_code
+  put_code="$(curl -s -o "${TMP_DIR}/put-${kind}.out" -w "%{http_code}" -X PUT \
+    --data-binary @"${file}" \
+    -H "Content-Type: ${type}" \
+    "${url}")"
+  if [ "${put_code}" != "200" ] && [ "${put_code}" != "204" ]; then
+    echo "${kind} upload failed (${put_code})" >&2
+    cat "${TMP_DIR}/put-${kind}.out" >&2 || true
+    exit 1
+  fi
+}
+
+upload_artifact text "${TEXT_URL}" "${TMP_DIR}/result.txt" "text/plain"
+upload_artifact json "${JSON_URL}" "${TMP_DIR}/result.json" "application/json"
+upload_artifact zip "${ZIP_URL}" "${TMP_DIR}/result.zip" "application/zip"
 
 curl -sf -X POST "${BASE_URL}/api/worker/jobs/${JOB_ID}/complete" \
   -H "Authorization: Bearer ${WORKER_TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{}' >/dev/null
+  -d "{\"files\":[{\"id\":\"${FILE_ID}\",\"durationSeconds\":1}]}" >/dev/null
 
 echo "==> Fetch job status"
 STATUS="$(curl -sf -H "Authorization: Bearer ${API_KEY}" "${BASE_URL}/api/v1/jobs/${JOB_NAME}")"
 printf '%s' "$STATUS" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["job"]["status"]=="FINISHED", data'
+
+echo "==> Fetch transcript JSON"
+TRANSCRIPT="$(curl -sf -H "Authorization: Bearer ${API_KEY}" "${BASE_URL}/api/jobs/${PUBLIC_ID}/files/${FILE_ID}/transcript")"
+printf '%s' "$TRANSCRIPT" | python3 -c 'import json,sys; data=json.load(sys.stdin); assert data["segments"], data'
+
+echo "==> Set job public and fetch without auth"
+curl -sf -X PATCH "${BASE_URL}/api/jobs/${PUBLIC_ID}" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"visibility":"PUBLIC"}' >/dev/null
+curl -sf "${BASE_URL}/api/jobs/${PUBLIC_ID}" >/dev/null
 
 echo "==> MCP initialize"
 MCP_INIT="$(curl -sf -X POST "${BASE_URL}/api/mcp" \

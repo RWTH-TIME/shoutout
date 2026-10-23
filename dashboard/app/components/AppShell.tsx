@@ -9,6 +9,7 @@ import useAppTranslation from "../hooks/useAppTranslation";
 type AppShellProps = {
   children: React.ReactNode;
   sidebarContent: React.ReactNode;
+  sidebarFooter?: React.ReactNode;
   activeId?: string | null;
   headerActions?: React.ReactNode[];
 };
@@ -44,6 +45,7 @@ function NextLink({
 export default function AppShell({
   children,
   sidebarContent,
+  sidebarFooter,
   activeId,
   headerActions = [],
 }: AppShellProps) {
@@ -108,18 +110,17 @@ export default function AppShell({
         header: (
           <Link
             href="/"
-            className="flex w-full flex-row items-center justify-center gap-3 text-inherit no-underline"
+            className="flex w-full flex-row items-center justify-center gap-2 text-inherit no-underline"
             aria-label={translation("appName")}
           >
-            <AudioLines className="size-12 shrink-0 text-primary" aria-hidden />
-            <span className="text-4xl font-semibold leading-none tracking-tight">
+            <AudioLines className="size-8 shrink-0 text-primary" aria-hidden />
+            <span className="text-2xl font-semibold leading-none tracking-tight">
               {translation("appName")}
             </span>
           </Link>
         ),
-        contentOverwrite: (
-          <div className="flex h-full min-h-0 flex-col">{sidebarContent}</div>
-        ),
+        contentOverwrite: sidebarContent,
+        footer: sidebarFooter,
         LinkComponent: NextLink,
       }}
     >

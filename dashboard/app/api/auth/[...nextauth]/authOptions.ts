@@ -12,13 +12,15 @@ export const authOptions = {
     }),
   ],
   pages: {
-    signIn: '/auth',
+    signIn: "/auth",
   },
   callbacks: {
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
         session.user.id = token.sub!;
         session.user.issuer = env.OIDC_PROVIDER;
+        session.user.email =
+          (token.email as string | undefined) ?? session.user.email;
       }
       return session;
     },
@@ -27,13 +29,20 @@ export const authOptions = {
       token,
       account,
       user,
+      profile,
     }: {
       token: JWT;
       account?: Account | null;
       user?: User;
+      profile?: { email?: string };
     }) {
       if (account?.provider === "keycloak" && user) {
         token.sub = token.sub ?? user.id;
+      }
+      if (profile?.email) {
+        token.email = profile.email;
+      } else if (user?.email) {
+        token.email = user.email;
       }
       return token;
     },

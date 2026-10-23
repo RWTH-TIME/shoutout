@@ -1,118 +1,69 @@
-import { Job } from "../../../app/types/types";
-import { PrismaClient } from "@prisma/client";
-import { NextResponse, NextRequest } from "next/server";
-import { pushToQueue, removeFromQueue } from "../utility/amqp";
-import { authOptions } from "../auth/[...nextauth]/authOptions";
-import { getServerSession } from "next-auth/next";
-import env from "../utility/environment/config";
-import { Pool } from "pg"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { NextRequest, NextResponse } from "next/server";
+import { authenticate } from "../../lib/auth";
+import {
+  createJob,
+  deleteJobForOwner,
+  listJobsByOwner,
+} from "../../services/jobService";
+import { z } from "zod";
 
-const pool = new Pool({
-  connectionString: env.DATABASE_URL,
-})
-
-const adapter = new PrismaPg(pool)
-
-const prisma = new PrismaClient({
-  adapter,
+const createSchema = z.object({
+  name: z.string().min(1),
+  audioFile: z.string().min(1),
+  model: z.string().min(1),
+  participants: z.number().int().nonnegative().optional(),
+  language: z.string().optional(),
+  notifyEmail: z.string().email().optional().or(z.literal("")),
 });
 
-async function getJobsByOwner(owner: string) {
-  return await prisma.job.findMany({
-    where: { owner },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-}
-
-async function insertJob(data: Job, owner: string) {
-  const res = await prisma.$transaction(async (tx) => {
-    try {
-      const res = await tx.job.create({
-        data: {
-          name: data.name,
-          owner,
-          audioFile: data.audioFile as string,
-          participants: data.participants === 0 ? undefined : data.participants,
-          language: data.language === "" ? undefined : data.language,
-        },
-      });
-      return res;
-    } catch (error) {
-      console.error("Error inserting a job:", error);
-      throw new Error("Something went wrong");
-    }
-  });
-
-  await pushToQueue(data);
-  return res;
-}
-
-async function deleteJob(jobName: string) {
-  try {
-    const res = await prisma.job.delete({
-      where: {
-        name: jobName,
-      },
-    });
-    await removeFromQueue(jobName);
-    return res;
-  } catch (error) {
-    console.error("Error deleting a job:", error);
-    throw new Error("Something went wrong");
-  }
-}
-
-export const GET = async () => {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
+export const GET = async (request: NextRequest) => {
+  const auth = await authenticate(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const owner = session.user.id;
-  const res = await getJobsByOwner(owner);
-  return NextResponse.json({ jobs: res }, { status: 200 });
+  const jobs = await listJobsByOwner(auth.owner);
+  return NextResponse.json({ jobs }, { status: 200 });
 };
 
 export const POST = async (request: NextRequest) => {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
+  const auth = await authenticate(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const job: Job = await request.json();
-  const owner = session.user.id;
-
-  const res = await insertJob(job, owner);
-  return NextResponse.json({ res }, { status: 200 });
+  const body = createSchema.parse(await request.json());
+  try {
+    const res = await createJob({
+      ...body,
+      owner: auth.owner,
+      notifyEmail: body.notifyEmail || auth.email || undefined,
+    });
+    return NextResponse.json({ res }, { status: 200 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 };
 
 export const DELETE = async (request: NextRequest) => {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
+  const auth = await authenticate(request);
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const query = request.nextUrl.searchParams;
-  const jobName = query.get("jobName");
+  const jobName = request.nextUrl.searchParams.get("jobName");
   if (!jobName) {
     return NextResponse.json({ error: "Missing jobName" }, { status: 400 });
   }
 
-  const job = await prisma.job.findUnique({
-    where: { name: jobName },
-  });
-
-  if (!job) {
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  try {
+    const res = await deleteJobForOwner(jobName, auth.owner);
+    return NextResponse.json({ res }, { status: 200 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed";
+    const status =
+      message === "Forbidden" ? 403 : message === "Job not found" ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
   }
-
-  if (job.owner !== session.user.id) {
-    return NextResponse.json({ error: "Forbidden: You do not own this job" }, { status: 403 });
-  }
-
-  const res = await deleteJob(jobName);
-  return NextResponse.json({ res }, { status: 200 });
 };

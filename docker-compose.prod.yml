@@ -5,42 +5,41 @@ services:
     ports:
       - "8000:80"
     environment:
-      - MINIO_ENDPOINT=localhost # TODO update this to external hostname
-      - MINIO_PORT=9000
-      - MINIO_ACCESS_KEY=shoutoutdevuser
-      - MINIO_SECRET_KEY=shoutoutdevuser
-      - MINIO_SSL_ENABLED=false # TODO toggle if your endpoint is supporting valid https
-      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
+      - S3_ENDPOINT=http://garage:3900
+      - S3_PUBLIC_ENDPOINT=http://localhost:3900
+      - S3_REGION=garage
+      - S3_ACCESS_KEY_ID=shoutoutdevuser
+      - S3_SECRET_ACCESS_KEY=shoutoutdevuser
+      - S3_BUCKET=shoutout-job-bucket
+      - WORKER_ENROLLMENT_TOKEN=${WORKER_ENROLLMENT_TOKEN}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - OIDC_PROVIDER=${OIDC_PROVIDER}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - LISTMONK_URL=${LISTMONK_URL:-}
+      - LISTMONK_USERNAME=${LISTMONK_USERNAME:-}
+      - LISTMONK_TOKEN=${LISTMONK_TOKEN:-}
+      - LISTMONK_TEMPLATE_ID=${LISTMONK_TEMPLATE_ID:-0}
     depends_on:
       - postgres
-      - minio
-      - rabbitmq
+      - garage
 
   worker:
-    image: ghcr.io/rwth-time/shoutout/worker
+    image: ghcr.io/rwth-time/shoutout/worker-tiny
     restart: always
     environment:
-      - DATABASE_HOST=postgres
-      - DATABASE_NAME=postgres
-      - DATABASE_USER=admin
-      - DATABASE_PASSWORD=admin
-      - DATABASE_PORT=5432
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=rabbit
-      - RABBITMQ_PASSWORD=rabbit
-      - MINIO_SECRET_KEY=shoutoutdevuser
-      - MINIO_ACCESS_KEY=shoutoutdevuser
-      - MINIO_URL=http://minio:9000/
+      - DASHBOARD_URL=http://dashboard
+      - WORKER_ENROLLMENT_TOKEN=${WORKER_ENROLLMENT_TOKEN}
+      - WHISPER_MODELS=tiny,small
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_APIKEY}
       - LOG_LEVEL=INFO
     depends_on:
-      - postgres
-      - minio
-      - rabbitmq
+      - dashboard
     deploy:
       mode: replicated
       replicas: 2
-      # TODO GPU: If you haven't installed the nividia-container-toolkit delete the following part:
       resources:
         reservations:
           devices:
@@ -49,7 +48,7 @@ services:
               capabilities: [gpu]
 
   postgres:
-    image: postgres
+    image: postgres:17
     restart: always
     environment:
       POSTGRES_USER: admin
@@ -59,53 +58,18 @@ services:
     volumes:
       - shoutout-db-data:/var/lib/postgresql/data
 
-  minio:
-    image: quay.io/minio/minio
+  garage:
+    image: dxflrs/garage:v2.0.0
     restart: always
-    command: server /data --console-address ":9001"
-    environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
     volumes:
-      - minio_data:/data
+      - ./conf/garage.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
-
-  mc:
-    image: minio/mc
-    entrypoint: >
-      /bin/sh -c "
-      /bin/bash -c 'while ! $((echo >/dev/tcp/minio/9000) &>/dev/null); do echo waiting for minio; sleep 3; done; echo minio healthcheck successful;';
-      /usr/bin/mc config host add minio http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb minio/shoutout-job-bucket;
-      /usr/bin/mc admin user add minio shoutoutdevuser shoutoutdevuser;
-      /usr/bin/mc admin policy attach minio readwrite --user shoutoutdevuser;
-      exit 0;"
-
-  rabbitmq:
-    image: rabbitmq:management
-    restart: always
-    environment:
-      - RABBITMQ_DEFAULT_USER=rabbit
-      - RABBITMQ_DEFAULT_PASS=rabbit
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes: 
-      - ./conf/advanced.config:/etc/rabbitmq/advanced.config:ro
-
-  job-cleaner:
-    image: ghcr.io/rwth-time/shoutout/sanity_check
-    environment:
-      DB_USER: admin
-      DB_PASSWORD: admin
-      DB_NAME: postgres
-      DB_HOST: postgres
-      DB_PORT: 5432
-    depends_on:
-      - postgres
+      - "3900:3900"
+      - "3903:3903"
 
 volumes:
   shoutout-db-data:
-  minio_data:
+  garage_meta:
+  garage_data:

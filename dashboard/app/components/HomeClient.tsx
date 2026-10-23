@@ -1,35 +1,97 @@
-'use client';
+"use client";
 
-import { useState } from "react";
-import { Box } from "@mui/material";
-import AlertPopup from "./utils/Alert";
+import { useEffect, useState } from "react";
+import { AppPage, Avatar, Button } from "@helpwave/hightide";
+import { useSession } from "next-auth/react";
 import ContentBox from "./ContentBox";
-import SideBar from "./SideBar";
+import JobList from "./SideBarComponents/JobList";
+import CreateJobModal from "./SideBarComponents/CreateJobModal";
+import ApiKeysModal from "./ApiKeysModal";
+import useJobs from "../hooks/useJob";
 import { Job } from "../types/types";
-import { AlertProvider } from "../context/AlertContext";
 
 export default function HomeClient() {
+  const { data: session } = useSession();
+  const { jobs } = useJobs();
   const [selectedJob, setSelectedJob] = useState<Job>();
-  const [jobList, setJobList] = useState<Job[] | undefined>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
+
+  useEffect(() => {
+    if (!selectedJob || !jobs) {
+      return;
+    }
+    const refreshed = jobs.find((job) => job.name === selectedJob.name);
+    if (refreshed) {
+      setSelectedJob(refreshed);
+    }
+  }, [jobs, selectedJob]);
+
+  const accountUrl = session?.user?.issuer
+    ? `${session.user.issuer}/account`
+    : undefined;
 
   return (
-    <AlertProvider>
-      <AlertPopup />
-      <Box display="flex">
-        <Box width={{ xs: "100%", md: "300px" }} flexShrink={0}>
-          <SideBar
-            setSelectedJob={setSelectedJob}
-            jobList={jobList}
-            setJobList={setJobList}
-          />
-        </Box>
-        <Box flexGrow={1}>
-          <ContentBox
-            setSelectedJob={setSelectedJob}
-            jobDetail={selectedJob}
-          />
-        </Box>
-      </Box>
-    </AlertProvider>
+    <>
+      <AppPage
+        noScrolling
+        headerActions={[
+          <Button
+            key="keys"
+            coloringStyle="tonal"
+            size="sm"
+            onClick={() => setKeysOpen(true)}
+          >
+            API keys
+          </Button>,
+          <button
+            key="user"
+            type="button"
+            className="flex items-center gap-2"
+            onClick={() => {
+              if (accountUrl) {
+                window.location.href = accountUrl;
+              }
+            }}
+          >
+            <span className="hidden text-sm sm:inline">
+              {session?.user?.name}
+            </span>
+            <Avatar name={session?.user?.name ?? "User"} size="sm" />
+          </button>,
+        ]}
+        sidebarProps={{
+          header: <span className="text-lg font-semibold">Shoutout</span>,
+          contentOverwrite: (
+            <div className="flex h-full flex-col">
+              <div className="p-2">
+                <Button
+                  color="primary"
+                  className="w-full"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  Add job
+                </Button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <JobList
+                  jobs={jobs}
+                  selectedJobName={selectedJob?.name}
+                  setSelectedJob={setSelectedJob}
+                />
+              </div>
+            </div>
+          ),
+        }}
+      >
+        <ContentBox
+          setSelectedJob={setSelectedJob}
+          jobDetail={selectedJob}
+        />
+      </AppPage>
+
+      <CreateJobModal isOpen={createOpen} setOpen={setCreateOpen} />
+      <ApiKeysModal isOpen={keysOpen} onClose={() => setKeysOpen(false)} />
+    </>
   );
 }

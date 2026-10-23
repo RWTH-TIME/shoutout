@@ -1,30 +1,27 @@
-import { Alert, AlertColor, Snackbar } from "@mui/material";
+"use client";
+
+import { Chip } from "@helpwave/hightide";
 import useAlert from "../../hooks/useAlert";
 
-const AlertPopup = () => {
+export default function AlertPopup() {
   const { text, type } = useAlert();
-  const vertical = "bottom";
-  const horizontal = "center";
-  if (text && type) {
-    return (
-      <div
-        style={{
-          position: "fixed",
-          zIndex: 5000,
-        }}
-      >
-        <Snackbar
-          anchorOrigin={{ vertical, horizontal }}
-          open={true}
-          message={text}
-        >
-          <Alert severity={type as AlertColor}>{text}</Alert>
-        </Snackbar>
-      </div>
-    );
-  } else {
-    return <></>;
-  }
-};
 
-export default AlertPopup;
+  if (!text) {
+    return null;
+  }
+
+  const color =
+    type === "error"
+      ? "negative"
+      : type === "success"
+        ? "positive"
+        : "primary";
+
+  return (
+    <div className="fixed right-4 top-4 z-50">
+      <Chip color={color} coloringStyle="solid" size="md">
+        {text}
+      </Chip>
+    </div>
+  );
+}

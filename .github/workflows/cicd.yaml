@@ -1,116 +1,198 @@
 name: CI
+
 on:
   push:
-    branches:
-      - 'main'
+    branches: ["main"]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{github.repository}}
+  IMAGE_NAME: ${{ github.repository }}
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.13"
 
 jobs:
-  lint-dashboard:
+  quality-dashboard:
+    name: Dashboard quality
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup nodejs
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
 
       - name: Install dependencies
-        working-directory: ./dashboard
-        run: npm install
+        run: npm ci
 
-      - run: |
-          cd dashboard &&
-          npm run lint
+      - name: Generate Prisma client
+        run: npx prisma generate
 
-  lint-worker:
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck / production build
+        run: npm run build
+
+      - name: Audit report
+        run: npm audit --audit-level=moderate || true
+
+      - name: Audit (critical)
+        run: npm audit --audit-level=critical
+
+  quality-worker:
+    name: Worker quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install lint/audit tools
+        run: pip install flake8 pip-audit
+
+      - name: Flake8
+        run: flake8 shoutout_worker --max-line-length=100 --extend-ignore=E203
+
+      - name: Validate packaging metadata
+        run: python -c "import tomllib; tomllib.load(open('pyproject.toml','rb'))"
+
+      - name: Dependency audit
+        continue-on-error: true
+        run: pip-audit -r requirements.txt
+
+  nix:
+    name: Nix flake
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-          
-      - name: Setup python
-        uses: actions/setup-python@v5
-        with:
-          cache: 'pip'
-        
-      - name: Run flake8
-        uses: py-actions/flake8@v2
-        with:
-          path: "worker"
-  
-  build:
-    name: Build docker image
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - name: Flake show
+        run: nix flake show
+      - name: Flake check (eval)
+        run: nix flake check --no-build --all-systems --keep-going
+
+  smoke:
+    name: Compose smoke
     runs-on: ubuntu-latest
+    needs: [quality-dashboard, quality-worker]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dashboard deps for seed helper
+        working-directory: dashboard
+        run: npm ci && npx prisma generate
+
+      - name: Build and start smoke stack
+        run: |
+          set +x
+          chmod +x scripts/garage-bootstrap.sh scripts/smoke-test.sh
+          docker compose -f docker-compose.smoke.yml build
+          docker compose -f docker-compose.smoke.yml up -d postgres garage
+          COMPOSE_FILE=docker-compose.smoke.yml ./scripts/garage-bootstrap.sh
+          test -f .garage-creds.env
+          docker compose -f docker-compose.smoke.yml up -d dashboard
+
+      - name: Wait for dashboard
+        run: |
+          set +x
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:8000/auth >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f docker-compose.smoke.yml logs dashboard
+          exit 1
+
+      - name: Run smoke test
+        env:
+          BASE_URL: http://localhost:8000
+          DATABASE_URL: postgresql://admin:admin@localhost:5433/postgres?schema=public
+          WORKER_ENROLLMENT_TOKEN: dev-worker-enrollment-token
+        run: ./scripts/smoke-test.sh
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.smoke.yml logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.smoke.yml down -v
+
+  quality-gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    needs: [quality-dashboard, quality-worker, nix, smoke]
+    steps:
+      - name: All required checks passed
+        run: echo "quality gate green"
+
+  build-images:
+    name: Build images
+    runs-on: ubuntu-latest
+    needs: [quality-gate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - context: sanity_check
-            image: sanity_check
-            build_always: true
           - context: dashboard
             image: dashboard
-            build_always: true
+            model: ""
           - context: worker
-            model: turbo
-            image:  worker-turbo
-            build_always: false
-          - context: worker
-            model: large-v3
-            image:  worker-large
-            build_always: false
-          - context: worker
-            model: medium
-            image: worker-medium
-            build_always: false 
-          - context: worker
-            model: small
-            image: worker-small
-            build_always: false
-          - context: worker
-            model: tiny
             image: worker-tiny
-            build_always: true
+            model: tiny
+          - context: worker
+            image: worker-turbo
+            model: turbo
     permissions:
       contents: read
       packages: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
+      - uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
-        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
+      - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{env.IMAGE_NAME}}/${{ matrix.context }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.context }}
           tags: |
-            type=ref, event=pr
-            type=raw, value=${{ matrix.model }}, enable=${{ matrix.image != 'dashboard' && matrix.image != 'sanity_check' }} # tags for model-sizes
-            type=raw, value=latest , enable=${{ (github.ref == format('refs/heads/{0}', 'main')) && (matrix.image == 'worker-turbo' || matrix.image == 'dashboard' || matrix.image == 'sanity_check')}} # tag worker turbo and dashboard branch as latest
-        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }} 
+            type=raw, value=${{ matrix.model }}, enable=${{ matrix.model != '' }}
+            type=raw, value=latest, enable=${{ matrix.image == 'dashboard' || matrix.image == 'worker-turbo' }}
 
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
-          context: ${{matrix.context}}
+          context: ${{ matrix.context }}
           push: true
           build-args: |
             WHISPER_MODEL=${{ matrix.model }}
             HUGGINGFACE=${{ secrets.HUGGINGFACE_APIKEY }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-        if: ${{ matrix.build_always || github.ref == 'refs/heads/main' }}

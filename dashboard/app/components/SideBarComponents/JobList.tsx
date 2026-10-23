@@ -1,50 +1,48 @@
-import {
-  Divider,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Chip,
-  ListItemIcon,
-} from "@mui/material";
+"use client";
 
+import { Chip } from "@helpwave/hightide";
 import { Job } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 
 type JobListProps = {
   jobs: Job[] | undefined;
+  selectedJobName?: string;
   setSelectedJob: React.Dispatch<React.SetStateAction<Job | undefined>>;
 };
 
-/** In this Function all Jobs will be listed */
-export default function JobList({ jobs, setSelectedJob }: JobListProps) {
+export default function JobList({
+  jobs,
+  selectedJobName,
+  setSelectedJob,
+}: JobListProps) {
   const { getStatusColor } = useJobs();
 
-  const sortedJobs = [...(jobs ?? [])].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-
   return (
-    <List>
-      {sortedJobs?.map((job, idx) => (
-        <div key={idx}>
-          <ListItem
-            disablePadding
-            onClick={(e) => {
-              console.log(e);
-              setSelectedJob(job);
-            }}
+    <div className="flex flex-col gap-1 p-2">
+      {(jobs ?? []).map((job) => {
+        const selected = job.name === selectedJobName;
+        return (
+          <button
+            key={job.id ?? job.name}
+            type="button"
+            onClick={() => setSelectedJob(job)}
+            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition ${
+              selected
+                ? "bg-primary/15 text-primary"
+                : "hover:bg-black/5 dark:hover:bg-white/5"
+            }`}
           >
-            <ListItemButton style={{ padding: "15px" }}>
-              <ListItemText primary={job.name}></ListItemText>
-              <ListItemIcon>
-                <Chip label={job.status} color={getStatusColor(job.status)} />
-              </ListItemIcon>
-            </ListItemButton>
-          </ListItem>
-          <Divider />
-        </div>
-      ))}
-    </List>
+            <span className="truncate pr-2 text-sm font-medium">{job.name}</span>
+            <Chip
+              color={getStatusColor(job.status)}
+              coloringStyle="tonal"
+              size="xs"
+            >
+              {job.status}
+            </Chip>
+          </button>
+        );
+      })}
+    </div>
   );
 }

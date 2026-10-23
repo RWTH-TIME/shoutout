@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -10,14 +8,51 @@ datasource db {
 }
 
 model job {
-  id           Int     @id @default(autoincrement())
-  owner        String   @db.Uuid
-  name         String  @unique
+  id           Int       @id @default(autoincrement())
+  owner        String    @db.Uuid
+  name         String    @unique
   audioFile    String?
   participants Int?
   language     String?
-  status       Status  @default(PENDING)
-  createdAt    DateTime @default(now())
+  model        String
+  notifyEmail  String?
+  status       Status    @default(PENDING)
+  workerId     String?
+  claimedAt    DateTime?
+  heartbeatAt  DateTime?
+  error        String?
+  attempts     Int       @default(0)
+  resultToken  String?   @unique
+  createdAt    DateTime  @default(now())
+  worker       worker?   @relation(fields: [workerId], references: [id])
+
+  @@index([owner, createdAt])
+  @@index([status, createdAt])
+  @@index([status, model])
+}
+
+model worker {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  tokenHash  String
+  lastSeenAt DateTime @default(now())
+  models     String[]
+  info       Json?
+  jobs       job[]
+}
+
+model apiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  owner      String    @db.Uuid
+  name       String
+  prefix     String
+  hash       String    @unique
+  ownerEmail String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([owner])
 }
 
 enum Status {

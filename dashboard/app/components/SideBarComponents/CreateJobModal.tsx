@@ -1,201 +1,245 @@
-import {
-  Modal,
-  Box,
-  Typography,
-  Fade,
-  InputLabelProps,
-  Switch,
-  Stack,
-  FormControlLabel,
-  InputAdornment,
-  Tooltip,
-} from "@mui/material";
-import InfoIcon from "@mui/icons-material/Info"
-import { Job, BulkJob, ValidationFunction, STATUS } from "../../types/types";
-import useJobs from "../../hooks/useJob";
-import useValidation from "../../hooks/useValidation";
-import { FormTemplate } from "../../templates/FormTemplate";
-import React, { useState } from "react";
+"use client";
 
-const style = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 800,
-  bgcolor: "background.paper",
-  border: "1px solid #000",
-  boxShadow: 24,
-  p: 4,
-};
+import { useMemo, useState } from "react";
+import { Button, Dialog, Input, Select } from "@helpwave/hightide";
+import useJobs from "../../hooks/useJob";
+import useModels from "../../hooks/useModels";
+import useAlert from "../../hooks/useAlert";
+import { BulkFileEntry, Job, STATUS } from "../../types/types";
+import BulkFileTable from "./BulkFileTable";
+import { LANGUAGE_OPTIONS } from "../../utils/languages";
 
 type ModalProps = {
   isOpen: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-type Input<T> = {
-  name: keyof T;
-  type: string;
-  label: string;
-  required: boolean;
-  validationType?: string | ValidationFunction;
-  inputLabelProps?: InputLabelProps;
-  selectOptions?: selectOptions[];
-  helperText?: string;
-  inputProps?: {
-    accept: string;
-    endAdornment?: React.ReactNode;
-  };
-};
-
-type selectOptions = {
-  name: string;
-  value: string | number;
-};
-
-const MODAL_TITLE = "Neuen Job hinzufügen:";
-const NAME_INPUT_LABEL = "Name";
-const AUDIO_FILE_LABEL = "Audio File";
-const ZIP_FILE_LABEL = "Zip File";
-const PARTICIPANTS_INPUT_LABEL = "Teilnehmer";
-const PARTICIPANTS_HELPER_TEXT = "0 wenn Sie es nicht eindeutig sagen können";
-const LANGUAGE_INPUT_LABEL = "Sprache";
-
-/** This function is a Modal for creating a Job, it also makes the API-Call */
 export default function CreateJobModal({ isOpen, setOpen }: ModalProps) {
-  const handleClose = () => setOpen(false);
-  const { createJob, LANGUAGE_DATA } = useJobs();
-  const { NUMBERS } = useValidation();
-  const [isSingleInput, setIsSingleInput] = useState(true)
+  const { createJob, createJobs } = useJobs();
+  const { models } = useModels();
+  const { setAlert } = useAlert();
+  const [bulkMode, setBulkMode] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const defaultModel = models[0]?.model ?? "";
 
-  const emptyState: Job = {
+  const [single, setSingle] = useState<Job>({
     name: "",
     audioFile: undefined,
+    model: defaultModel,
     participants: 0,
     language: "",
     status: STATUS.Pending,
     createdAt: new Date(),
-  };
+  });
+  const [entries, setEntries] = useState<BulkFileEntry[]>([]);
 
-  const emptyBulkState: BulkJob = {
-    name: "",
-    audioFile: undefined,
-    status: STATUS.Pending,
-    createdAt: new Date(),
-  };
+  const canSubmit = useMemo(() => {
+    if (models.length === 0) {
+      return false;
+    }
+    if (bulkMode) {
+      return (
+        entries.length > 0 &&
+        entries.every((entry) => entry.name && entry.model)
+      );
+    }
+    return Boolean(
+      single.name && single.model && single.audioFile instanceof File
+    );
+  }, [bulkMode, entries, models.length, single]);
 
-  const inputs: Input<Job>[] = [
-    {
-      name: "name",
-      type: "text",
-      label: NAME_INPUT_LABEL,
-      required: true,
-    },
-    {
-      name: "audioFile",
-      type: "file",
-      label: AUDIO_FILE_LABEL,
-      required: true,
-      inputLabelProps: {
-        shrink: true,
-      },
-      inputProps: {
-        accept: "audio/*",
-      },
-    },
-    {
-      name: "participants",
-      type: "text",
-      label: PARTICIPANTS_INPUT_LABEL,
-      required: false,
-      helperText: PARTICIPANTS_HELPER_TEXT,
-      validationType: NUMBERS,
-    },
-    {
-      name: "language",
-      type: "select",
-      label: LANGUAGE_INPUT_LABEL,
-      required: false,
-      selectOptions: LANGUAGE_DATA,
-    },
-  ];
+  function close() {
+    setOpen(false);
+    setBusy(false);
+    setEntries([]);
+    setSingle({
+      name: "",
+      audioFile: undefined,
+      model: models[0]?.model ?? "",
+      participants: 0,
+      language: "",
+      status: STATUS.Pending,
+      createdAt: new Date(),
+    });
+  }
 
-  const bulkInputs: Input<BulkJob>[] = [
-    {
-      name: "name",
-      type: "text",
-      label: NAME_INPUT_LABEL,
-      required: true,
-    },
-    {
-      name: "audioFile",
-      type: "file",
-      label: ZIP_FILE_LABEL,
-      required: true,
-      inputLabelProps: {
-        shrink: true,
-      },
-      inputProps: {
-        accept: ".zip",
-        endAdornment: (
-          <InputAdornment position="end">
-            <Tooltip title={
-              <div style={{ fontSize: 15, lineHeight: 1.2 }}>
-                <p>{"Die Dateien in der .zip-Datei müssen das folgende Format haben:"}
-                  <Typography color="inherit">{"name_AnzahlTeilnehmer_sprache.typ"}</Typography>
-                </p>
-                <p><b>{"Verfügbare Sprachen:"}</b><i>{" 'de', 'en' "}</i><br />
-                  {"Beispiel: muster_2_de.mp3"}</p>
-                <p><b>{"Falls unsicher, kann 'auto' als Platzhalter verwendet werden."}</b><br />
-                  {"Beispiel: muster_auto_auto.wav"}</p>
-              </div>
-            } >
-              <InfoIcon />
-            </Tooltip>
-          </InputAdornment>
-        )
-      },
-    },
-  ];
+  async function onSubmit() {
+    setBusy(true);
+    if (bulkMode) {
+      const results = await createJobs(entries);
+      const failed = results.filter((item) => !item.ok);
+      if (failed.length === 0) {
+        setAlert("Jobs created", "success");
+        close();
+      } else {
+        setAlert(
+          `${failed.length} of ${results.length} jobs failed`,
+          "error"
+        );
+        setBusy(false);
+      }
+      return;
+    }
+
+    const ok = await createJob({
+      ...single,
+      model: single.model || defaultModel,
+    });
+    if (ok) {
+      setAlert("Job created", "success");
+      close();
+    } else {
+      setAlert("Could not create job", "error");
+      setBusy(false);
+    }
+  }
+
+  function onPickFiles(fileList: FileList | null) {
+    if (!fileList) {
+      return;
+    }
+    const files = Array.from(fileList);
+    if (bulkMode) {
+      setEntries(
+        files.map((file) => ({
+          file,
+          name: file.name.replace(/\.[^.]+$/, ""),
+          model: defaultModel,
+          participants: 0,
+          language: "",
+        }))
+      );
+      return;
+    }
+    const file = files[0];
+    if (!file) {
+      return;
+    }
+    setSingle((current) => ({
+      ...current,
+      audioFile: file,
+      name: current.name || file.name.replace(/\.[^.]+$/, ""),
+      model: current.model || defaultModel,
+    }));
+  }
 
   return (
-    <>
-      <Modal open={isOpen}>
-        <Fade in={isOpen}>
-          <Box sx={style}>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              spacing={2}
+    <Dialog
+      isOpen={isOpen}
+      onClose={close}
+      titleElement="Create job"
+      description="Upload audio and choose a model offered by attached workers."
+      isModal
+      position="center"
+      containerClassName="max-w-4xl w-full"
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={bulkMode}
+              onChange={(event) => {
+                setBulkMode(event.target.checked);
+                setEntries([]);
+              }}
+            />
+            Bulk file selection
+          </label>
+          {models.length === 0 ? (
+            <span className="text-sm text-negative">
+              No workers attached. Attach a worker to choose a model.
+            </span>
+          ) : null}
+        </div>
+
+        <input
+          type="file"
+          accept={bulkMode ? "audio/*" : "audio/*,.zip"}
+          multiple={bulkMode}
+          onChange={(event) => onPickFiles(event.target.files)}
+        />
+
+        {bulkMode ? (
+          <BulkFileTable
+            entries={entries}
+            models={models}
+            onChange={setEntries}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Input
+              value={single.name}
+              onValueChange={(value) =>
+                setSingle((current) => ({ ...current, name: value }))
+              }
+              placeholder="Name"
+              required
+            />
+            <Select
+              value={single.model || defaultModel || null}
+              onValueChange={(value) =>
+                setSingle((current) => ({
+                  ...current,
+                  model: value ?? "",
+                }))
+              }
+              placeholder="Model"
             >
-              <Typography id="modal-modal-title" variant="h6" component="h2">
-                {MODAL_TITLE}
-              </Typography>
-              <FormControlLabel control={<Switch />} label="Multiple Files" onChange={() => { setIsSingleInput(!isSingleInput) }} checked={!isSingleInput} />
-            </Stack>
-            {isSingleInput ?
-              <FormTemplate<Job>
-                emptyState={emptyState}
-                inputs={inputs}
-                addFunction={createJob}
-                abortFunction={() => {
-                  handleClose();
-                }}
-              ></FormTemplate> :
-              <FormTemplate<BulkJob>
-                emptyState={emptyBulkState}
-                inputs={bulkInputs}
-                addFunction={createJob}
-                abortFunction={() => {
-                  handleClose();
-                }}
-              ></FormTemplate>
-            }
-          </Box>
-        </Fade>
-      </Modal>
-    </>
+              {models.map((item) => (
+                <Select.Option
+                  key={item.model}
+                  value={item.model}
+                  label={`${item.model} (${item.workerCount} workers)`}
+                />
+              ))}
+            </Select>
+            <Input
+              type="number"
+              value={String(single.participants)}
+              onValueChange={(value) =>
+                setSingle((current) => ({
+                  ...current,
+                  participants: Number(value) || 0,
+                }))
+              }
+              placeholder="Participants"
+            />
+            <Select
+              value={single.language}
+              onValueChange={(value) =>
+                setSingle((current) => ({
+                  ...current,
+                  language: value ?? "",
+                }))
+              }
+              placeholder="Language"
+            >
+              {LANGUAGE_OPTIONS.map((item) => (
+                <Select.Option
+                  key={item.value || "auto"}
+                  value={item.value}
+                  label={item.name}
+                />
+              ))}
+            </Select>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <Button coloringStyle="text" onClick={close}>
+            Cancel
+          </Button>
+          <Button
+            color="primary"
+            isProcessing={busy}
+            disabled={!canSubmit || busy}
+            onClick={onSubmit}
+          >
+            Create
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }

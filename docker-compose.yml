@@ -4,47 +4,65 @@ services:
     restart: always
     ports:
       - "8000:80"
+    env_file:
+      - path: .garage-creds.env
+        required: false
     environment:
-      - MINIO_ENDPOINT=localhost # TODO update this to external hostname
-      - MINIO_PORT=9000
-      - MINIO_ACCESS_KEY=shoutoutdevuser
-      - MINIO_SECRET_KEY=shoutoutdevuser
-      - MINIO_SSL_ENABLED=false # TODO toggle if your endpoint is supporting valid https
-      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
+      - S3_ENDPOINT=http://garage:3900
+      - S3_PUBLIC_ENDPOINT=http://localhost:3900
+      - S3_WORKER_ENDPOINT=http://garage:3900
+      - S3_REGION=garage
+      - WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
+      - NEXTAUTH_URL=http://localhost:8000
+      - NEXTAUTH_SECRET=random-auth-secret
+      - OIDC_PROVIDER=http://localhost:8090/realms/main
+      - OIDC_INTERNAL_PROVIDER=http://keycloak:8080/realms/main
+      - OIDC_CLIENT_ID=shoutout
+      - OIDC_CLIENT_SECRET=shoutout-client-secret
+      - JOB_EXPIRATION_DAYS=14
     depends_on:
       - postgres
-      - minio
-      - rabbitmq
+      - garage
+      - keycloak
 
   worker:
     build:
       context: worker
+      dockerfile: Dockerfile.cpu
       args:
-        - HUGGINGFACE_APIKEY=not_a_real_api_key # TODO replace with a real one
-        - WHISPER_MODEL=tiny # TODO GPU: use `large-v3` for more precise results
+        - HUGGINGFACE=${HUGGINGFACE_APIKEY:-}
+        - WHISPER_MODEL=tiny
     restart: always
     environment:
-      - DATABASE_HOST=postgres
-      - DATABASE_NAME=postgres
-      - DATABASE_USER=admin
-      - DATABASE_PASSWORD=admin
-      - DATABASE_PORT=5432
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=rabbit
-      - RABBITMQ_PASSWORD=rabbit
-      - MINIO_SECRET_KEY=shoutoutdevuser
-      - MINIO_ACCESS_KEY=shoutoutdevuser
-      - MINIO_URL=http://minio:9000/
+      - DASHBOARD_URL=http://dashboard
+      - WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
+      - WHISPER_MODELS=tiny
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_APIKEY:-}
       - LOG_LEVEL=INFO
+      - CONCURRENCY=1
     depends_on:
-      - postgres
-      - minio
-      - rabbitmq
+      - dashboard
+
+  worker-gpu:
+    profiles: ["gpu"]
+    build:
+      context: worker
+      dockerfile: Dockerfile
+      args:
+        - HUGGINGFACE=${HUGGINGFACE_APIKEY:-}
+        - WHISPER_MODEL=small
+    restart: always
+    environment:
+      - DASHBOARD_URL=http://dashboard
+      - WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
+      - WHISPER_MODELS=tiny,small
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_APIKEY:-}
+      - LOG_LEVEL=INFO
+      - CONCURRENCY=1
+    depends_on:
+      - dashboard
     deploy:
-      mode: replicated
-      replicas: 2
-      # TODO GPU: If you haven't installed the nividia-container-toolkit delete the following part:
       resources:
         reservations:
           devices:
@@ -63,42 +81,35 @@ services:
     volumes:
       - shoutout-db-data:/var/lib/postgresql/data
 
-  minio:
-    image: quay.io/minio/minio
+  garage:
+    image: dxflrs/garage:v2.0.0
     restart: always
-    environment:
-      - MINIO_ROOT_USER=shoutoutdevuser
-      - MINIO_ROOT_PASSWORD=shoutoutdevuser
     volumes:
-      - minio_data:/data
+      - ./conf/garage.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    command: server /data --console-address ":9001"
-
-  rabbitmq:
-    image: rabbitmq:management
-    restart: always
-    environment:
-      - RABBITMQ_DEFAULT_USER=rabbit
-      - RABBITMQ_DEFAULT_PASS=rabbit
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - ./conf/advanced.config:/etc/rabbitmq/advanced.config:ro
+      - "3900:3900"
+      - "3902:3902"
+      - "3903:3903"
 
   job-cleaner:
-    build: sanity_check
+    profiles: ["tools"]
+    build: dashboard
+    entrypoint: ["sh", "-c", "npx tsx scripts/cleanup.ts"]
+    env_file:
+      - path: .garage-creds.env
+        required: false
     environment:
-      DB_USER: admin
-      DB_PASSWORD: admin
-      DB_NAME: postgres
-      DB_HOST: postgres
-      DB_PORT: 5432
+      - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
+      - S3_ENDPOINT=http://garage:3900
+      - S3_PUBLIC_ENDPOINT=http://garage:3900
+      - S3_BUCKET=shoutout-job-bucket
     depends_on:
       - postgres
-  
+      - garage
+    restart: "no"
+
   keycloak-postgres:
     image: postgres:17
     volumes:
@@ -109,19 +120,17 @@ services:
       POSTGRES_PASSWORD: "password"
 
   keycloak:
-    image: quay.io/keycloak/keycloak
+    image: quay.io/keycloak/keycloak:26.8.1
     environment:
       KC_DB: "postgres"
       KC_DB_URL: "jdbc:postgresql://keycloak-postgres:5432/keycloak"
       KC_DB_USERNAME: "keycloak"
       KC_DB_PASSWORD: "password"
-      KC_HOSTNAME: "localhost"
-      KC_HOSTNAME_PORT: 8080
-      KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME_STRICT_HTTPS: false
-      KC_LOG_LEVEL: "info"
-      KC_METRICS_ENABLED: true
-      KC_HEALTH_ENABLED: true
+      KC_HOSTNAME: "http://localhost:8090"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
       KEYCLOAK_ADMIN: "admin"
       KEYCLOAK_ADMIN_PASSWORD: "admin"
     command: start-dev --import-realm
@@ -134,5 +143,6 @@ services:
 
 volumes:
   shoutout-db-data:
-  minio_data:
+  garage_meta:
+  garage_data:
   keycloak-postgres-data:

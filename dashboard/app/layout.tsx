@@ -1,13 +1,9 @@
-import AppBarCustom from "./components/AppBarCustom";
-
-import { Inter } from "next/font/google";
 import SessionWrapper from "./components/SessionWrapper";
-
-const inter = Inter({ subsets: ["latin"] });
+import "./globals.css";
 
 export const metadata = {
   title: "Shoutout",
-  description: "",
+  description: "Audio transcription jobs",
 };
 
 export default function RootLayout({
@@ -16,14 +12,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="de">
-      <body style={{ margin: "0px" }} className={inter.className}>
-        <SessionWrapper>
-          <div>
-            <AppBarCustom />
-          </div>
-          <div>{children}</div>
-        </SessionWrapper>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <SessionWrapper>{children}</SessionWrapper>
       </body>
     </html>
   );

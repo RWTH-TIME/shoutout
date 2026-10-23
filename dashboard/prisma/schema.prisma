@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -10,14 +8,81 @@ datasource db {
 }
 
 model job {
-  id           Int     @id @default(autoincrement())
-  owner        String   @db.Uuid
-  name         String  @unique
-  audioFile    String?
-  participants Int?
-  language     String?
-  status       Status  @default(PENDING)
-  createdAt    DateTime @default(now())
+  id            Int        @id @default(autoincrement())
+  publicId      String     @unique @default(uuid()) @db.Uuid
+  owner         String     @db.Uuid
+  name          String     @unique
+  audioFile     String?
+  participants  Int?
+  language      String?
+  model         String
+  notifyEmail   String?
+  notifyEnabled Boolean    @default(true)
+  visibility    Visibility @default(PRIVATE)
+  expiresAt     DateTime?
+  status        Status     @default(PENDING)
+  workerId      String?
+  claimedAt     DateTime?
+  heartbeatAt   DateTime?
+  error         String?
+  attempts      Int        @default(0)
+  resultToken   String?    @unique
+  resultZipKey  String?
+  createdAt     DateTime   @default(now())
+  worker        worker?    @relation(fields: [workerId], references: [id])
+  files         jobFile[]
+
+  @@index([owner, createdAt])
+  @@index([status, createdAt])
+  @@index([status, model])
+  @@index([expiresAt])
+}
+
+model jobFile {
+  id              String  @id @default(uuid()) @db.Uuid
+  jobId           Int
+  position        Int
+  originalName    String
+  audioFile       String
+  participants    Int?
+  language        String?
+  resultTextKey   String?
+  resultJsonKey   String?
+  durationSeconds Float?
+  job             job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+}
+
+model userSettings {
+  owner           String  @id @db.Uuid
+  notifyEmail     String?
+  notifyOnFinish  Boolean @default(true)
+  notifyOnFail    Boolean @default(false)
+}
+
+model worker {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  tokenHash  String
+  lastSeenAt DateTime @default(now())
+  models     String[]
+  info       Json?
+  jobs       job[]
+}
+
+model apiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  owner      String    @db.Uuid
+  name       String
+  prefix     String
+  hash       String    @unique
+  ownerEmail String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([owner])
 }
 
 enum Status {
@@ -25,4 +90,10 @@ enum Status {
   FINISHED
   FAILED
   RUNNING
+}
+
+enum Visibility {
+  PRIVATE
+  AUTHENTICATED
+  PUBLIC
 }

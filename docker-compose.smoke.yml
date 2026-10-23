@@ -1,0 +1,53 @@
+services:
+  dashboard:
+    build: dashboard
+    restart: "no"
+    ports:
+      - "8000:80"
+    env_file:
+      - path: .garage-creds.env
+        required: false
+    environment:
+      - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
+      - S3_ENDPOINT=http://garage:3900
+      - S3_PUBLIC_ENDPOINT=http://localhost:3900
+      - S3_WORKER_ENDPOINT=http://localhost:3900
+      - S3_REGION=garage
+      - WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
+      - NEXTAUTH_URL=http://localhost:8000
+      - NEXTAUTH_SECRET=random-auth-secret
+      - OIDC_PROVIDER=http://localhost:8090/realms/main
+      - OIDC_CLIENT_ID=shoutout
+      - OIDC_CLIENT_SECRET=shoutout-client-secret
+    depends_on:
+      postgres:
+        condition: service_healthy
+      garage:
+        condition: service_started
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  garage:
+    image: dxflrs/garage:v2.0.0
+    volumes:
+      - ./conf/garage.toml:/etc/garage.toml:ro
+      - garage_smoke_meta:/var/lib/garage/meta
+      - garage_smoke_data:/var/lib/garage/data
+    ports:
+      - "3900:3900"
+      - "3903:3903"
+
+volumes:
+  garage_smoke_meta:
+  garage_smoke_data:

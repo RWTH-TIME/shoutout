@@ -1,147 +1,34 @@
-import { Job } from "../types/types";
-import useJobs from "../hooks/useJob";
-import useAlert from "../hooks/useAlert";
-import {
-  LinearProgress,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Stack,
-  TypographyProps,
-  CircularProgress,
-  IconButton,
-} from "@mui/material";
-import { DeleteOutlined, GetApp, } from "@mui/icons-material";
+"use client";
+
 import { useState } from "react";
+import useAppTranslation from "../hooks/useAppTranslation";
+import AudioDropzone from "./upload/AudioDropzone";
+import CreateJobModal from "./SideBarComponents/CreateJobModal";
 
-type ContentBoxProps = {
-  setSelectedJob: React.Dispatch<React.SetStateAction<Job | undefined>>;
-  jobDetail: Job | undefined;
-};
-const DEFAULT = "Automatisch";
-const NAME_HEADER = "Name";
-const PARTICIPANTS_HEADER = "Number of Participants";
-const LANG_HEADER = "Sprache";
-const DOWNLOAD_HEADER = "Download";
-const TYPOGRAPHY_PROPS: TypographyProps = {
-  variant: "body2",
-  color: "text.secondary",
-  sx: {
-    fontSize: 16,
-  },
-};
+export default function ContentBox() {
+  const translation = useAppTranslation();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [initialFiles, setInitialFiles] = useState<File[]>([]);
 
-/** This function contains the logicalContext belonging to a task/job */
-export default function ContentBox({ setSelectedJob, jobDetail }: ContentBoxProps) {
-  const { setAlert } = useAlert();
-  const { getStatusColor, LANGUAGE_DATA, downloadFile, deleteJob } = useJobs();
-  const [downloadLoading, setDownloadLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  async function onDownload() {
-    if (jobDetail?.status != "FINISHED") {
-      return;
-    }
-
-    try {
-      setDownloadLoading(true);
-      const link = document.createElement("a");
-      link.href = await downloadFile(jobDetail);
-      link.click();
-    } catch (error) {
-      console.error("Error downloading file", error)
-      setAlert("Beim Download ist etwas schiefgelaufen!", "error");
-    } finally {
-      setDownloadLoading(false);
-    }
-  }
-
-  function getLanguage(): string {
-    const langObj = LANGUAGE_DATA.find(
-      (lang) => lang.value === jobDetail?.language
-    );
-
-    if (langObj) return langObj.name;
-    else return DEFAULT;
-  }
-
-  async function onDelete() {
-    setDeleteLoading(true)
-    if (!jobDetail) return
-    const success = await deleteJob(jobDetail)
-    if (success) {
-      setAlert("Job erfolgreich gelöscht!", "success")
-      setSelectedJob(undefined)
-    } else {
-      setAlert("Beim löschen ist etwas schiefgelaufen!", "error")
-    }
-    setDeleteLoading(false)
-  }
-
-  if (jobDetail) {
-    return (
-      <div
-        style={{ backgroundColor: "#f2f2f2", padding: "15px", height: "100vh" }}
-      >
-        <Card variant="outlined">
-          <LinearProgress
-            color={
-              getStatusColor(jobDetail.status) === "default"
-                ? "info"
-                : (getStatusColor(jobDetail.status) as "success" | "error")
-            }
-            variant="determinate"
-            value={100}
+  return (
+    <>
+      <div className="flex h-full min-h-[50vh] flex-col items-center justify-center gap-3 p-6">
+        <p className="text-sm text-description">{translation("selectJob")}</p>
+        <div className="w-full max-w-xl">
+          <AudioDropzone
+            onFilesAdded={(files) => {
+              setInitialFiles(files);
+              setCreateOpen(true);
+            }}
           />
-          <CardContent>
-            <Stack spacing={{ xs: 1, sm: 2, md: 2 }}>
-              <Stack direction="row" justifyContent="space-between">
-                <div>
-                  <Typography {...TYPOGRAPHY_PROPS}>{NAME_HEADER}</Typography>
-                  {jobDetail.name}
-                </div>
-                {jobDetail?.status != "RUNNING" ? (
-                  <IconButton aria-label="settings" onClick={onDelete}>
-                    {deleteLoading ? (
-                      <CircularProgress size={26} color="inherit" />
-                    ) : (
-                      <DeleteOutlined color="error" sx={{ fontSize: 30 }} />
-                    )}
-                  </IconButton>
-                ) : (
-                  <></>
-                )}
-              </Stack>
-              <Typography {...TYPOGRAPHY_PROPS}>
-                {PARTICIPANTS_HEADER}
-              </Typography>
-              {jobDetail.participants ? jobDetail.participants : DEFAULT}
-              <Typography {...TYPOGRAPHY_PROPS}>{LANG_HEADER}</Typography>
-              {getLanguage()}
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={downloadLoading ? <></> : <GetApp />}
-                disabled={jobDetail?.status !== "FINISHED"}
-                onClick={onDownload}
-              >
-                {downloadLoading ? (
-                  <CircularProgress size={26} color="inherit" />
-                ) : (
-                  DOWNLOAD_HEADER
-                )}
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
+        </div>
       </div>
-    );
-  } else {
-    return (
-      <div
-        style={{ backgroundColor: "#f2f2f2", padding: "15px", height: "100vh" }}
-      ></div>
-    );
-  }
+      <CreateJobModal
+        isOpen={createOpen}
+        setOpen={setCreateOpen}
+        initialFiles={initialFiles}
+        onInitialFilesConsumed={() => setInitialFiles([])}
+      />
+    </>
+  );
 }

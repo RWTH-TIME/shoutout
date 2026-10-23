@@ -1,170 +1,264 @@
-A modern web application for transcribing audiofiles on your own server.  
-Powered by models like whisper-v3 and pyannote/speaker-diarization. Try it yourself!  
+# Shoutout
 
-# Why Shoutout?
-Shoutout is a state of the art web application for transcribing audiofiles including speaker diarization and time stamps. Due to its high accuracy level, ideal data privacy and easy navigation, shoutout is perfectly suited for transcriptions of interviews in qualitative research or sensitive corporate recordings.
+Self-hosted audio transcription with speaker diarization.
 
-Shoutout provides:
-- a **simple to use** web-interface.
-- **highly accurate** transcriptions leveraging the open source transcription model whisper-v3.
-- automatic **speaker detection** including timestamps.
-- perfect **data privacy**: Shoutout runs **100% local** and does not share any of your data with external services.
-- highly **efficient and fast** transcriptions using GPU acceleration and a scalable architecture.
-- **easy deployment** due to a completely dockerized build.
+Upload one or more audio files as a single job, run Whisper (and optionally pyannote) on attached workers, then preview transcripts in the browser, download a zip, or share the job privately, with signed-in users, or publicly.
 
-# Screenshots
-### Creating a new job
-![.assets/Shoutout_1.png](.assets/Shoutout_1.png)
+## What it does
 
-### Web-interface with an overview of all jobs
-![.assets/Shoutout_2.png](.assets/Shoutout_2.png)
+- **Jobs as projects** — multiple files live in one job; each file gets its own transcript preview and playback
+- **Speaker-aware transcripts** — Whisper plus optional pyannote diarization with timestamps
+- **Web UI** — create jobs, watch status, preview results, share links, manage mailing preferences
+- **Workers over HTTPS** — GPU or CPU workers claim work from the dashboard; they never need database credentials
+- **Automation** — per-user API keys for REST and MCP
+- **Local storage** — Postgres for metadata, Garage (S3) for audio and results
+- **Optional email** — Listmonk notifications when a job finishes or fails
+- **NixOS modules** — deploy the dashboard host and remote workers separately
 
-### Downloading transcripts after finishing a job
-![.assets/Shoutout_3.png](.assets/Shoutout_3.png)
+```text
+Browser / API / MCP  --HTTPS (OIDC session or API key)-->  Dashboard
+                                                              |
+                                                              +--> Postgres
+                                                              +--> Garage (S3)
 
-### Results example:
-
-```
-SPEAKER_00 00:00:00
-Sure, okay, so for documentation purposes. Are you okay with me recording the interview?
-
-SPEAKER_01 00:00:12
-Yes, I agree to the audio recording.
-
-SPEAKER_00 00:00:17
-Okay, then let's start. Could you first briefly introduce yourself, describe your background and what your doing...
-
-SPEAKER_01 00:00:28
-Well, my name is ...
+Workers  --HTTPS (enrollment / worker token)-->  Dashboard
+Workers  --presigned GET/PUT------------------>  Garage
 ```
 
+## Requirements
 
-## Architecture
+- Docker and Docker Compose (recommended for first install)
+- Optional: NVIDIA GPU + [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) for CUDA workers
+- Optional: Hugging Face token with access to pyannote speaker-diarization models
 
-![.assets/arch.png](.assets/arch.png)
+## Install with Docker
 
-## quickstart
-
-Its recommended to use [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
-
-### Docker
-
-To setup all services just run following command in the root directory.
-
-**Before running the following command, please update the environment variable `MINIO_ENDPOINT` inside the `docker-compose.yml` to an external reachable hostname! This container is called directly from the frontend.**
-
-**If you want the worker to support your gpu you have to install the [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) on the host**
+Clone the repository, then start infrastructure, bootstrap object storage, and bring up the app:
 
 ```sh
-docker compose -f docker-compose.prod.yml up -d
+git clone https://github.com/rwth-time/shoutout.git
+cd shoutout
+
+docker compose up -d postgres garage keycloak keycloak-postgres
+COMPOSE_FILE=docker-compose.yml ./scripts/garage-bootstrap.sh
+docker compose up -d --build dashboard worker
+docker compose up -d --force-recreate dashboard
 ```
 
-It will setup 6 containers:
-1. Build of the dashboard at [localhost:8000](http://localhost:8000)
-2. PostgresDB on port `5433`
-3. MinIO S3 Bucket at [localhost:9001](http://localhost:9001)
-4. A MinIO client initializing the s3 bucket permissions
-5. RabbitMQ at [localhost:15672](http://localhost:15672)
-6. Worker-Container (gpu support)
+`garage-bootstrap.sh` creates the Garage layout, access key, bucket, and CORS rules for browser uploads. Credentials are written to `.garage-creds.env` (gitignored). Recreate the dashboard after bootstrap so it loads those credentials.
+
+Open [http://localhost:8000](http://localhost:8000) and sign in with **test** / **test**.
+
+| Service   | URL / port | Notes |
+|-----------|------------|--------|
+| Dashboard | [localhost:8000](http://localhost:8000) | Login `test` / `test` |
+| Keycloak  | [localhost:8090](http://localhost:8090) | Admin `admin` / `admin`, realm `main` |
+| Postgres  | `localhost:5433` | User/password `admin` |
+| Garage S3 | `localhost:3900` | Browser uploads/downloads |
+
+The default worker is CPU-only with Whisper `tiny` (fine for local testing). Without `HUGGINGFACE_APIKEY` it falls back to single-speaker transcription. Set the token (and accept pyannote terms on Hugging Face) for real diarization:
+
+```sh
+export HUGGINGFACE_APIKEY=hf_...
+docker compose up -d --build worker
+```
+
+### GPU worker
+
+```sh
+docker compose --profile gpu up -d --build worker-gpu
+```
+
+### Re-import Keycloak realm
+
+If you change `.keycloak-config/main-realm.json` after the first import:
+
+```sh
+docker compose stop keycloak
+docker compose rm -f keycloak
+docker volume rm shoutout_keycloak-postgres-data
+docker compose up -d keycloak-postgres keycloak
+```
+
+## Using the app
+
+1. Sign in and create a job (one or many audio files).
+2. A worker claims the job, writes per-file transcripts, and packs a zip.
+3. Open `/job/<uuid>` to preview audio and transcript, download results, or share.
+4. Visibility: **private**, **signed-in users with the link**, or **public**.
+5. Under **Settings**, configure theme, language, mailing options, and API keys.
+
+Jobs expire after `JOB_EXPIRATION_DAYS` (default 14). Set `0` for no expiration.
+
+## API and MCP
+
+Create an API key under **Settings → API keys**. The secret is shown once. The same bearer token works for REST and MCP.
+
+```bash
+export SHOUTOUT_KEY="so_xxx_yyy"
+export SHOUTOUT_URL="https://shoutout.example.com"
+
+curl -s -H "Authorization: Bearer $SHOUTOUT_KEY" "$SHOUTOUT_URL/api/v1/languages"
+curl -s -H "Authorization: Bearer $SHOUTOUT_KEY" "$SHOUTOUT_URL/api/v1/models"
+
+# One or more files become a single job
+curl -s -X POST "$SHOUTOUT_URL/api/v1/jobs" \
+  -H "Authorization: Bearer $SHOUTOUT_KEY" \
+  -F "files[]=@meeting-a.mp3;filename=meeting-a.mp3" \
+  -F "files[]=@meeting-b.mp3;filename=meeting-b.mp3" \
+  -F "name=weekly-standup" \
+  -F "model=large-v3" \
+  -F "participants=3" \
+  -F "language=en"
+
+curl -s -H "Authorization: Bearer $SHOUTOUT_KEY" "$SHOUTOUT_URL/api/v1/jobs/weekly-standup"
+curl -L -H "Authorization: Bearer $SHOUTOUT_KEY" \
+  "$SHOUTOUT_URL/api/v1/jobs/weekly-standup/result" -o weekly-standup.zip
+```
+
+### MCP client
+
+```json
+{
+  "mcpServers": {
+    "shoutout": {
+      "url": "https://shoutout.example.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SHOUTOUT_KEY}"
+      }
+    }
+  }
+}
+```
+
+Tools: `list_languages`, `list_models`, `request_upload`, `create_job`, `create_jobs_bulk`, `list_jobs`, `get_job`, `delete_job`, `download_job_result`.
+
+## Email notifications (Listmonk)
+
+Optional. When configured, Shoutout can email you when a job finishes or fails (per user settings and per-job toggle).
+
+Set `LISTMONK_URL`, `LISTMONK_USERNAME`, `LISTMONK_TOKEN`, and `LISTMONK_TEMPLATE_ID`. If `LISTMONK_URL` is empty, jobs still complete and no mail is sent.
+
+Example template body:
+
+```html
+<p>Your transcript <strong>{{ .Tx.Data.jobName }}</strong> ({{ .Tx.Data.model }}) is ready.</p>
+<p><a href="{{ .Tx.Data.jobUrl }}">Open job</a></p>
+```
+
+## NixOS
+
+### Dashboard host
+
+```nix
+{
+  imports = [ inputs.shoutout.nixosModules.shoutout ];
+  services.shoutout = {
+    enable = true;
+    url = "https://shoutout.example.com";
+    jobExpirationDays = 14;
+    oidc.issuer = "https://auth.example.com/realms/main";
+    oidc.clientSecretFile = "/run/secrets/shoutout-oidc";
+    nextauthSecretFile = "/run/secrets/shoutout-nextauth";
+    workerEnrollmentTokenFile = "/run/secrets/shoutout-worker-enroll";
+    garage.accessKeyFile = "/run/secrets/shoutout-s3-access";
+    garage.secretKeyFile = "/run/secrets/shoutout-s3-secret";
+    listmonk.url = "https://listmonk.example.com";
+    listmonk.username = "api";
+    listmonk.tokenFile = "/run/secrets/shoutout-listmonk";
+    listmonk.templateId = 1;
+  };
+}
+```
+
+### GPU worker host
+
+```nix
+{
+  imports = [ inputs.shoutout.nixosModules.shoutout-worker ];
+  services.shoutout-worker = {
+    enable = true;
+    cuda = true;
+    dashboardUrl = "https://shoutout.example.com";
+    enrollmentTokenFile = "/run/secrets/shoutout-worker-enroll";
+    huggingfaceTokenFile = "/run/secrets/hf";
+    whisperModels = [ "small" "large-v3" ];
+    concurrency = 1;
+  };
+}
+```
+
+```sh
+nix develop
+```
 
 ## Development
 
-Make sure that all services (postgres, minio, rabbitmq) are running
-
 ### Dashboard
-
-To start developing the dashboard run following commands, it will start the dev.
 
 ```bash
 cd dashboard
-
-npm i
-
+npm ci
+PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x npx prisma generate
 npm run dev
 ```
 
-#### Database
-
-When making any changes to the database, be aware to migrate them!
-
-```bash
-npx prisma migrate dev --name {MigrationName}
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
 ### Worker
-
-First activate and install all requirements into your virtualenv.
 
 ```bash
 cd worker
-
-pip install -r requirements.txt
+pip install -e .
+export DASHBOARD_URL=http://localhost:3000
+export WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
+export WHISPER_MODELS=tiny
+export HUGGINGFACE_TOKEN=...
+shoutout-worker
 ```
 
-To develop and test the worker just run the script without a container.
+### Tests
 
-Be aware to stop the worker-container if it's running!
+```sh
+# API smoke (fake worker claim/complete)
+docker compose -f docker-compose.smoke.yml up -d postgres garage
+COMPOSE_FILE=docker-compose.smoke.yml ./scripts/garage-bootstrap.sh
+docker compose -f docker-compose.smoke.yml up -d --build dashboard
+./scripts/smoke-test.sh
 
-```bash
-python3 main.py
+# Full e2e with Whisper tiny worker
+docker compose -f docker-compose.e2e.yml up -d postgres garage
+COMPOSE_FILE=docker-compose.e2e.yml ./scripts/garage-bootstrap.sh
+docker compose -f docker-compose.e2e.yml up -d --build dashboard worker
+./scripts/e2e-test.sh
 ```
 
 ## Environment variables
 
 ### Dashboard
 
-| NAME                       | DEFAULT VALUE                                                    | DESCRIPTION                                                                    |
-| -------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `DATABASE_URL`             | `postgresql://admin:admin@localhost:5433/postgres?schema=public` | It is required for prisma to connect with the postgres database.               |
-| `RABBITMQ_URL`             | `amqp://rabbit:rabbit@localhost`                                 | URL of the rabbitmq                                                            |
-| `QUEUE_NAME`               | `jobs`                                                           | The name of the job-queue                                                      |
-| `MINIO_ENDPOINT`           | `localhost`                                                      | This is the endpoint of minio server. It will be the IP address of the server. |
-| `MINIO_PORT`               | `9000`                                                           | Minio port for communication from dashboard.                                   |
-| `MINIO_ACCESS_KEY`         | `shoutoutdevuser`                                                | Access key for minio dev user.                                                 |
-| `MINIO_SECRET_KEY`         | `shoutoutdevuser`                                                | Secret key for minio dev user.                                                 |
-| `MINIO_JOB_BUCKET`         | `shoutout-job-bucket`                                            | Bucket name to store all audio files.                                          |
-| `DOWNLOAD_FILE_TARGET_DIR` | `finished-files/`                                                | Folder on S3-Bucket containing transcribed files                               |
-| `FINISHED_FILE_FORMAT`     | `.txt`                                                           | The download format of the finished file                                       |
-| `UPLOAD_FILE_TARGET_DIR`   | `to-transcribe/`                                                 | Folder on S3-Bucket to upload mp3 files to                                     |
-| `MINIO_SSL_ENABLED`        | `false`                                                          | SSL setting for S3 Bucket                                                      |
+| Name | Default | Description |
+|------|---------|-------------|
+| `DATABASE_URL` | `postgresql://admin:admin@localhost:5433/postgres?schema=public` | Postgres connection |
+| `S3_ENDPOINT` | `http://localhost:3900` | Internal Garage/S3 endpoint |
+| `S3_PUBLIC_ENDPOINT` | same as `S3_ENDPOINT` | Browser-reachable S3 endpoint for presigns |
+| `S3_WORKER_ENDPOINT` | same as `S3_ENDPOINT` | Worker-reachable S3 endpoint for claim presigns |
+| `S3_REGION` | `garage` | S3 region |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | from `.garage-creds.env` | S3 credentials |
+| `S3_BUCKET` | `shoutout-job-bucket` | Bucket name |
+| `WORKER_ENROLLMENT_TOKEN` | `dev-worker-enrollment-token` | Shared secret for worker registration |
+| `JOB_EXPIRATION_DAYS` | `14` | Days until jobs expire; `0` disables expiration |
+| `LISTMONK_URL` | empty | Optional Listmonk base URL |
+| `LISTMONK_USERNAME` / `LISTMONK_TOKEN` | empty | Listmonk API credentials |
+| `LISTMONK_TEMPLATE_ID` | `0` | Transactional template id |
+| `OIDC_*` / `NEXTAUTH_*` | Keycloak defaults | Authentication |
 
 ### Worker
 
-| NAME                     | DEFAULT VALUE           | DESCRIPTION                                                                                   |
-| ------------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
-| `DATABASE_HOST`          | `localhost`             | PostgresDB host                                                                               |
-| `DATABASE_NAME`          | `postgres`              | Database name                                                                                 |
-| `DATABASE_USER`          | `admin`                 | PostgresDB username                                                                           |
-| `DATABASE_PASSWORD`      | `admin`                 | PostgresDB password                                                                           |
-| `DATABASE_PORT`          | `5433`                  | PostgresDB port                                                                               |
-| `RABBITMQ_HOST`          | `localhost`             | Rabbitmq host                                                                                 |
-| `RABBITMQ_USER`          | `rabbit`                | Username for rabbitmq                                                                         |
-| `RABBITMQ_PASSWORD`      | `rabbit`                | Password for rabbitmq                                                                         |
-| `RABBITMQ_QUEUE`         | `jobs`                  | The name of the job queue                                                                     |
-| `MINIO_JOB_BUCKET`       | `shoutout-job-bucket`   | Bucket name to store all audio files.                                                         |
-| `MINIO_SECRET_KEY`       | `shoutoutdevuser`       | Secret key for minio dev user.                                                                |
-| `MINIO_ACCESS_KEY`       | `shoutoutdevuser`       | Access key for minio dev user.                                                                |
-| `MINIO_URL`              | `http://localhost:9000` | URL of S3 Bucket                                                                              |
-| `TMP_FILE_DIR`           | `tmp_downloads`         | Local directory where all temporary files which are needed for transcription are stored       |
-| `UPLOAD_FILE_TARGET_DIR` | `finished-files/`       | Folder on S3-Bucket to upload finished transcription to                                       |
-| `DOWNLOAD_FILE_DIR`      | `to-transcribe/`        | Folder on S3-Bucket containing mp3 files to transcribe                                        |
-| `WHISPER_MODEL`          | `large-v3`              | openai whisper [model size](https://github.com/openai/whisper#available-models-and-languages) |
-| `FINISHED_FILE_FORMAT`   | `.txt`                  | File format of the transcribed file                                                           |
-
-# Citation
-
-BiBTex:
-
-```
-@software{shoutout_2024,
-title = {{shoutout: A modern web application for transcribing audio files on your own server}},
-doi = {10.5281/zenodo.14527349},
-url = {https://github.com/RWTH-TIME/shoutout},
-version = {v1.0.0},
-year = {2024}
-author = {Selzner, Paul and Evers, Felix and Kalhorn, Paul and Beckers, Lukas},
-note = {Published by RWTH Technology and Innovation Management Institute (TIME Research Area)}
-}
-```
+| Name | Default | Description |
+|------|---------|-------------|
+| `DASHBOARD_URL` | `http://localhost:3000` | Dashboard base URL |
+| `WORKER_ENROLLMENT_TOKEN` | `dev-worker-enrollment-token` | Enrollment secret |
+| `WORKER_TOKEN` | empty | Optional pre-issued worker token |
+| `WHISPER_MODELS` | `tiny` | Comma-separated models this worker offers |
+| `HUGGINGFACE_TOKEN` | empty | Token for pyannote |
+| `CONCURRENCY` | `1` | Parallel jobs per process |
+| `HF_HOME` | `/var/cache/shoutout-worker` | Model cache |

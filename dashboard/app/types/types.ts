@@ -1,28 +1,67 @@
+export type Visibility = "PRIVATE" | "AUTHENTICATED" | "PUBLIC";
+
+export type JobFile = {
+  id: string;
+  jobId?: number;
+  position: number;
+  originalName: string;
+  audioFile: string;
+  participants?: number | null;
+  language?: string | null;
+  resultTextKey?: string | null;
+  resultJsonKey?: string | null;
+  durationSeconds?: number | null;
+};
+
 export type Job = {
+  id?: number;
+  publicId: string;
   name: string;
-  audioFile: File | string | undefined;
+  audioFile?: File | string | null;
+  model: string;
+  participants?: number | null;
+  language?: string | null;
+  status: STATUS | "PENDING" | "RUNNING" | "FINISHED" | "FAILED";
+  createdAt: Date | string;
+  expiresAt?: Date | string | null;
+  visibility?: Visibility;
+  notifyEmail?: string | null;
+  notifyEnabled?: boolean;
+  error?: string | null;
+  files?: JobFile[];
+  resultZipKey?: string | null;
+};
+
+export type BulkFileEntry = {
+  file: File;
+  model: string;
   participants: number;
   language: string;
-  status: STATUS;
-  createdAt: Date;
 };
 
-export type BulkJob = {
-  name: string;
-  audioFile: File | string | undefined;
-  status: STATUS;
-  createdAt: Date;
+export type TranscriptSegment = {
+  speaker: string;
+  start: number;
+  end: number;
+  text: string;
 };
 
-/* returns true when validation successful, error message if not.
-disable no-explicit-any because we don't want to pre-define specific
-types for that function */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ValidationFunction = (data: any) => string | boolean;
+export type NotificationSettings = {
+  notifyEmail: string | null;
+  notifyOnFinish: boolean;
+  notifyOnFail: boolean;
+};
+
+export type ValidationFunction = (data: unknown) => string | boolean;
 
 export enum STATUS {
   Pending = "PENDING",
   Running = "RUNNING",
   Finished = "FINISHED",
-  Failed = "FAILED"
+  Failed = "FAILED",
 }
+
+export type AvailableModel = {
+  model: string;
+  workerCount: number;
+};

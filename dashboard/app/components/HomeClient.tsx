@@ -1,35 +1,29 @@
-'use client';
+"use client";
 
-import { useState } from "react";
-import { Box } from "@mui/material";
-import AlertPopup from "./utils/Alert";
+import { useRouter } from "next/navigation";
 import ContentBox from "./ContentBox";
-import SideBar from "./SideBar";
-import { Job } from "../types/types";
-import { AlertProvider } from "../context/AlertContext";
+import {
+  JobsSidebarAddButton,
+  JobsSidebarList,
+} from "./SideBarComponents/JobsSidebar";
+import AppShell from "./AppShell";
 
 export default function HomeClient() {
-  const [selectedJob, setSelectedJob] = useState<Job>();
-  const [jobList, setJobList] = useState<Job[] | undefined>([]);
+  const router = useRouter();
 
   return (
-    <AlertProvider>
-      <AlertPopup />
-      <Box display="flex">
-        <Box width={{ xs: "100%", md: "300px" }} flexShrink={0}>
-          <SideBar
-            setSelectedJob={setSelectedJob}
-            jobList={jobList}
-            setJobList={setJobList}
-          />
-        </Box>
-        <Box flexGrow={1}>
-          <ContentBox
-            setSelectedJob={setSelectedJob}
-            jobDetail={selectedJob}
-          />
-        </Box>
-      </Box>
-    </AlertProvider>
+    <AppShell
+      activeId="jobs"
+      sidebarContent={
+        <JobsSidebarList
+          onSelectJob={(job) => {
+            router.push(`/job/${job.publicId}`);
+          }}
+        />
+      }
+      sidebarFooter={<JobsSidebarAddButton />}
+    >
+      <ContentBox />
+    </AppShell>
   );
 }

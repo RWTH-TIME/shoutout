@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Dialog, Input } from "@helpwave/hightide";
+import { Button, Dialog, Input, LabelledCheckbox } from "@helpwave/hightide";
 import { FileAudio, Trash2 } from "lucide-react";
 import useJobs from "../../hooks/useJob";
 import useModels from "../../hooks/useModels";
@@ -72,9 +72,39 @@ export default function CreateJobModal({
     setNotifyEnabled(true);
   }
 
+  function takeUniqueFiles(
+    incoming: File[],
+    existing: BulkFileEntry[]
+  ): { accepted: File[]; skipped: string[] } {
+    const used = new Set(existing.map((entry) => entry.file.name));
+    const accepted: File[] = [];
+    const skipped: string[] = [];
+    for (const file of incoming) {
+      if (used.has(file.name)) {
+        skipped.push(file.name);
+        continue;
+      }
+      used.add(file.name);
+      accepted.push(file);
+    }
+    return { accepted, skipped };
+  }
+
   function seedEntriesFromFiles(files: File[]) {
     const selectedModel = model || defaultModel;
-    const seeded: BulkFileEntry[] = files.map((file) => ({
+    const { accepted, skipped } = takeUniqueFiles(files, []);
+    if (skipped.length > 0) {
+      setAlert(
+        translation("alertDuplicateFiles", {
+          names: Array.from(new Set(skipped)).join(", "),
+        }),
+        "error"
+      );
+    }
+    if (accepted.length === 0) {
+      return;
+    }
+    const seeded: BulkFileEntry[] = accepted.map((file) => ({
       file,
       model: selectedModel,
       participants,
@@ -90,9 +120,21 @@ export default function CreateJobModal({
 
   function onFilesAdded(files: File[]) {
     const selectedModel = model || defaultModel;
+    const { accepted, skipped } = takeUniqueFiles(files, entries);
+    if (skipped.length > 0) {
+      setAlert(
+        translation("alertDuplicateFiles", {
+          names: Array.from(new Set(skipped)).join(", "),
+        }),
+        "error"
+      );
+    }
+    if (accepted.length === 0) {
+      return;
+    }
     const merged: BulkFileEntry[] = [
       ...entries,
-      ...files.map((file) => ({
+      ...accepted.map((file) => ({
         file,
         model: selectedModel,
         participants,
@@ -258,14 +300,13 @@ export default function CreateJobModal({
               ) : null}
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={notifyEnabled}
-                onChange={(event) => setNotifyEnabled(event.target.checked)}
-              />
-              {translation("notifyMe")}
-            </label>
+            <LabelledCheckbox
+              checkPosition="left"
+              size="md"
+              label={translation("notifyMe")}
+              value={notifyEnabled}
+              onValueChange={setNotifyEnabled}
+            />
           </div>
         )}
 

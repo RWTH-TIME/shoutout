@@ -108,8 +108,8 @@ export default function JobDetailClient({
   }, [activeFile?.id, activeFile?.resultJsonKey, job.status, publicId]);
 
   const content = (
-    <div className="h-full min-h-0 overflow-y-auto p-6">
-      <div className="mx-auto flex max-w-4xl flex-col gap-5 rounded-2xl border border-divider bg-surface p-6 text-on-surface shadow-sm">
+    <div className="h-full min-h-0 overflow-y-auto p-6 md:p-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 rounded-2xl border border-divider bg-surface p-8 text-on-surface shadow-sm md:p-10">
         <JobHeader
           job={job}
           canManage={canManage}
@@ -119,44 +119,49 @@ export default function JobDetailClient({
           onDeleted={() => router.push("/")}
         />
 
-        <JobMetaGrid job={job} />
+        <div className="border-t border-divider pt-8">
+          <JobMetaGrid job={job} />
+        </div>
 
         {job.error ? (
-          <div className="rounded-lg border border-negative/30 bg-negative/10 p-3 text-sm">
+          <div className="rounded-lg border border-negative/30 bg-negative/10 p-4 text-sm">
             {job.error}
           </div>
         ) : null}
 
-        <FileTabs
-          files={files}
-          activeFileId={activeFile?.id ?? ""}
-          onChange={(fileId) => {
-            setActiveFileId(fileId);
-            setSeekTo(null);
-            setCurrentTime(0);
-          }}
-        />
+        <div className="border-t border-divider pt-8">
+          <FileTabs
+            files={files}
+            activeFileId={activeFile?.id ?? ""}
+            onChange={(fileId) => {
+              setActiveFileId(fileId);
+              setSeekTo(null);
+              setCurrentTime(0);
+            }}
+          />
+        </div>
 
         {activeFile ? (
-          <div className="flex flex-col gap-3">
-            <div className="text-sm font-medium">{activeFile.originalName}</div>
+          <div className="flex flex-col gap-5 border-t border-divider pt-8">
             <AudioPlayer
               src={`/api/jobs/${publicId}/files/${activeFile.id}/audio`}
               seekTo={seekTo}
               onTimeUpdate={setCurrentTime}
             />
-            <div className="text-xs uppercase tracking-wide text-description">
-              {translation("transcriptPreview")}
+            <div>
+              <div className="mb-3 text-sm font-semibold">
+                {translation("transcriptPreview")}
+              </div>
+              <TranscriptPreview
+                segments={segments}
+                loading={loadingTranscript}
+                currentTime={currentTime}
+                onSeek={setSeekTo}
+              />
             </div>
-            <TranscriptPreview
-              segments={segments}
-              loading={loadingTranscript}
-              currentTime={currentTime}
-              onSeek={setSeekTo}
-            />
           </div>
         ) : (
-          <div className="text-sm text-description">
+          <div className="border-t border-divider pt-8 text-sm text-description">
             {translation("noTranscriptYet")}
           </div>
         )}

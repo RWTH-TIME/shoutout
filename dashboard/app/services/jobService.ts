@@ -15,6 +15,7 @@ import { generateResultToken } from "../lib/auth";
 import { notifyJobEvent } from "../lib/notify";
 import config from "../lib/config";
 import { getUserSettings } from "./userSettingsService";
+import { uniqueOriginalNames } from "../utils/file";
 
 export type CreateJobFileInput = {
   audioFile: string;
@@ -92,6 +93,9 @@ export async function createJob(input: CreateJobInput) {
       : undefined;
   const language = input.language || undefined;
   const primary = input.files[0];
+  const originalNames = uniqueOriginalNames(
+    input.files.map((file) => file.originalName)
+  );
 
   return prisma.job.create({
     data: {
@@ -107,7 +111,7 @@ export async function createJob(input: CreateJobInput) {
       files: {
         create: input.files.map((file, index) => ({
           position: index,
-          originalName: file.originalName,
+          originalName: originalNames[index] ?? file.originalName,
           audioFile: file.audioFile,
           participants:
             file.participants && file.participants > 0

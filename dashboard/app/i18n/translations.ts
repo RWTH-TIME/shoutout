@@ -41,6 +41,7 @@ export type AppTranslationEntries = {
   statusFailed: string;
   alertJobCreated: string;
   alertCreateFailed: string;
+  alertDuplicateFiles: (values: { names: string }) => string;
   alertJobDeleted: string;
   alertDeleteFailed: string;
   alertDownloadFailed: string;
@@ -99,6 +100,8 @@ export type AppTranslationEntries = {
   transcriptPreview: string;
   noTranscriptYet: string;
   files: string;
+  filesDescription: string;
+  details: string;
   jobNotFound: string;
 };
 
@@ -144,6 +147,8 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     statusFailed: "Failed",
     alertJobCreated: "Job created",
     alertCreateFailed: "Could not create job",
+    alertDuplicateFiles: ({ names }) =>
+      `Skipped duplicate file name(s): ${names}`,
     alertJobDeleted: "Job deleted",
     alertDeleteFailed: "Delete failed",
     alertDownloadFailed: "Download failed",
@@ -209,6 +214,9 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     transcriptPreview: "Transcript",
     noTranscriptYet: "Transcript will appear here when the job finishes.",
     files: "Files",
+    filesDescription:
+      "Each uploaded audio file has its own preview. Select a file to play and read its transcript.",
+    details: "Details",
     jobNotFound: "Job not found or you do not have access.",
   },
   "de-DE": {
@@ -254,6 +262,8 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     statusFailed: "Fehlgeschlagen",
     alertJobCreated: "Job erstellt",
     alertCreateFailed: "Job konnte nicht erstellt werden",
+    alertDuplicateFiles: ({ names }) =>
+      `Doppelte Dateiname(n) übersprungen: ${names}`,
     alertJobDeleted: "Job gelöscht",
     alertDeleteFailed: "Löschen fehlgeschlagen",
     alertDownloadFailed: "Download fehlgeschlagen",
@@ -323,6 +333,9 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     noTranscriptYet:
       "Das Transkript erscheint hier, sobald der Job fertig ist.",
     files: "Dateien",
+    filesDescription:
+      "Jede hochgeladene Audiodatei hat eine eigene Vorschau. Wähle eine Datei zum Abspielen und Lesen des Transkripts.",
+    details: "Details",
     jobNotFound: "Job nicht gefunden oder kein Zugriff.",
   },
 };

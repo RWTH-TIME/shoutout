@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Input } from "@helpwave/hightide";
+import { Button, Input, LabelledCheckbox } from "@helpwave/hightide";
 import SettingsSection from "./SettingsSection";
 import useAppTranslation from "../../hooks/useAppTranslation";
 import useAlert from "../../hooks/useAlert";
@@ -91,32 +91,30 @@ export default function NotificationsSection() {
               placeholder={translation("notifyEmail")}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={settings.notifyOnFinish}
-              onChange={(event) =>
-                setSettings((current) => ({
-                  ...current,
-                  notifyOnFinish: event.target.checked,
-                }))
-              }
-            />
-            {translation("notifyOnFinish")}
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={settings.notifyOnFail}
-              onChange={(event) =>
-                setSettings((current) => ({
-                  ...current,
-                  notifyOnFail: event.target.checked,
-                }))
-              }
-            />
-            {translation("notifyOnFail")}
-          </label>
+          <LabelledCheckbox
+            checkPosition="left"
+            size="md"
+            label={translation("notifyOnFinish")}
+            value={settings.notifyOnFinish}
+            onValueChange={(notifyOnFinish) =>
+              setSettings((current) => ({
+                ...current,
+                notifyOnFinish,
+              }))
+            }
+          />
+          <LabelledCheckbox
+            checkPosition="left"
+            size="md"
+            label={translation("notifyOnFail")}
+            value={settings.notifyOnFail}
+            onValueChange={(notifyOnFail) =>
+              setSettings((current) => ({
+                ...current,
+                notifyOnFail,
+              }))
+            }
+          />
           <div>
             <Button color="primary" isProcessing={busy} onClick={onSave}>
               {translation("save")}

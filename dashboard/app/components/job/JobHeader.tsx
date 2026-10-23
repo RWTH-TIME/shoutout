@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, ConfirmDialog } from "@helpwave/hightide";
-import { Share2 } from "lucide-react";
+import { Button, ConfirmDialog, LabelledCheckbox } from "@helpwave/hightide";
+import { Download, Share2, Trash2 } from "lucide-react";
 import { Job } from "../../types/types";
 import useAppTranslation from "../../hooks/useAppTranslation";
 import useAlert from "../../hooks/useAlert";
@@ -26,7 +26,7 @@ export default function JobHeader({
 }: Props) {
   const translation = useAppTranslation();
   const { setAlert } = useAlert();
-  const { downloadFile, deleteJob, updateJob } = useJobs();
+  const { deleteJob, updateJob } = useJobs();
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -34,14 +34,17 @@ export default function JobHeader({
   const [notifyBusy, setNotifyBusy] = useState(false);
 
   async function onDownload() {
-    if (job.status !== "FINISHED") {
+    if (job.status !== "FINISHED" || !job.publicId) {
       return;
     }
     try {
       setDownloadLoading(true);
       const link = document.createElement("a");
-      link.href = await downloadFile(job);
+      link.href = `/api/jobs/${job.publicId}/download`;
+      link.rel = "noopener";
+      document.body.appendChild(link);
       link.click();
+      link.remove();
     } catch (error) {
       console.error("Error downloading file", error);
       setAlert(translation("alertDownloadFailed"), "error");
@@ -80,28 +83,31 @@ export default function JobHeader({
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-6">
+        <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-wide text-description">
               {translation("name")}
             </div>
-            <div className="flex items-center gap-2">
-              <h2 className="truncate text-xl font-semibold">{job.name}</h2>
-              <VisibilityIcon visibility={job.visibility} size={16} />
+            <div className="mt-1 flex items-center gap-2">
+              <h2 className="truncate text-2xl font-semibold">{job.name}</h2>
+              <VisibilityIcon visibility={job.visibility} size={18} />
             </div>
           </div>
           <StatusChip status={job.status} size="sm" />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Button
             color="primary"
             isProcessing={downloadLoading}
             disabled={job.status !== "FINISHED" || downloadLoading}
             onClick={onDownload}
           >
-            {translation("download")}
+            <span className="inline-flex items-center gap-2">
+              <Download size={16} aria-hidden />
+              {translation("download")}
+            </span>
           </Button>
           {canManage ? (
             <>
@@ -110,8 +116,10 @@ export default function JobHeader({
                 color="primary"
                 onClick={() => setShareOpen(true)}
               >
-                <Share2 size={16} />
-                <span className="ms-1">{translation("share")}</span>
+                <span className="inline-flex items-center gap-2">
+                  <Share2 size={16} aria-hidden />
+                  {translation("share")}
+                </span>
               </Button>
               {job.status !== "RUNNING" ? (
                 <Button
@@ -120,18 +128,21 @@ export default function JobHeader({
                   disabled={deleteLoading}
                   onClick={() => setDeleteConfirmOpen(true)}
                 >
-                  {translation("delete")}
+                  <span className="inline-flex items-center gap-2">
+                    <Trash2 size={16} aria-hidden />
+                    {translation("delete")}
+                  </span>
                 </Button>
               ) : null}
-              <label className="ms-auto flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={Boolean(job.notifyEnabled)}
-                  disabled={notifyBusy}
-                  onChange={(event) => onToggleNotify(event.target.checked)}
-                />
-                {translation("notifyMe")}
-              </label>
+              <LabelledCheckbox
+                className="ms-auto"
+                checkPosition="left"
+                size="md"
+                label={translation("notifyMe")}
+                value={Boolean(job.notifyEnabled)}
+                disabled={notifyBusy}
+                onValueChange={onToggleNotify}
+              />
             </>
           ) : null}
         </div>

@@ -99,15 +99,10 @@ export default function useJobs() {
   }
 
   async function downloadFile(job: Job): Promise<string> {
-    const response = await fetch(
-      `/api/files/download?jobName=${encodeURIComponent(job.name)}`,
-      { method: "GET" }
-    );
-    if (!response.ok) {
-      throw new Error("Could not get download url");
+    if (!job.publicId) {
+      throw new Error("Missing job id");
     }
-    const { presignedUrl } = await response.json();
-    return presignedUrl;
+    return `/api/jobs/${job.publicId}/download`;
   }
 
   async function deleteJob(job: Job): Promise<boolean> {

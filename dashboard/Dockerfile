@@ -1,17 +1,17 @@
-FROM node:22.22.3-alpine AS installer
+FROM node:22.23.4-alpine AS installer
 
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:22.22.3-alpine AS builder
+FROM node:22.23.4-alpine AS builder
 
 WORKDIR /app
 COPY . .
 COPY --from=installer /app/node_modules ./node_modules
 RUN npx prisma generate && npm run build
 
-FROM node:22.22.3-alpine
+FROM node:22.23.4-alpine
 
 WORKDIR /app
 ENV NODE_ENV=production

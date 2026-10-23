@@ -472,12 +472,9 @@
             "totp": false,
             "credentials": [
                 {
-                    "id": "493ef20c-eb04-4a54-a0e0-b49a42357faf",
                     "type": "password",
-                    "userLabel": "My password",
-                    "createdDate": 1750757636219,
-                    "secretData": "{\"value\":\"m9hIGoK4yr6WYyTrMsV9Ni9P4ZjEk0we/YpbDlVcSbw=\",\"salt\":\"Q7fmCZiTfS89GmEcqLPNKQ==\",\"additionalParameters\":{}}",
-                    "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+                    "value": "test",
+                    "temporary": false
                 }
             ],
             "disableableCredentialTypes": [],
@@ -744,8 +741,8 @@
         {
             "id": "351ad6a4-21ae-4e0e-b448-bc04e8130451",
             "clientId": "shoutout",
-            "name": "",
-            "description": "",
+            "name": "Shoutout",
+            "description": "Shoutout dashboard (local development)",
             "rootUrl": "http://localhost:8000",
             "adminUrl": "http://localhost:8000",
             "baseUrl": "",
@@ -753,20 +750,24 @@
             "enabled": true,
             "alwaysDisplayInConsole": false,
             "clientAuthenticatorType": "client-secret",
+            "secret": "shoutout-client-secret",
             "redirectUris": [
-                "*"
+                "http://localhost:8000/*",
+                "http://localhost:3000/*"
             ],
             "webOrigins": [
-                "*"
+                "http://localhost:8000",
+                "http://localhost:3000",
+                "+"
             ],
             "notBefore": 0,
             "bearerOnly": false,
             "consentRequired": false,
             "standardFlowEnabled": true,
             "implicitFlowEnabled": false,
-            "directAccessGrantsEnabled": false,
+            "directAccessGrantsEnabled": true,
             "serviceAccountsEnabled": false,
-            "publicClient": true,
+            "publicClient": false,
             "frontchannelLogout": true,
             "protocol": "openid-connect",
             "attributes": {

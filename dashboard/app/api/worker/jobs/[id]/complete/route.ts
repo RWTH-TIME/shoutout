@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { authenticateWorkerRequest } from "../../../../../lib/auth";
 import { completeJob } from "../../../../../services/jobService";
 import { prisma } from "../../../../../lib/prisma";
+
+const schema = z.object({
+  files: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        durationSeconds: z.number().nonnegative().optional(),
+      })
+    )
+    .optional()
+    .default([]),
+});
 
 export const POST = async (
   request: NextRequest,
@@ -19,6 +32,7 @@ export const POST = async (
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  await completeJob(jobId, auth.workerId);
+  const body = schema.parse(await request.json().catch(() => ({})));
+  await completeJob(jobId, auth.workerId, body.files);
   return NextResponse.json({ ok: true }, { status: 200 });
 };

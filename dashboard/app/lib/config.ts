@@ -7,6 +7,7 @@ const schema = z.object({
     .default("postgresql://admin:admin@localhost:5433/postgres?schema=public"),
   S3_ENDPOINT: z.string().default("http://localhost:3900"),
   S3_PUBLIC_ENDPOINT: z.string().default("http://localhost:3900"),
+  S3_WORKER_ENDPOINT: z.string().default("http://localhost:3900"),
   S3_REGION: z.string().default("garage"),
   S3_ACCESS_KEY_ID: z.string().default("shoutoutdevuser"),
   S3_SECRET_ACCESS_KEY: z.string().default("shoutoutdevuser"),
@@ -22,7 +23,11 @@ const schema = z.object({
   LISTMONK_USERNAME: z.string().optional().default(""),
   LISTMONK_TOKEN: z.string().optional().default(""),
   LISTMONK_TEMPLATE_ID: z.coerce.number().optional().default(0),
+  JOB_EXPIRATION_DAYS: z.coerce.number().default(14),
   OIDC_PROVIDER: z.string().default("http://localhost:8090/realms/main"),
+  OIDC_INTERNAL_PROVIDER: z
+    .string()
+    .default("http://localhost:8090/realms/main"),
   OIDC_CLIENT_ID: z.string().default("shoutout"),
   OIDC_CLIENT_SECRET: z.string().default("shoutout-client-secret"),
   OIDC_REDIRECT_URI: z
@@ -37,6 +42,10 @@ const env = {
   DATABASE_URL: process.env.DATABASE_URL,
   S3_ENDPOINT: process.env.S3_ENDPOINT,
   S3_PUBLIC_ENDPOINT: process.env.S3_PUBLIC_ENDPOINT ?? process.env.S3_ENDPOINT,
+  S3_WORKER_ENDPOINT:
+    process.env.S3_WORKER_ENDPOINT ||
+    process.env.S3_ENDPOINT ||
+    process.env.S3_PUBLIC_ENDPOINT,
   S3_REGION: process.env.S3_REGION,
   S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
   S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
@@ -52,7 +61,14 @@ const env = {
   LISTMONK_USERNAME: process.env.LISTMONK_USERNAME,
   LISTMONK_TOKEN: process.env.LISTMONK_TOKEN,
   LISTMONK_TEMPLATE_ID: process.env.LISTMONK_TEMPLATE_ID,
+  JOB_EXPIRATION_DAYS:
+    process.env.JOB_EXPIRATION_DAYS === "" ||
+    process.env.JOB_EXPIRATION_DAYS === undefined
+      ? "14"
+      : process.env.JOB_EXPIRATION_DAYS,
   OIDC_PROVIDER: process.env.OIDC_PROVIDER,
+  OIDC_INTERNAL_PROVIDER:
+    process.env.OIDC_INTERNAL_PROVIDER || process.env.OIDC_PROVIDER,
   OIDC_CLIENT_ID: process.env.OIDC_CLIENT_ID,
   OIDC_CLIENT_SECRET: process.env.OIDC_CLIENT_SECRET,
   OIDC_REDIRECT_URI: process.env.OIDC_REDIRECT_URI,

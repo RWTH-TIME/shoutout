@@ -42,26 +42,49 @@ RabbitMQ and direct worker access to Postgres/MinIO are gone.
 
 ## Quickstart (Docker)
 
-Update `S3_PUBLIC_ENDPOINT` in `docker-compose.yml` to a hostname the browser can reach.
-For GPU workers, install the [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
-
 ```sh
-docker compose up -d postgres garage
+docker compose up -d postgres garage keycloak keycloak-postgres
 COMPOSE_FILE=docker-compose.yml ./scripts/garage-bootstrap.sh
-docker compose up -d
+docker compose up -d --build dashboard worker
 ```
 
-`garage-bootstrap.sh` creates the Garage layout, access key, and bucket, writing `.garage-creds.env` (gitignored). Point the dashboard at those credentials (or copy them into your compose env).
+`garage-bootstrap.sh` creates the Garage layout, access key, bucket, and browser CORS (`AllowedHeaders: *` for dashboard uploads), writing `.garage-creds.env` (gitignored). Restart the dashboard after bootstrap so it picks up those credentials:
+
+```sh
+docker compose up -d --force-recreate dashboard
+```
+
+The default worker is CPU-only with Whisper `tiny` for local e2e. Without `HUGGINGFACE_APIKEY` it still runs using a single-speaker fallback; set the token (and accept pyannote terms) for real diarization.
+
+Keycloak imports `.keycloak-config/main-realm.json` on first start (realm `main`). Sign in at [localhost:8000](http://localhost:8000) with **test / test**. Admin console: [localhost:8090](http://localhost:8090) (`admin` / `admin`).
+
+If you change the realm JSON after Keycloak has already imported it, wipe and reimport:
+
+```sh
+docker compose stop keycloak
+docker compose rm -f keycloak
+docker volume rm shoutout_keycloak-postgres-data
+docker compose up -d keycloak-postgres keycloak
+```
+
+Optional CUDA worker (needs [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)):
+
+```sh
+docker compose --profile gpu up -d --build worker-gpu
+```
 
 Services:
 
-1. Dashboard at [localhost:8000](http://localhost:8000)
+1. Dashboard at [localhost:8000](http://localhost:8000) — login `test` / `test`
 2. Postgres on port `5433`
 3. Garage S3 API on port `3900`
-4. Keycloak on port `8090`
-5. One or more workers attached over HTTPS
+4. Keycloak on port `8090` (realm `main`, client `shoutout`)
+5. CPU worker with Whisper `tiny` (e2e)
+6. Optional GPU worker via `--profile gpu`
 
 ### Local smoke test
+
+API-only (fake worker claim/complete):
 
 ```sh
 docker compose -f docker-compose.smoke.yml up -d postgres garage
@@ -70,7 +93,16 @@ docker compose -f docker-compose.smoke.yml up -d --build dashboard
 ./scripts/smoke-test.sh
 ```
 
-CI runs the same smoke path as a required quality gate (lint, build, worker flake8, nix flake show, compose smoke) before image publishes on `main`.
+Full e2e with the CPU Whisper `tiny` worker:
+
+```sh
+docker compose -f docker-compose.e2e.yml up -d postgres garage
+COMPOSE_FILE=docker-compose.e2e.yml ./scripts/garage-bootstrap.sh
+docker compose -f docker-compose.e2e.yml up -d --build dashboard worker
+./scripts/e2e-test.sh
+```
+
+CI runs smoke and e2e as required quality gates (lint, build, worker flake8, nix flake show, compose smoke, compose e2e) before image publishes on `main`.
 
 ### Migrate data from MinIO
 
@@ -217,7 +249,8 @@ shoutout-worker
 | ---- | ------- | ----------- |
 | `DATABASE_URL` | `postgresql://admin:admin@localhost:5433/postgres?schema=public` | Postgres connection |
 | `S3_ENDPOINT` | `http://localhost:3900` | Internal Garage/S3 endpoint |
-| `S3_PUBLIC_ENDPOINT` | same as `S3_ENDPOINT` | Browser-reachable S3 endpoint for presigns |
+| `S3_PUBLIC_ENDPOINT` | same as `S3_ENDPOINT` | Browser-reachable S3 endpoint for upload/download presigns |
+| `S3_WORKER_ENDPOINT` | same as `S3_ENDPOINT` | Worker-reachable S3 endpoint for claim input/result presigns |
 | `S3_REGION` | `garage` | S3 region |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | `shoutoutdevuser` | S3 credentials |
 | `S3_BUCKET` | `shoutout-job-bucket` | Bucket name |
@@ -225,6 +258,7 @@ shoutout-worker
 | `LISTMONK_URL` | empty | Optional Listmonk base URL |
 | `LISTMONK_USERNAME` / `LISTMONK_TOKEN` | empty | Listmonk API credentials |
 | `LISTMONK_TEMPLATE_ID` | `0` | Transactional template id |
+| `JOB_EXPIRATION_DAYS` | `14` | Days until jobs expire; `0` disables expiration |
 | `OIDC_*` / `NEXTAUTH_*` | Keycloak defaults | Auth |
 
 ### Worker

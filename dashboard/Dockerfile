@@ -28,4 +28,4 @@ COPY --from=builder /app/scripts ./scripts
 
 EXPOSE 80
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node scripts/set-garage-cors.mjs || true && node server.js"]

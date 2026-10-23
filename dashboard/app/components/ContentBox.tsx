@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Chip } from "@helpwave/hightide";
+import { Button, ConfirmDialog, useLocalization } from "@helpwave/hightide";
 import { Job } from "../types/types";
 import useJobs from "../hooks/useJob";
 import useAlert from "../hooks/useAlert";
+import useAppTranslation from "../hooks/useAppTranslation";
 import { languageLabel } from "../utils/languages";
 import { formatDateTime } from "../utils/date";
+import StatusChip from "./StatusChip";
+import AudioDropzone from "./upload/AudioDropzone";
+import CreateJobModal from "./SideBarComponents/CreateJobModal";
 
 type ContentBoxProps = {
   setSelectedJob: React.Dispatch<React.SetStateAction<Job | undefined>>;
@@ -18,9 +22,14 @@ export default function ContentBox({
   jobDetail,
 }: ContentBoxProps) {
   const { setAlert } = useAlert();
-  const { getStatusColor, downloadFile, deleteJob } = useJobs();
+  const { downloadFile, deleteJob } = useJobs();
+  const translation = useAppTranslation();
+  const { locale } = useLocalization();
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [initialFiles, setInitialFiles] = useState<File[]>([]);
 
   async function onDownload() {
     if (!jobDetail || jobDetail.status !== "FINISHED") {
@@ -33,80 +42,99 @@ export default function ContentBox({
       link.click();
     } catch (error) {
       console.error("Error downloading file", error);
-      setAlert("Download failed", "error");
+      setAlert(translation("alertDownloadFailed"), "error");
     } finally {
       setDownloadLoading(false);
     }
   }
 
-  async function onDelete() {
-    if (!jobDetail) {
+  function closeDeleteConfirm() {
+    if (deleteLoading) {
+      return;
+    }
+    setDeleteConfirmOpen(false);
+  }
+
+  async function onDeleteConfirm() {
+    if (!jobDetail || deleteLoading) {
       return;
     }
     setDeleteLoading(true);
     const success = await deleteJob(jobDetail);
     if (success) {
-      setAlert("Job deleted", "success");
+      setAlert(translation("alertJobDeleted"), "success");
       setSelectedJob(undefined);
+      setDeleteConfirmOpen(false);
     } else {
-      setAlert("Delete failed", "error");
+      setAlert(translation("alertDeleteFailed"), "error");
     }
     setDeleteLoading(false);
   }
 
   if (!jobDetail) {
     return (
-      <div className="flex h-full min-h-[50vh] items-center justify-center p-6 text-sm opacity-70">
-        Select a job or create a new one.
-      </div>
+      <>
+        <div className="flex h-full min-h-[50vh] items-center justify-center p-6">
+          <div className="w-full max-w-xl">
+            <AudioDropzone
+              onFilesAdded={(files) => {
+                setInitialFiles(files);
+                setCreateOpen(true);
+              }}
+            />
+          </div>
+        </div>
+        <CreateJobModal
+          isOpen={createOpen}
+          setOpen={setCreateOpen}
+          initialFiles={initialFiles}
+          onInitialFilesConsumed={() => setInitialFiles([])}
+        />
+      </>
     );
   }
 
   return (
     <div className="p-6">
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 rounded-2xl border border-black/10 bg-white/70 p-6 shadow-sm dark:bg-black/20">
+      <div className="mx-auto flex max-w-2xl flex-col gap-4 rounded-2xl border border-divider bg-surface p-6 text-on-surface shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-wide opacity-60">
-              Name
+            <div className="text-xs uppercase tracking-wide text-description">
+              {translation("name")}
             </div>
             <h2 className="text-xl font-semibold">{jobDetail.name}</h2>
           </div>
-          <Chip
-            color={getStatusColor(jobDetail.status)}
-            coloringStyle="tonal"
-            size="sm"
-          >
-            {jobDetail.status}
-          </Chip>
+          <StatusChip status={jobDetail.status} size="sm" />
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <div className="text-xs uppercase tracking-wide opacity-60">
-              Model
+            <div className="text-xs uppercase tracking-wide text-description">
+              {translation("model")}
             </div>
             <div>{jobDetail.model || "—"}</div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide opacity-60">
-              Language
+            <div className="text-xs uppercase tracking-wide text-description">
+              {translation("language")}
             </div>
-            <div>{languageLabel(jobDetail.language)}</div>
+            <div>{languageLabel(jobDetail.language, translation)}</div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide opacity-60">
-              Participants
+            <div className="text-xs uppercase tracking-wide text-description">
+              {translation("participants")}
             </div>
             <div>
-              {jobDetail.participants ? jobDetail.participants : "Auto"}
+              {jobDetail.participants
+                ? jobDetail.participants
+                : translation("auto")}
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-wide opacity-60">
-              Created
+            <div className="text-xs uppercase tracking-wide text-description">
+              {translation("created")}
             </div>
-            <div>{formatDateTime(jobDetail.createdAt)}</div>
+            <div>{formatDateTime(jobDetail.createdAt, locale)}</div>
           </div>
         </div>
 
@@ -123,21 +151,44 @@ export default function ContentBox({
             disabled={jobDetail.status !== "FINISHED" || downloadLoading}
             onClick={onDownload}
           >
-            Download
+            {translation("download")}
           </Button>
           {jobDetail.status !== "RUNNING" ? (
             <Button
               color="negative"
               coloringStyle="outline"
-              isProcessing={deleteLoading}
               disabled={deleteLoading}
-              onClick={onDelete}
+              onClick={() => setDeleteConfirmOpen(true)}
             >
-              Delete
+              {translation("delete")}
             </Button>
           ) : null}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        titleElement={translation("deleteConfirmTitle")}
+        description={translation("deleteConfirmDescription", {
+          name: jobDetail.name,
+        })}
+        isModal
+        position="center"
+        confirmType="negative"
+        onCancel={closeDeleteConfirm}
+        onConfirm={onDeleteConfirm}
+        buttonOverwrites={[
+          {
+            text: translation("cancel"),
+            disabled: deleteLoading,
+          },
+          {},
+          {
+            text: translation("delete"),
+            disabled: deleteLoading,
+          },
+        ]}
+      />
     </div>
   );
 }

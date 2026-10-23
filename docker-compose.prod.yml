@@ -8,6 +8,7 @@ services:
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
       - S3_ENDPOINT=http://garage:3900
       - S3_PUBLIC_ENDPOINT=http://localhost:3900
+      - S3_WORKER_ENDPOINT=${S3_WORKER_ENDPOINT:-http://garage:3900}
       - S3_REGION=garage
       - S3_ACCESS_KEY_ID=shoutoutdevuser
       - S3_SECRET_ACCESS_KEY=shoutoutdevuser
@@ -16,12 +17,14 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - OIDC_PROVIDER=${OIDC_PROVIDER}
+      - OIDC_INTERNAL_PROVIDER=${OIDC_INTERNAL_PROVIDER}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
       - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
       - LISTMONK_URL=${LISTMONK_URL:-}
       - LISTMONK_USERNAME=${LISTMONK_USERNAME:-}
       - LISTMONK_TOKEN=${LISTMONK_TOKEN:-}
       - LISTMONK_TEMPLATE_ID=${LISTMONK_TEMPLATE_ID:-0}
+      - JOB_EXPIRATION_DAYS=${JOB_EXPIRATION_DAYS:-14}
     depends_on:
       - postgres
       - garage

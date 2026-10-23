@@ -14,21 +14,12 @@ from shoutout_worker.api_client import DashboardClient
 from shoutout_worker.config import ConfigEntry
 from shoutout_worker.storage import (
     download_input,
-    extract_or_copy,
     pack_results,
+    upload_bytes,
     upload_result,
+    write_transcript_json,
 )
 from shoutout_worker.transcription import TranscriptionManager
-
-
-def _extract_from_filename(filename: str) -> tuple[str, int | None, str | None]:
-    name_data = filename.split(".")[0]
-    data = name_data.split("_")
-    while len(data) < 3:
-        data.append(ConfigEntry.ZIP_NOT_DEFINED_USER_INPUT)
-    participants = None if data[1] == ConfigEntry.ZIP_NOT_DEFINED_USER_INPUT else int(data[1])
-    language = None if data[2] == ConfigEntry.ZIP_NOT_DEFINED_USER_INPUT else data[2]
-    return filename, participants, language
 
 
 class WorkerRuntime:
@@ -63,9 +54,8 @@ class WorkerRuntime:
         job_id = int(job["id"])
         job_name = str(job["name"])
         model = str(job["model"])
-        audio_file = str(job["audioFile"])
-        participants = job.get("participants") or 0
-        language = job.get("language")
+        files = claim.get("files") or []
+        zip_upload_url = claim["zipUploadUrl"]
 
         with self._lock:
             self._current_job_id = job_id
@@ -81,40 +71,58 @@ class WorkerRuntime:
         try:
             with tempfile.TemporaryDirectory(prefix=f"shoutout-{job_id}-") as tmp:
                 workdir = Path(tmp)
-                source = workdir / audio_file
-                download_input(claim["inputUrl"], source)
-                files = extract_or_copy(source, workdir)
+                packed_files: list[tuple[str, str]] = []
+                file_results: list[dict] = []
 
-                for filename in files:
-                    file_participants = participants
-                    file_language = language
-                    if len(files) > 1:
-                        filename, file_participants, file_language = _extract_from_filename(
-                            filename
-                        )
-                    logging.info("%s %s diarization started", job_name, filename)
+                for index, file_claim in enumerate(files):
+                    file_id = str(file_claim["id"])
+                    original_name = str(file_claim.get("originalName") or f"file-{index}")
+                    participants = file_claim.get("participants") or 0
+                    language = file_claim.get("language")
+                    extension = Path(original_name).suffix or ".wav"
+                    local_name = f"{file_id}{extension}"
+                    source = workdir / local_name
+                    download_input(file_claim["inputUrl"], source)
+
+                    logging.info("%s %s diarization started", job_name, original_name)
                     self.transcription.diarize(
                         workdir,
-                        filename,
-                        file_participants or 0,
+                        local_name,
+                        participants or 0,
                     )
-                    logging.info("%s %s transcription started", job_name, filename)
-                    self.transcription.transcribe(
+                    logging.info("%s %s transcription started", job_name, original_name)
+                    text_path, segments, duration = self.transcription.transcribe(
                         workdir,
-                        filename,
-                        file_language,
+                        local_name,
+                        language,
                         model,
                     )
+                    json_path = workdir / f"{Path(local_name).stem}.json"
+                    write_transcript_json(json_path, segments)
 
-                result = pack_results(
-                    workdir,
-                    Path(audio_file).stem,
-                    files,
-                    job_name,
-                )
-                upload_result(claim["resultUrl"], result)
+                    upload_result(
+                        file_claim["textUploadUrl"],
+                        text_path,
+                        "text/plain; charset=utf-8",
+                    )
+                    upload_bytes(
+                        file_claim["jsonUploadUrl"],
+                        json_path.read_bytes(),
+                        "application/json",
+                    )
 
-            self.client.complete(job_id)
+                    packed_files.append((original_name, Path(local_name).stem))
+                    file_results.append(
+                        {
+                            "id": file_id,
+                            "durationSeconds": duration,
+                        }
+                    )
+
+                result = pack_results(workdir, packed_files)
+                upload_result(zip_upload_url, result, "application/zip")
+
+            self.client.complete(job_id, file_results)
             logging.info("%s finished", job_name)
         except Exception as error:
             logging.error("%s failed: %s", job_name, error)
@@ -131,12 +139,20 @@ class WorkerRuntime:
 
     def run(self) -> None:
         if not ConfigEntry.WORKER_TOKEN:
-            token = self.client.register(
-                ConfigEntry.WORKER_NAME,
-                ConfigEntry.models,
-                self.info(),
-            )
-            logging.info("Registered worker, token prefix %s...", token[:12])
+            while not self._stop.is_set():
+                try:
+                    token = self.client.register(
+                        ConfigEntry.WORKER_NAME,
+                        ConfigEntry.models,
+                        self.info(),
+                    )
+                    logging.info("Registered worker, token prefix %s...", token[:12])
+                    break
+                except Exception as error:
+                    logging.error("Register failed: %s", error)
+                    self._stop.wait(5)
+            if self._stop.is_set():
+                return
         else:
             logging.info("Using existing WORKER_TOKEN")
 

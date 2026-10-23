@@ -36,14 +36,14 @@ export const POST = async (request: NextRequest) => {
     {
       job: {
         id: claimed.job.id,
+        publicId: claimed.job.publicId,
         name: claimed.job.name,
-        audioFile: claimed.job.audioFile,
         model: claimed.job.model,
         participants: claimed.job.participants,
         language: claimed.job.language,
       },
-      inputUrl: claimed.inputUrl,
-      resultUrl: claimed.resultUrl,
+      files: claimed.files,
+      zipUploadUrl: claimed.zipUploadUrl,
     },
     { status: 200 }
   );

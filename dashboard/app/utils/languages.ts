@@ -1,15 +1,18 @@
 export type LanguageOption = {
   value: string;
-  name: string;
+  nameKey: "languageAuto" | "languageDe" | "languageEn";
 };
 
 export const LANGUAGE_OPTIONS: LanguageOption[] = [
-  { value: "", name: "Auto" },
-  { value: "de", name: "Deutsch" },
-  { value: "en", name: "English" },
+  { value: "", nameKey: "languageAuto" },
+  { value: "de", nameKey: "languageDe" },
+  { value: "en", nameKey: "languageEn" },
 ];
 
-export function languageLabel(code: string | null | undefined): string {
+export function languageLabel(
+  code: string | null | undefined,
+  translate: (key: LanguageOption["nameKey"]) => string
+): string {
   const match = LANGUAGE_OPTIONS.find((item) => item.value === code);
-  return match?.name ?? "Auto";
+  return translate(match?.nameKey ?? "languageAuto");
 }

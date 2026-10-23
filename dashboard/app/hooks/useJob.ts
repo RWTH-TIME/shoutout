@@ -2,9 +2,9 @@
 
 import useSWR from "swr";
 import { BulkFileEntry, Job, STATUS } from "../types/types";
-import { LANGUAGE_OPTIONS } from "../utils/languages";
-import { getStatusColor, isActiveStatus } from "../utils/status";
+import { isActiveStatus } from "../utils/status";
 import { mapWithConcurrency } from "../utils/concurrency";
+import { putPresignedObject } from "../utils/file";
 
 async function fetcher<JSON>(input: RequestInfo): Promise<JSON> {
   const res = await fetch(input);
@@ -34,10 +34,10 @@ async function uploadAndCreate(job: {
   }
 
   const { presignedUrl, uuidFileName } = await presignedUrlData.json();
-  const audioFileResponse = await fetch(presignedUrl, {
-    method: "PUT",
-    body: job.audioFile,
-  });
+  const audioFileResponse = await putPresignedObject(
+    presignedUrl,
+    job.audioFile
+  );
   if (!audioFileResponse.ok) {
     throw new Error("Could not upload audio file");
   }
@@ -75,27 +75,6 @@ export default function useJobs() {
     refreshInterval: (data) =>
       data?.some((job) => isActiveStatus(job.status)) ? 4000 : 0,
   });
-
-  async function createJob(job: Job): Promise<boolean> {
-    try {
-      if (!(job.audioFile instanceof File)) {
-        throw new Error("Audio file does not exist");
-      }
-      const created = await uploadAndCreate({
-        name: job.name,
-        model: job.model,
-        participants: job.participants,
-        language: job.language,
-        audioFile: job.audioFile,
-      });
-      const updatedJobs = Array.isArray(jobs) ? [created, ...jobs] : [created];
-      mutate(updatedJobs, false);
-      return true;
-    } catch (createError) {
-      console.error("Error while creating a job:", createError);
-      return false;
-    }
-  }
 
   async function createJobs(
     entries: BulkFileEntry[]
@@ -171,12 +150,9 @@ export default function useJobs() {
   return {
     jobs,
     error,
-    createJob,
     createJobs,
-    getStatusColor,
     downloadFile,
     deleteJob,
-    LANGUAGE_DATA: LANGUAGE_OPTIONS,
   };
 }
 

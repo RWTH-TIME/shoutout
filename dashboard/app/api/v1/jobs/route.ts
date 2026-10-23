@@ -37,10 +37,9 @@ export const POST = async (request: NextRequest) => {
 
   try {
     const { fields, files } = await parseMultipartUpload(request, {
-      fileFields: ["file"],
+      fileFields: ["file", "files[]", "files"],
     });
-    const file = files[0];
-    if (!file) {
+    if (files.length === 0) {
       return NextResponse.json({ error: "Missing file" }, { status: 400 });
     }
     if (!fields.name || !fields.model) {
@@ -50,16 +49,29 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
+    const participants = fields.participants
+      ? Number(fields.participants)
+      : undefined;
+    const language = fields.language;
+    const notifyEnabled =
+      fields.notifyEnabled === undefined
+        ? undefined
+        : fields.notifyEnabled === "true" || fields.notifyEnabled === "1";
+
     const job = await createJob({
       name: fields.name,
-      audioFile: file.uploadRef,
       model: fields.model,
-      participants: fields.participants
-        ? Number(fields.participants)
-        : undefined,
-      language: fields.language,
+      participants,
+      language,
       notifyEmail: fields.notifyEmail || auth.email || undefined,
+      notifyEnabled,
       owner: auth.owner,
+      files: files.map((file) => ({
+        audioFile: file.uploadRef,
+        originalName: file.filename,
+        participants,
+        language,
+      })),
     });
 
     return NextResponse.json({ job }, { status: 201 });

@@ -26,6 +26,7 @@ function createClient(endpoint: string): S3Client {
 
 const internalClient = createClient(config.S3_ENDPOINT);
 const publicClient = createClient(config.S3_PUBLIC_ENDPOINT);
+const workerClient = createClient(config.S3_WORKER_ENDPOINT);
 
 const PRESIGN_TTL_SECONDS = 24 * 60 * 60;
 
@@ -40,6 +41,18 @@ export function resultObjectKey(audioFile: string): string {
   return `${config.DOWNLOAD_FILE_TARGET_DIR}${base}${config.FINISHED_FILE_FORMAT}`;
 }
 
+export function jobResultZipKey(publicId: string): string {
+  return `${config.DOWNLOAD_FILE_TARGET_DIR}${publicId}.zip`;
+}
+
+export function jobFileTextKey(publicId: string, fileId: string): string {
+  return `${config.DOWNLOAD_FILE_TARGET_DIR}${publicId}/${fileId}.txt`;
+}
+
+export function jobFileJsonKey(publicId: string, fileId: string): string {
+  return `${config.DOWNLOAD_FILE_TARGET_DIR}${publicId}/${fileId}.json`;
+}
+
 export async function presignUpload(fileName: string): Promise<string> {
   const command = new PutObjectCommand({
     Bucket: config.S3_BUCKET,
@@ -49,13 +62,27 @@ export async function presignUpload(fileName: string): Promise<string> {
 }
 
 export async function presignDownload(
-  audioFile: string,
-  downloadName: string
+  key: string,
+  downloadName: string,
+  contentType?: string
 ): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: config.S3_BUCKET,
-    Key: resultObjectKey(audioFile),
-    ResponseContentDisposition: `attachment; filename="${downloadName}${config.FINISHED_FILE_FORMAT}"`,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="${downloadName}"`,
+    ...(contentType ? { ResponseContentType: contentType } : {}),
+  });
+  return getSignedUrl(publicClient, command, { expiresIn: PRESIGN_TTL_SECONDS });
+}
+
+export async function presignInlineGet(
+  key: string,
+  contentType?: string
+): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: config.S3_BUCKET,
+    Key: key,
+    ...(contentType ? { ResponseContentType: contentType } : {}),
   });
   return getSignedUrl(publicClient, command, { expiresIn: PRESIGN_TTL_SECONDS });
 }
@@ -65,15 +92,29 @@ export async function presignInputDownload(audioFile: string): Promise<string> {
     Bucket: config.S3_BUCKET,
     Key: uploadObjectKey(audioFile),
   });
-  return getSignedUrl(publicClient, command, { expiresIn: PRESIGN_TTL_SECONDS });
+  return getSignedUrl(workerClient, command, { expiresIn: PRESIGN_TTL_SECONDS });
 }
 
-export async function presignResultUpload(audioFile: string): Promise<string> {
+export async function presignResultUpload(key: string): Promise<string> {
   const command = new PutObjectCommand({
     Bucket: config.S3_BUCKET,
-    Key: resultObjectKey(audioFile),
+    Key: key,
   });
-  return getSignedUrl(publicClient, command, { expiresIn: PRESIGN_TTL_SECONDS });
+  return getSignedUrl(workerClient, command, { expiresIn: PRESIGN_TTL_SECONDS });
+}
+
+export async function getObjectText(key: string): Promise<string> {
+  const response = await internalClient.send(
+    new GetObjectCommand({
+      Bucket: config.S3_BUCKET,
+      Key: key,
+    })
+  );
+  const body = response.Body;
+  if (!body) {
+    throw new Error("Empty object body");
+  }
+  return body.transformToString("utf-8");
 }
 
 export async function uploadStream(

@@ -5,16 +5,18 @@ services:
     ports:
       - "8000:80"
     env_file:
-      - .garage-creds.env
+      - path: .garage-creds.env
+        required: false
     environment:
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
       - S3_ENDPOINT=http://garage:3900
       - S3_PUBLIC_ENDPOINT=http://localhost:3900
+      - S3_WORKER_ENDPOINT=http://localhost:3900
       - S3_REGION=garage
       - WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
       - NEXTAUTH_URL=http://localhost:8000
       - NEXTAUTH_SECRET=random-auth-secret
-      - OIDC_PROVIDER=http://keycloak:8080/realms/main
+      - OIDC_PROVIDER=http://localhost:8090/realms/main
       - OIDC_CLIENT_ID=shoutout
       - OIDC_CLIENT_SECRET=shoutout-client-secret
     depends_on:

@@ -8,27 +8,57 @@ datasource db {
 }
 
 model job {
-  id           Int       @id @default(autoincrement())
-  owner        String    @db.Uuid
-  name         String    @unique
-  audioFile    String?
-  participants Int?
-  language     String?
-  model        String
-  notifyEmail  String?
-  status       Status    @default(PENDING)
-  workerId     String?
-  claimedAt    DateTime?
-  heartbeatAt  DateTime?
-  error        String?
-  attempts     Int       @default(0)
-  resultToken  String?   @unique
-  createdAt    DateTime  @default(now())
-  worker       worker?   @relation(fields: [workerId], references: [id])
+  id            Int        @id @default(autoincrement())
+  publicId      String     @unique @default(uuid()) @db.Uuid
+  owner         String     @db.Uuid
+  name          String     @unique
+  audioFile     String?
+  participants  Int?
+  language      String?
+  model         String
+  notifyEmail   String?
+  notifyEnabled Boolean    @default(true)
+  visibility    Visibility @default(PRIVATE)
+  expiresAt     DateTime?
+  status        Status     @default(PENDING)
+  workerId      String?
+  claimedAt     DateTime?
+  heartbeatAt   DateTime?
+  error         String?
+  attempts      Int        @default(0)
+  resultToken   String?    @unique
+  resultZipKey  String?
+  createdAt     DateTime   @default(now())
+  worker        worker?    @relation(fields: [workerId], references: [id])
+  files         jobFile[]
 
   @@index([owner, createdAt])
   @@index([status, createdAt])
   @@index([status, model])
+  @@index([expiresAt])
+}
+
+model jobFile {
+  id              String  @id @default(uuid()) @db.Uuid
+  jobId           Int
+  position        Int
+  originalName    String
+  audioFile       String
+  participants    Int?
+  language        String?
+  resultTextKey   String?
+  resultJsonKey   String?
+  durationSeconds Float?
+  job             job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+}
+
+model userSettings {
+  owner           String  @id @db.Uuid
+  notifyEmail     String?
+  notifyOnFinish  Boolean @default(true)
+  notifyOnFail    Boolean @default(false)
 }
 
 model worker {
@@ -60,4 +90,10 @@ enum Status {
   FINISHED
   FAILED
   RUNNING
+}
+
+enum Visibility {
+  PRIVATE
+  AUTHENTICATED
+  PUBLIC
 }

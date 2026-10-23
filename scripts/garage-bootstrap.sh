@@ -6,6 +6,14 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.smoke.yml}"
 BUCKET="${S3_BUCKET:-shoutout-job-bucket}"
 CREDS_FILE="${GARAGE_CREDS_FILE:-${ROOT}/.garage-creds.env}"
 
+if [ ! -f "$CREDS_FILE" ]; then
+  cat >"$CREDS_FILE" <<EOF
+S3_ACCESS_KEY_ID=placeholder
+S3_SECRET_ACCESS_KEY=placeholder
+S3_BUCKET=${BUCKET}
+EOF
+fi
+
 garage() {
   docker compose -f "$COMPOSE_FILE" exec -T garage /garage "$@"
 }
@@ -57,5 +65,35 @@ S3_BUCKET=${BUCKET}
 EOF
 
 echo "==> Wrote ${CREDS_FILE}"
+
+echo "==> Configuring bucket CORS for browser uploads"
+export_cors_env() {
+  export S3_ACCESS_KEY_ID="${ACCESS_KEY}"
+  export S3_SECRET_ACCESS_KEY="${SECRET_KEY}"
+  export S3_BUCKET="${BUCKET}"
+  export S3_REGION=garage
+}
+
+apply_cors() {
+  export_cors_env
+  export S3_ENDPOINT="$1"
+  if [ -d "${ROOT}/dashboard/node_modules/@aws-sdk/client-s3" ]; then
+    (cd "${ROOT}/dashboard" && node scripts/set-garage-cors.mjs)
+    return $?
+  fi
+  docker compose -f "$COMPOSE_FILE" run --rm --no-deps \
+    -e S3_ENDPOINT \
+    -e S3_ACCESS_KEY_ID \
+    -e S3_SECRET_ACCESS_KEY \
+    -e S3_BUCKET \
+    -e S3_REGION \
+    -v "${ROOT}/dashboard/scripts/set-garage-cors.mjs:/tmp/set-garage-cors.mjs:ro" \
+    dashboard node /tmp/set-garage-cors.mjs
+}
+
+if ! apply_cors "http://localhost:3900"; then
+  echo "Warning: could not configure Garage CORS (browser uploads may fail)" >&2
+fi
+
 echo "==> Garage bootstrap complete"
 garage status || true

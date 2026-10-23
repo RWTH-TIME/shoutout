@@ -5,28 +5,53 @@ services:
     ports:
       - "8000:80"
     env_file:
-      - .garage-creds.env
+      - path: .garage-creds.env
+        required: false
     environment:
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
       - S3_ENDPOINT=http://garage:3900
       - S3_PUBLIC_ENDPOINT=http://localhost:3900
+      - S3_WORKER_ENDPOINT=http://garage:3900
       - S3_REGION=garage
       - WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
       - NEXTAUTH_URL=http://localhost:8000
       - NEXTAUTH_SECRET=random-auth-secret
       - OIDC_PROVIDER=http://localhost:8090/realms/main
+      - OIDC_INTERNAL_PROVIDER=http://keycloak:8080/realms/main
       - OIDC_CLIENT_ID=shoutout
       - OIDC_CLIENT_SECRET=shoutout-client-secret
+      - JOB_EXPIRATION_DAYS=14
     depends_on:
       - postgres
       - garage
+      - keycloak
 
   worker:
     build:
       context: worker
+      dockerfile: Dockerfile.cpu
       args:
         - HUGGINGFACE=${HUGGINGFACE_APIKEY:-}
         - WHISPER_MODEL=tiny
+    restart: always
+    environment:
+      - DASHBOARD_URL=http://dashboard
+      - WORKER_ENROLLMENT_TOKEN=dev-worker-enrollment-token
+      - WHISPER_MODELS=tiny
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_APIKEY:-}
+      - LOG_LEVEL=INFO
+      - CONCURRENCY=1
+    depends_on:
+      - dashboard
+
+  worker-gpu:
+    profiles: ["gpu"]
+    build:
+      context: worker
+      dockerfile: Dockerfile
+      args:
+        - HUGGINGFACE=${HUGGINGFACE_APIKEY:-}
+        - WHISPER_MODEL=small
     restart: always
     environment:
       - DASHBOARD_URL=http://dashboard
@@ -38,8 +63,6 @@ services:
     depends_on:
       - dashboard
     deploy:
-      mode: replicated
-      replicas: 1
       resources:
         reservations:
           devices:
@@ -71,14 +94,16 @@ services:
       - "3903:3903"
 
   job-cleaner:
+    profiles: ["tools"]
     build: dashboard
     entrypoint: ["sh", "-c", "npx tsx scripts/cleanup.ts"]
+    env_file:
+      - path: .garage-creds.env
+        required: false
     environment:
       - DATABASE_URL=postgresql://admin:admin@postgres:5432/postgres?schema=public
       - S3_ENDPOINT=http://garage:3900
       - S3_PUBLIC_ENDPOINT=http://garage:3900
-      - S3_ACCESS_KEY_ID=shoutoutdevuser
-      - S3_SECRET_ACCESS_KEY=shoutoutdevuser
       - S3_BUCKET=shoutout-job-bucket
     depends_on:
       - postgres
@@ -95,19 +120,17 @@ services:
       POSTGRES_PASSWORD: "password"
 
   keycloak:
-    image: quay.io/keycloak/keycloak
+    image: quay.io/keycloak/keycloak:26.8.1
     environment:
       KC_DB: "postgres"
       KC_DB_URL: "jdbc:postgresql://keycloak-postgres:5432/keycloak"
       KC_DB_USERNAME: "keycloak"
       KC_DB_PASSWORD: "password"
-      KC_HOSTNAME: "localhost"
-      KC_HOSTNAME_PORT: 8080
-      KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME_STRICT_HTTPS: false
-      KC_LOG_LEVEL: "info"
-      KC_METRICS_ENABLED: true
-      KC_HEALTH_ENABLED: true
+      KC_HOSTNAME: "http://localhost:8090"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
       KEYCLOAK_ADMIN: "admin"
       KEYCLOAK_ADMIN_PASSWORD: "admin"
     command: start-dev --import-realm

@@ -72,6 +72,11 @@ in
       accessKeyFile = lib.mkOption { type = lib.types.path; };
       secretKeyFile = lib.mkOption { type = lib.types.path; };
     };
+    jobExpirationDays = lib.mkOption {
+      type = lib.types.int;
+      default = 14;
+      description = "Days until jobs expire. Set to 0 for no expiration.";
+    };
     listmonk = {
       url = lib.mkOption {
         type = lib.types.str;
@@ -155,6 +160,7 @@ in
           export S3_BUCKET=${lib.escapeShellArg cfg.garage.bucket}
           export S3_ACCESS_KEY_ID="$(cat "$CREDENTIALS_DIRECTORY/s3_access_key")"
           export S3_SECRET_ACCESS_KEY="$(cat "$CREDENTIALS_DIRECTORY/s3_secret_key")"
+          export JOB_EXPIRATION_DAYS=${toString cfg.jobExpirationDays}
           export LISTMONK_URL=${lib.escapeShellArg cfg.listmonk.url}
           export LISTMONK_USERNAME=${lib.escapeShellArg cfg.listmonk.username}
           export LISTMONK_TEMPLATE_ID=${toString cfg.listmonk.templateId}

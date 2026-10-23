@@ -1,21 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AppPage, Avatar, Button } from "@helpwave/hightide";
-import { useSession } from "next-auth/react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ContentBox from "./ContentBox";
-import JobList from "./SideBarComponents/JobList";
-import CreateJobModal from "./SideBarComponents/CreateJobModal";
-import ApiKeysModal from "./ApiKeysModal";
+import JobsSidebar from "./SideBarComponents/JobsSidebar";
+import AppShell from "./AppShell";
 import useJobs from "../hooks/useJob";
+import useAppTranslation from "../hooks/useAppTranslation";
 import { Job } from "../types/types";
 
-export default function HomeClient() {
-  const { data: session } = useSession();
+function HomeClientInner() {
   const { jobs } = useJobs();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedJob, setSelectedJob] = useState<Job>();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [keysOpen, setKeysOpen] = useState(false);
+
+  useEffect(() => {
+    const jobName = searchParams.get("job");
+    if (!jobName || !jobs) {
+      return;
+    }
+    const match = jobs.find((job) => job.name === jobName);
+    if (match) {
+      setSelectedJob(match);
+      router.replace("/", { scroll: false });
+    }
+  }, [jobs, router, searchParams]);
 
   useEffect(() => {
     if (!selectedJob || !jobs) {
@@ -27,71 +37,27 @@ export default function HomeClient() {
     }
   }, [jobs, selectedJob]);
 
-  const accountUrl = session?.user?.issuer
-    ? `${session.user.issuer}/account`
-    : undefined;
+  return (
+    <AppShell
+      activeId="jobs"
+      sidebarContent={
+        <JobsSidebar
+          selectedJobName={selectedJob?.name}
+          setSelectedJob={setSelectedJob}
+        />
+      }
+    >
+      <ContentBox setSelectedJob={setSelectedJob} jobDetail={selectedJob} />
+    </AppShell>
+  );
+}
+
+export default function HomeClient() {
+  const translation = useAppTranslation();
 
   return (
-    <>
-      <AppPage
-        noScrolling
-        headerActions={[
-          <Button
-            key="keys"
-            coloringStyle="tonal"
-            size="sm"
-            onClick={() => setKeysOpen(true)}
-          >
-            API keys
-          </Button>,
-          <button
-            key="user"
-            type="button"
-            className="flex items-center gap-2"
-            onClick={() => {
-              if (accountUrl) {
-                window.location.href = accountUrl;
-              }
-            }}
-          >
-            <span className="hidden text-sm sm:inline">
-              {session?.user?.name}
-            </span>
-            <Avatar name={session?.user?.name ?? "User"} size="sm" />
-          </button>,
-        ]}
-        sidebarProps={{
-          header: <span className="text-lg font-semibold">Shoutout</span>,
-          contentOverwrite: (
-            <div className="flex h-full flex-col">
-              <div className="p-2">
-                <Button
-                  color="primary"
-                  className="w-full"
-                  onClick={() => setCreateOpen(true)}
-                >
-                  Add job
-                </Button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <JobList
-                  jobs={jobs}
-                  selectedJobName={selectedJob?.name}
-                  setSelectedJob={setSelectedJob}
-                />
-              </div>
-            </div>
-          ),
-        }}
-      >
-        <ContentBox
-          setSelectedJob={setSelectedJob}
-          jobDetail={selectedJob}
-        />
-      </AppPage>
-
-      <CreateJobModal isOpen={createOpen} setOpen={setCreateOpen} />
-      <ApiKeysModal isOpen={keysOpen} onClose={() => setKeysOpen(false)} />
-    </>
+    <Suspense fallback={<div className="p-6">{translation("loading")}</div>}>
+      <HomeClientInner />
+    </Suspense>
   );
 }

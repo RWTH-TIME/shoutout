@@ -22,13 +22,23 @@ from shoutout_worker.diarization_postprocess import (
 class TranscriptionManager:
     def __init__(self) -> None:
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._diarization = None
         token = ConfigEntry.HUGGINGFACE_TOKEN or None
-        self._diarization = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.1",
-            token=token,
-        )
-        if self._device.type == "cuda":
-            self._diarization = self._diarization.to(self._device)
+        if token:
+            try:
+                pipeline = Pipeline.from_pretrained(
+                    "pyannote/speaker-diarization-3.1",
+                    token=token,
+                )
+                if self._device.type == "cuda":
+                    pipeline = pipeline.to(self._device)
+                self._diarization = pipeline
+            except Exception as error:
+                logging.warning("Diarization unavailable, using single-speaker fallback: %s", error)
+        else:
+            logging.warning(
+                "HUGGINGFACE_TOKEN unset; jobs will use single-speaker Whisper only"
+            )
         self._whisper_model_name: str | None = None
         self._whisper = None
 
@@ -61,7 +71,7 @@ class TranscriptionManager:
         audio = whisper.load_audio(str(wav_path))
         return audio.astype(np.float32)
 
-    def diarize(self, workdir: Path, filename: str, num_speaker: int) -> Path:
+    def _ensure_wav(self, workdir: Path, filename: str) -> Path:
         source = workdir / filename
         stem = source.stem
         wav_path = workdir / f"{stem}.wav"
@@ -69,6 +79,23 @@ class TranscriptionManager:
             self._to_wav_mono_16k(source, wav_path)
         elif not wav_path.exists():
             wav_path.write_bytes(source.read_bytes())
+        return wav_path
+
+    def _write_single_speaker_rttm(self, wav_path: Path, rttm_path: Path) -> None:
+        duration = float(len(self._load_audio(wav_path))) / 16000.0
+        line = (
+            f"SPEAKER {wav_path.stem} 1 0.000 {duration:.3f} "
+            f"<NA> <NA> SPEAKER_00 <NA> <NA>\n"
+        )
+        rttm_path.write_text(line, encoding="utf-8")
+
+    def diarize(self, workdir: Path, filename: str, num_speaker: int) -> Path:
+        wav_path = self._ensure_wav(workdir, filename)
+        rttm_path = workdir / f"{wav_path.stem}_diarized.rttm"
+
+        if self._diarization is None:
+            self._write_single_speaker_rttm(wav_path, rttm_path)
+            return rttm_path
 
         waveform = torch.from_numpy(self._load_audio(wav_path)).unsqueeze(0)
         num_speakers = int(num_speaker) if int(num_speaker) > 0 else None
@@ -76,7 +103,6 @@ class TranscriptionManager:
             {"waveform": waveform, "sample_rate": 16000},
             num_speakers=num_speakers,
         )
-        rttm_path = workdir / f"{stem}_diarized.rttm"
         with rttm_path.open("w", encoding="utf-8") as handle:
             diarization.write_rttm(handle)
         return rttm_path
@@ -87,7 +113,7 @@ class TranscriptionManager:
         filename: str,
         language: str | None,
         model_name: str,
-    ) -> Path:
+    ) -> tuple[Path, list[dict], float]:
         self.ensure_whisper(model_name)
         assert self._whisper is not None
 
@@ -117,8 +143,10 @@ class TranscriptionManager:
         sections = create_section_table(aggregate_section(cleaned[cleaned.Duration > 0.8]))
         audio = self._load_audio(wav_path)
         sample_rate = 16000
+        duration_seconds = float(len(audio)) / float(sample_rate)
 
         parts: list[str] = []
+        segments: list[dict] = []
         for row in sections.itertuples(index=False):
             start = max(row.Start - 0.2, 0.0)
             end = row.End + 0.1
@@ -126,12 +154,21 @@ class TranscriptionManager:
             end_idx = int(end * sample_rate)
             chunk = audio[start_idx:end_idx]
             result = self._whisper.transcribe(chunk, language=language or None)
+            text = str(result["text"]).strip()
             stamp = time.strftime("%H:%M:%S", time.gmtime(row.Start))
-            parts.append(f"{row.Speaker} {stamp}\n{result['text']}\n\n")
+            parts.append(f"{row.Speaker} {stamp}\n{text}\n\n")
+            segments.append(
+                {
+                    "speaker": str(row.Speaker),
+                    "start": float(row.Start),
+                    "end": float(row.End),
+                    "text": text,
+                }
+            )
 
         output = workdir / f"{stem}{ConfigEntry.FINISHED_FILE_FORMAT}"
         output.write_text("".join(parts), encoding="utf-8")
 
         if self._device.type == "cuda":
             torch.cuda.empty_cache()
-        return output
+        return output, segments, duration_seconds

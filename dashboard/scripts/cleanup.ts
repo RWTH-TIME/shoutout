@@ -2,6 +2,7 @@ import { Status } from "@prisma/client";
 import { prisma } from "../app/lib/prisma";
 import {
   deleteObjects,
+  jobResultZipKey,
   listObjectKeys,
   resultObjectKey,
   uploadObjectKey,
@@ -9,35 +10,68 @@ import {
 import config from "../app/lib/config";
 
 async function main(): Promise<void> {
-  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const now = new Date();
 
   const staleJobs = await prisma.job.findMany({
     where: {
-      OR: [{ status: Status.FAILED }, { createdAt: { lt: cutoff } }],
+      OR: [
+        { status: Status.FAILED },
+        { expiresAt: { not: null, lt: now } },
+      ],
     },
+    include: { files: true },
   });
 
   for (const job of staleJobs) {
     const keys: string[] = [];
-    if (job.audioFile) {
+    for (const file of job.files) {
+      keys.push(uploadObjectKey(file.audioFile));
+      if (file.resultTextKey) {
+        keys.push(file.resultTextKey);
+      }
+      if (file.resultJsonKey) {
+        keys.push(file.resultJsonKey);
+      }
+    }
+    if (job.audioFile && job.files.length === 0) {
       keys.push(uploadObjectKey(job.audioFile));
       keys.push(resultObjectKey(job.audioFile));
     }
-    await deleteObjects(keys);
+    if (job.resultZipKey) {
+      keys.push(job.resultZipKey);
+    } else {
+      keys.push(jobResultZipKey(job.publicId));
+    }
+    const prefix = `${config.DOWNLOAD_FILE_TARGET_DIR}${job.publicId}/`;
+    keys.push(...(await listObjectKeys(prefix)));
+    await deleteObjects([...new Set(keys)]);
     await prisma.job.delete({ where: { id: job.id } });
   }
 
   const remaining = await prisma.job.findMany({
-    select: { audioFile: true, status: true },
+    include: { files: true },
   });
   const referenced = new Set<string>();
   for (const job of remaining) {
-    if (!job.audioFile) {
-      continue;
+    for (const file of job.files) {
+      referenced.add(uploadObjectKey(file.audioFile));
+      if (file.resultTextKey) {
+        referenced.add(file.resultTextKey);
+      }
+      if (file.resultJsonKey) {
+        referenced.add(file.resultJsonKey);
+      }
     }
-    referenced.add(uploadObjectKey(job.audioFile));
-    if (job.status === Status.FINISHED) {
-      referenced.add(resultObjectKey(job.audioFile));
+    if (job.audioFile && job.files.length === 0) {
+      referenced.add(uploadObjectKey(job.audioFile));
+      if (job.status === Status.FINISHED) {
+        referenced.add(resultObjectKey(job.audioFile));
+      }
+    }
+    if (job.resultZipKey) {
+      referenced.add(job.resultZipKey);
+    } else if (job.status === Status.FINISHED) {
+      referenced.add(jobResultZipKey(job.publicId));
     }
   }
 

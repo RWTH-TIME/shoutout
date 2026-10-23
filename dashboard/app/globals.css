@@ -1,6 +1,48 @@
 @import "tailwindcss";
 @import "@helpwave/hightide/style/uncompiled/globals.css";
 
+@theme static {
+  --color-primary: var(--color-blue-500);
+  --color-primary-hover: var(--color-blue-600);
+  --color-highlight: var(--color-blue-500);
+}
+
+@layer base {
+  @variant dark {
+    --color-primary: var(--color-blue-200);
+    --color-primary-hover: var(--color-blue-500);
+  }
+}
+
+@layer components {
+  [data-name="app-sidebar-container"] {
+    @variant desktop {
+      @apply min-w-80 max-w-96;
+    }
+  }
+
+  [data-name="app-page-header"] {
+    @apply w-full justify-between;
+  }
+
+  .app-page-sidebar-with-navigation-header {
+    @apply w-full items-center justify-center px-3 pt-10 mb-8;
+  }
+
+  [data-name="dialog-content"] > .absolute.top-0.right-0 {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 10;
+  }
+}
+
+@layer utilities {
+  .opacity-0 {
+    opacity: 0;
+  }
+}
+
 html,
 body {
   margin: 0;

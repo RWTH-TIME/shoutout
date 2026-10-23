@@ -54,11 +54,11 @@ class DashboardClient:
         if response.status_code >= 400:
             logging.warning("Heartbeat failed for job %s: %s", job_id, response.text)
 
-    def complete(self, job_id: int) -> None:
+    def complete(self, job_id: int, files: list[dict[str, Any]] | None = None) -> None:
         response = self._client.post(
             f"{self._base}/api/worker/jobs/{job_id}/complete",
             headers=self._headers(),
-            json={},
+            json={"files": files or []},
         )
         response.raise_for_status()
 

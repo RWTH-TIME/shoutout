@@ -3,6 +3,9 @@ import { prisma } from "../lib/prisma";
 import config from "../lib/config";
 import { generateWorkerToken } from "../lib/auth";
 import {
+  jobFileJsonKey,
+  jobFileTextKey,
+  jobResultZipKey,
   presignInputDownload,
   presignResultUpload,
 } from "../lib/storage";
@@ -76,6 +79,7 @@ async function claimOnce(workerId: string, models: string[]) {
         claimedAt: new Date(),
         heartbeatAt: new Date(),
       },
+      include: { files: { orderBy: { position: "asc" } } },
     });
 
     return job;
@@ -91,17 +95,51 @@ export async function claimJob(
   while (Date.now() - started < timeoutMs) {
     const job = await claimOnce(workerId, models);
     if (job) {
-      if (!job.audioFile) {
-        throw new Error("Claimed job has no audio file");
+      let files = job.files;
+      if (files.length === 0 && job.audioFile) {
+        const created = await prisma.jobFile.create({
+          data: {
+            jobId: job.id,
+            position: 0,
+            originalName: job.audioFile,
+            audioFile: job.audioFile,
+            participants: job.participants,
+            language: job.language,
+          },
+        });
+        files = [created];
       }
-      const [inputUrl, resultUrl] = await Promise.all([
-        presignInputDownload(job.audioFile),
-        presignResultUpload(job.audioFile),
-      ]);
+      if (files.length === 0) {
+        throw new Error("Claimed job has no audio files");
+      }
+
+      const fileClaims = await Promise.all(
+        files.map(async (file) => {
+          const [inputUrl, textUploadUrl, jsonUploadUrl] = await Promise.all([
+            presignInputDownload(file.audioFile),
+            presignResultUpload(jobFileTextKey(job.publicId, file.id)),
+            presignResultUpload(jobFileJsonKey(job.publicId, file.id)),
+          ]);
+          return {
+            id: file.id,
+            originalName: file.originalName,
+            participants: file.participants ?? job.participants,
+            language: file.language ?? job.language,
+            inputUrl,
+            textUploadUrl,
+            jsonUploadUrl,
+          };
+        })
+      );
+
+      const zipUploadUrl = await presignResultUpload(
+        jobResultZipKey(job.publicId)
+      );
+
       return {
         job,
-        inputUrl,
-        resultUrl,
+        files: fileClaims,
+        zipUploadUrl,
       };
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));

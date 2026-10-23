@@ -6,7 +6,7 @@ import { createJob } from "../../../../services/jobService";
 
 const metadataSchema = z.record(
   z.object({
-    model: z.string().min(1),
+    model: z.string().min(1).optional(),
     participants: z.number().int().nonnegative().optional(),
     language: z.string().optional(),
     notifyEmail: z.string().email().optional(),
@@ -33,39 +33,47 @@ export const POST = async (request: NextRequest) => {
     }
 
     const metadata = metadataSchema.parse(JSON.parse(fields.metadata ?? "{}"));
-    const jobs = [];
-    const errors = [];
-
-    for (const file of files) {
-      const meta = metadata[file.filename];
-      if (!meta) {
-        errors.push({
-          filename: file.filename,
-          error: "Missing metadata for file",
-        });
-        continue;
-      }
-
-      try {
-        const job = await createJob({
-          name: meta.name ?? file.filename.replace(/\.[^.]+$/, ""),
-          audioFile: file.uploadRef,
-          model: meta.model,
-          participants: meta.participants,
-          language: meta.language,
-          notifyEmail: meta.notifyEmail || auth.email || undefined,
-          owner: auth.owner,
-        });
-        jobs.push(job);
-      } catch (error) {
-        errors.push({
-          filename: file.filename,
-          error: error instanceof Error ? error.message : "Failed",
-        });
-      }
+    const jobName =
+      fields.name ||
+      metadata[files[0]?.filename ?? ""]?.name ||
+      files[0]?.filename.replace(/\.[^.]+$/, "") ||
+      "job";
+    const model =
+      fields.model ||
+      metadata[files[0]?.filename ?? ""]?.model;
+    if (!model) {
+      return NextResponse.json({ error: "Missing model" }, { status: 400 });
     }
 
-    return NextResponse.json({ jobs, errors }, { status: 201 });
+    const fileInputs = [];
+    const errors = [];
+    for (const file of files) {
+      const meta = metadata[file.filename] ?? {};
+      fileInputs.push({
+        audioFile: file.uploadRef,
+        originalName: file.filename,
+        participants: meta.participants,
+        language: meta.language,
+      });
+    }
+
+    if (fileInputs.length === 0) {
+      return NextResponse.json({ jobs: [], errors }, { status: 400 });
+    }
+
+    const firstMeta = metadata[files[0]?.filename ?? ""] ?? {};
+    const job = await createJob({
+      name: jobName,
+      model,
+      participants: firstMeta.participants,
+      language: firstMeta.language || fields.language,
+      notifyEmail:
+        firstMeta.notifyEmail || fields.notifyEmail || auth.email || undefined,
+      owner: auth.owner,
+      files: fileInputs,
+    });
+
+    return NextResponse.json({ jobs: [job], errors }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed";
     return NextResponse.json({ error: message }, { status: 400 });

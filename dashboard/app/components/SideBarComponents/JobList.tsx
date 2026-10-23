@@ -1,22 +1,21 @@
 "use client";
 
-import { Chip } from "@helpwave/hightide";
 import { Job } from "../../types/types";
-import useJobs from "../../hooks/useJob";
+import StatusChip from "../StatusChip";
 
 type JobListProps = {
   jobs: Job[] | undefined;
   selectedJobName?: string;
-  setSelectedJob: React.Dispatch<React.SetStateAction<Job | undefined>>;
+  setSelectedJob?: React.Dispatch<React.SetStateAction<Job | undefined>>;
+  onSelectJob?: (job: Job) => void;
 };
 
 export default function JobList({
   jobs,
   selectedJobName,
   setSelectedJob,
+  onSelectJob,
 }: JobListProps) {
-  const { getStatusColor } = useJobs();
-
   return (
     <div className="flex flex-col gap-1 p-2">
       {(jobs ?? []).map((job) => {
@@ -25,21 +24,18 @@ export default function JobList({
           <button
             key={job.id ?? job.name}
             type="button"
-            onClick={() => setSelectedJob(job)}
-            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition ${
+            onClick={() => {
+              setSelectedJob?.(job);
+              onSelectJob?.(job);
+            }}
+            className={`flex w-full cursor-pointer items-center justify-between rounded-lg px-4 py-3.5 text-left transition ${
               selected
                 ? "bg-primary/15 text-primary"
-                : "hover:bg-black/5 dark:hover:bg-white/5"
+                : "hover:bg-surface-hover"
             }`}
           >
-            <span className="truncate pr-2 text-sm font-medium">{job.name}</span>
-            <Chip
-              color={getStatusColor(job.status)}
-              coloringStyle="tonal"
-              size="xs"
-            >
-              {job.status}
-            </Chip>
+            <span className="truncate pr-2 text-base font-medium">{job.name}</span>
+            <StatusChip status={job.status} size="sm" />
           </button>
         );
       })}

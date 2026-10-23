@@ -7,14 +7,29 @@ import {
 } from "../../services/jobService";
 import { z } from "zod";
 
-const createSchema = z.object({
-  name: z.string().min(1),
+const fileSchema = z.object({
   audioFile: z.string().min(1),
-  model: z.string().min(1),
+  originalName: z.string().min(1),
   participants: z.number().int().nonnegative().optional(),
   language: z.string().optional(),
-  notifyEmail: z.string().email().optional().or(z.literal("")),
 });
+
+const createSchema = z
+  .object({
+    name: z.string().min(1),
+    model: z.string().min(1),
+    participants: z.number().int().nonnegative().optional(),
+    language: z.string().optional(),
+    notifyEmail: z.string().email().optional().or(z.literal("")),
+    notifyEnabled: z.boolean().optional(),
+    audioFile: z.string().min(1).optional(),
+    files: z.array(fileSchema).optional(),
+  })
+  .refine(
+    (value) =>
+      (value.files && value.files.length > 0) || Boolean(value.audioFile),
+    { message: "At least one file is required" }
+  );
 
 export const GET = async (request: NextRequest) => {
   const auth = await authenticate(request);
@@ -33,11 +48,28 @@ export const POST = async (request: NextRequest) => {
   }
 
   const body = createSchema.parse(await request.json());
+  const files =
+    body.files && body.files.length > 0
+      ? body.files
+      : [
+          {
+            audioFile: body.audioFile!,
+            originalName: body.name,
+            participants: body.participants,
+            language: body.language,
+          },
+        ];
+
   try {
     const res = await createJob({
-      ...body,
+      name: body.name,
+      model: body.model,
+      participants: body.participants,
+      language: body.language,
       owner: auth.owner,
       notifyEmail: body.notifyEmail || auth.email || undefined,
+      notifyEnabled: body.notifyEnabled,
+      files,
     });
     return NextResponse.json({ res }, { status: 200 });
   } catch (error) {

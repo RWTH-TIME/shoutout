@@ -63,28 +63,65 @@ async function buildServer(owner: string, email?: string | null) {
     }
   );
 
-  const createJobSchema = {
+  const fileInputSchema = z.object({
     uploadRef: z.string(),
-    name: z.string(),
-    model: z.string(),
+    originalName: z.string().optional(),
     participants: z.number().int().nonnegative().optional(),
     language: z.string().optional(),
-    notifyEmail: z.string().email().optional(),
-  };
+  });
 
   server.tool(
     "create_job",
-    "Create a transcription job from an uploaded file reference",
-    createJobSchema,
+    "Create a transcription job from one or more uploaded file references",
+    {
+      name: z.string(),
+      model: z.string(),
+      participants: z.number().int().nonnegative().optional(),
+      language: z.string().optional(),
+      notifyEmail: z.string().email().optional(),
+      notifyEnabled: z.boolean().optional(),
+      uploadRef: z.string().optional(),
+      uploadRefs: z.array(fileInputSchema).optional(),
+    },
     async (args) => {
+      const files =
+        args.uploadRefs && args.uploadRefs.length > 0
+          ? args.uploadRefs.map((item) => ({
+              audioFile: item.uploadRef,
+              originalName: item.originalName || item.uploadRef,
+              participants: item.participants,
+              language: item.language,
+            }))
+          : args.uploadRef
+            ? [
+                {
+                  audioFile: args.uploadRef,
+                  originalName: args.name,
+                  participants: args.participants,
+                  language: args.language,
+                },
+              ]
+            : [];
+      if (files.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ error: "uploadRef or uploadRefs required" }),
+            },
+          ],
+          isError: true,
+        };
+      }
       const job = await createJob({
         name: args.name,
-        audioFile: args.uploadRef,
         model: args.model,
         participants: args.participants,
         language: args.language,
         notifyEmail: args.notifyEmail || email || undefined,
+        notifyEnabled: args.notifyEnabled,
         owner,
+        files,
       });
       return { content: [{ type: "text", text: JSON.stringify(job) }] };
     }
@@ -92,7 +129,7 @@ async function buildServer(owner: string, email?: string | null) {
 
   server.tool(
     "create_jobs_bulk",
-    "Create multiple transcription jobs",
+    "Create multiple separate transcription jobs",
     {
       jobs: z.array(
         z.object({
@@ -113,12 +150,19 @@ async function buildServer(owner: string, email?: string | null) {
           created.push(
             await createJob({
               name: item.name,
-              audioFile: item.uploadRef,
               model: item.model,
               participants: item.participants,
               language: item.language,
               notifyEmail: item.notifyEmail || email || undefined,
               owner,
+              files: [
+                {
+                  audioFile: item.uploadRef,
+                  originalName: item.name,
+                  participants: item.participants,
+                  language: item.language,
+                },
+              ],
             })
           );
         } catch (error) {

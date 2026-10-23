@@ -1,64 +1,77 @@
-A modern web application for transcribing audio files on your own server.
-Powered by models like whisper and pyannote/speaker-diarization.
+# Shoutout
 
-# Why Shoutout?
+Self-hosted audio transcription with speaker diarization.
 
-Shoutout provides:
+Upload one or more audio files as a single job, run Whisper (and optionally pyannote) on attached workers, then preview transcripts in the browser, download a zip, or share the job privately, with signed-in users, or publicly.
 
-- a simple web interface built with [hightide](https://github.com/helpwave/hightide) `AppPage`
-- accurate transcriptions with speaker detection and timestamps
-- local data storage (Garage S3 + Postgres)
-- GPU workers that attach over HTTPS (no shared database credentials)
-- REST + MCP automation with per-user API keys
-- optional Listmonk email when a transcript is ready
-- NixOS modules for the system and for workers
+## What it does
 
-# Screenshots
-
-### Creating a new job
-![.assets/Shoutout_1.png](.assets/Shoutout_1.png)
-
-### Web-interface with an overview of all jobs
-![.assets/Shoutout_2.png](.assets/Shoutout_2.png)
-
-### Downloading transcripts after finishing a job
-![.assets/Shoutout_3.png](.assets/Shoutout_3.png)
-
-## Architecture
+- **Jobs as projects** — multiple files live in one job; each file gets its own transcript preview and playback
+- **Speaker-aware transcripts** — Whisper plus optional pyannote diarization with timestamps
+- **Web UI** — create jobs, watch status, preview results, share links, manage mailing preferences
+- **Workers over HTTPS** — GPU or CPU workers claim work from the dashboard; they never need database credentials
+- **Automation** — per-user API keys for REST and MCP
+- **Local storage** — Postgres for metadata, Garage (S3) for audio and results
+- **Optional email** — Listmonk notifications when a job finishes or fails
+- **NixOS modules** — deploy the dashboard host and remote workers separately
 
 ```text
-Browser / MCP / curl  --HTTPS + session or API key-->  Dashboard
-                                                        |     \
-                                                        |      \--> Garage (S3)
-                                                        v
-                                                     Postgres
-Workers  --HTTPS + worker token (claim/heartbeat)--> Dashboard
-Workers  --presigned GET/PUT-----------------------> Garage
-Dashboard --optional transactional email-----------> Listmonk
+Browser / API / MCP  --HTTPS (OIDC session or API key)-->  Dashboard
+                                                              |
+                                                              +--> Postgres
+                                                              +--> Garage (S3)
+
+Workers  --HTTPS (enrollment / worker token)-->  Dashboard
+Workers  --presigned GET/PUT------------------>  Garage
 ```
 
-Workers only need `DASHBOARD_URL`, a worker enrollment token, and a Hugging Face token.
-RabbitMQ and direct worker access to Postgres/MinIO are gone.
+## Requirements
 
-## Quickstart (Docker)
+- Docker and Docker Compose (recommended for first install)
+- Optional: NVIDIA GPU + [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) for CUDA workers
+- Optional: Hugging Face token with access to pyannote speaker-diarization models
+
+## Install with Docker
+
+Clone the repository, then start infrastructure, bootstrap object storage, and bring up the app:
 
 ```sh
+git clone https://github.com/rwth-time/shoutout.git
+cd shoutout
+
 docker compose up -d postgres garage keycloak keycloak-postgres
 COMPOSE_FILE=docker-compose.yml ./scripts/garage-bootstrap.sh
 docker compose up -d --build dashboard worker
-```
-
-`garage-bootstrap.sh` creates the Garage layout, access key, bucket, and browser CORS (`AllowedHeaders: *` for dashboard uploads), writing `.garage-creds.env` (gitignored). Restart the dashboard after bootstrap so it picks up those credentials:
-
-```sh
 docker compose up -d --force-recreate dashboard
 ```
 
-The default worker is CPU-only with Whisper `tiny` for local e2e. Without `HUGGINGFACE_APIKEY` it still runs using a single-speaker fallback; set the token (and accept pyannote terms) for real diarization.
+`garage-bootstrap.sh` creates the Garage layout, access key, bucket, and CORS rules for browser uploads. Credentials are written to `.garage-creds.env` (gitignored). Recreate the dashboard after bootstrap so it loads those credentials.
 
-Keycloak imports `.keycloak-config/main-realm.json` on first start (realm `main`). Sign in at [localhost:8000](http://localhost:8000) with **test / test**. Admin console: [localhost:8090](http://localhost:8090) (`admin` / `admin`).
+Open [http://localhost:8000](http://localhost:8000) and sign in with **test** / **test**.
 
-If you change the realm JSON after Keycloak has already imported it, wipe and reimport:
+| Service   | URL / port | Notes |
+|-----------|------------|--------|
+| Dashboard | [localhost:8000](http://localhost:8000) | Login `test` / `test` |
+| Keycloak  | [localhost:8090](http://localhost:8090) | Admin `admin` / `admin`, realm `main` |
+| Postgres  | `localhost:5433` | User/password `admin` |
+| Garage S3 | `localhost:3900` | Browser uploads/downloads |
+
+The default worker is CPU-only with Whisper `tiny` (fine for local testing). Without `HUGGINGFACE_APIKEY` it falls back to single-speaker transcription. Set the token (and accept pyannote terms on Hugging Face) for real diarization:
+
+```sh
+export HUGGINGFACE_APIKEY=hf_...
+docker compose up -d --build worker
+```
+
+### GPU worker
+
+```sh
+docker compose --profile gpu up -d --build worker-gpu
+```
+
+### Re-import Keycloak realm
+
+If you change `.keycloak-config/main-realm.json` after the first import:
 
 ```sh
 docker compose stop keycloak
@@ -67,53 +80,19 @@ docker volume rm shoutout_keycloak-postgres-data
 docker compose up -d keycloak-postgres keycloak
 ```
 
-Optional CUDA worker (needs [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)):
+## Using the app
 
-```sh
-docker compose --profile gpu up -d --build worker-gpu
-```
+1. Sign in and create a job (one or many audio files).
+2. A worker claims the job, writes per-file transcripts, and packs a zip.
+3. Open `/job/<uuid>` to preview audio and transcript, download results, or share.
+4. Visibility: **private**, **signed-in users with the link**, or **public**.
+5. Under **Settings**, configure theme, language, mailing options, and API keys.
 
-Services:
+Jobs expire after `JOB_EXPIRATION_DAYS` (default 14). Set `0` for no expiration.
 
-1. Dashboard at [localhost:8000](http://localhost:8000) — login `test` / `test`
-2. Postgres on port `5433`
-3. Garage S3 API on port `3900`
-4. Keycloak on port `8090` (realm `main`, client `shoutout`)
-5. CPU worker with Whisper `tiny` (e2e)
-6. Optional GPU worker via `--profile gpu`
+## API and MCP
 
-### Local smoke test
-
-API-only (fake worker claim/complete):
-
-```sh
-docker compose -f docker-compose.smoke.yml up -d postgres garage
-COMPOSE_FILE=docker-compose.smoke.yml ./scripts/garage-bootstrap.sh
-docker compose -f docker-compose.smoke.yml up -d --build dashboard
-./scripts/smoke-test.sh
-```
-
-Full e2e with the CPU Whisper `tiny` worker:
-
-```sh
-docker compose -f docker-compose.e2e.yml up -d postgres garage
-COMPOSE_FILE=docker-compose.e2e.yml ./scripts/garage-bootstrap.sh
-docker compose -f docker-compose.e2e.yml up -d --build dashboard worker
-./scripts/e2e-test.sh
-```
-
-CI runs smoke and e2e as required quality gates (lint, build, worker flake8, nix flake show, compose smoke, compose e2e) before image publishes on `main`.
-
-### Migrate data from MinIO
-
-```sh
-rclone sync minio:shoutout-job-bucket garage:shoutout-job-bucket
-```
-
-## API keys, REST, and MCP
-
-Create an API key in the dashboard (header action **API keys**). The secret is shown once.
-The same bearer token works for REST and MCP.
+Create an API key under **Settings → API keys**. The secret is shown once. The same bearer token works for REST and MCP.
 
 ```bash
 export SHOUTOUT_KEY="so_xxx_yyy"
@@ -122,23 +101,22 @@ export SHOUTOUT_URL="https://shoutout.example.com"
 curl -s -H "Authorization: Bearer $SHOUTOUT_KEY" "$SHOUTOUT_URL/api/v1/languages"
 curl -s -H "Authorization: Bearer $SHOUTOUT_KEY" "$SHOUTOUT_URL/api/v1/models"
 
+# One or more files become a single job
 curl -s -X POST "$SHOUTOUT_URL/api/v1/jobs" \
   -H "Authorization: Bearer $SHOUTOUT_KEY" \
-  -F "file=@meeting.mp3" -F "name=weekly-standup" \
-  -F "model=large-v3" -F "participants=3" -F "language=en"
-
-curl -s -X POST "$SHOUTOUT_URL/api/v1/jobs/bulk" \
-  -H "Authorization: Bearer $SHOUTOUT_KEY" \
-  -F "files[]=@call1.mp3;filename=call1.mp3" \
-  -F "files[]=@call2.mp3;filename=call2.mp3" \
-  -F 'metadata={"call1.mp3":{"model":"small","participants":2,"language":"de"},"call2.mp3":{"model":"large-v3","participants":4,"language":"en"}}'
+  -F "files[]=@meeting-a.mp3;filename=meeting-a.mp3" \
+  -F "files[]=@meeting-b.mp3;filename=meeting-b.mp3" \
+  -F "name=weekly-standup" \
+  -F "model=large-v3" \
+  -F "participants=3" \
+  -F "language=en"
 
 curl -s -H "Authorization: Bearer $SHOUTOUT_KEY" "$SHOUTOUT_URL/api/v1/jobs/weekly-standup"
 curl -L -H "Authorization: Bearer $SHOUTOUT_KEY" \
   "$SHOUTOUT_URL/api/v1/jobs/weekly-standup/result" -o weekly-standup.zip
 ```
 
-### MCP client config
+### MCP client
 
 ```json
 {
@@ -155,25 +133,22 @@ curl -L -H "Authorization: Bearer $SHOUTOUT_KEY" \
 
 Tools: `list_languages`, `list_models`, `request_upload`, `create_job`, `create_jobs_bulk`, `list_jobs`, `get_job`, `delete_job`, `download_job_result`.
 
-## Listmonk notifications
+## Email notifications (Listmonk)
 
-When a job finishes, Shoutout can send a transactional email through an external Listmonk instance.
+Optional. When configured, Shoutout can email you when a job finishes or fails (per user settings and per-job toggle).
 
-Set `LISTMONK_URL`, `LISTMONK_USERNAME`, `LISTMONK_TOKEN`, and `LISTMONK_TEMPLATE_ID`.
-If `LISTMONK_URL` is empty, completion still succeeds and no mail is sent.
+Set `LISTMONK_URL`, `LISTMONK_USERNAME`, `LISTMONK_TOKEN`, and `LISTMONK_TEMPLATE_ID`. If `LISTMONK_URL` is empty, jobs still complete and no mail is sent.
 
 Example template body:
 
 ```html
 <p>Your transcript <strong>{{ .Tx.Data.jobName }}</strong> ({{ .Tx.Data.model }}) is ready.</p>
-<p><a href="{{ .Tx.Data.downloadUrl }}">Download transcript</a></p>
+<p><a href="{{ .Tx.Data.jobUrl }}">Open job</a></p>
 ```
-
-The download URL is a durable dashboard link (`/api/downloads/<token>`), not a raw S3 URL.
 
 ## NixOS
 
-### System host
+### Dashboard host
 
 ```nix
 {
@@ -181,6 +156,7 @@ The download URL is a durable dashboard link (`/api/downloads/<token>`), not a r
   services.shoutout = {
     enable = true;
     url = "https://shoutout.example.com";
+    jobExpirationDays = 14;
     oidc.issuer = "https://auth.example.com/realms/main";
     oidc.clientSecretFile = "/run/secrets/shoutout-oidc";
     nextauthSecretFile = "/run/secrets/shoutout-nextauth";
@@ -195,7 +171,7 @@ The download URL is a durable dashboard link (`/api/downloads/<token>`), not a r
 }
 ```
 
-### Separate GPU worker host
+### GPU worker host
 
 ```nix
 {
@@ -211,8 +187,6 @@ The download URL is a durable dashboard link (`/api/downloads/<token>`), not a r
   };
 }
 ```
-
-Development shell:
 
 ```sh
 nix develop
@@ -241,30 +215,46 @@ export HUGGINGFACE_TOKEN=...
 shoutout-worker
 ```
 
+### Tests
+
+```sh
+# API smoke (fake worker claim/complete)
+docker compose -f docker-compose.smoke.yml up -d postgres garage
+COMPOSE_FILE=docker-compose.smoke.yml ./scripts/garage-bootstrap.sh
+docker compose -f docker-compose.smoke.yml up -d --build dashboard
+./scripts/smoke-test.sh
+
+# Full e2e with Whisper tiny worker
+docker compose -f docker-compose.e2e.yml up -d postgres garage
+COMPOSE_FILE=docker-compose.e2e.yml ./scripts/garage-bootstrap.sh
+docker compose -f docker-compose.e2e.yml up -d --build dashboard worker
+./scripts/e2e-test.sh
+```
+
 ## Environment variables
 
 ### Dashboard
 
-| NAME | DEFAULT | DESCRIPTION |
-| ---- | ------- | ----------- |
+| Name | Default | Description |
+|------|---------|-------------|
 | `DATABASE_URL` | `postgresql://admin:admin@localhost:5433/postgres?schema=public` | Postgres connection |
 | `S3_ENDPOINT` | `http://localhost:3900` | Internal Garage/S3 endpoint |
-| `S3_PUBLIC_ENDPOINT` | same as `S3_ENDPOINT` | Browser-reachable S3 endpoint for upload/download presigns |
-| `S3_WORKER_ENDPOINT` | same as `S3_ENDPOINT` | Worker-reachable S3 endpoint for claim input/result presigns |
+| `S3_PUBLIC_ENDPOINT` | same as `S3_ENDPOINT` | Browser-reachable S3 endpoint for presigns |
+| `S3_WORKER_ENDPOINT` | same as `S3_ENDPOINT` | Worker-reachable S3 endpoint for claim presigns |
 | `S3_REGION` | `garage` | S3 region |
-| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | `shoutoutdevuser` | S3 credentials |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | from `.garage-creds.env` | S3 credentials |
 | `S3_BUCKET` | `shoutout-job-bucket` | Bucket name |
 | `WORKER_ENROLLMENT_TOKEN` | `dev-worker-enrollment-token` | Shared secret for worker registration |
+| `JOB_EXPIRATION_DAYS` | `14` | Days until jobs expire; `0` disables expiration |
 | `LISTMONK_URL` | empty | Optional Listmonk base URL |
 | `LISTMONK_USERNAME` / `LISTMONK_TOKEN` | empty | Listmonk API credentials |
 | `LISTMONK_TEMPLATE_ID` | `0` | Transactional template id |
-| `JOB_EXPIRATION_DAYS` | `14` | Days until jobs expire; `0` disables expiration |
-| `OIDC_*` / `NEXTAUTH_*` | Keycloak defaults | Auth |
+| `OIDC_*` / `NEXTAUTH_*` | Keycloak defaults | Authentication |
 
 ### Worker
 
-| NAME | DEFAULT | DESCRIPTION |
-| ---- | ------- | ----------- |
+| Name | Default | Description |
+|------|---------|-------------|
 | `DASHBOARD_URL` | `http://localhost:3000` | Dashboard base URL |
 | `WORKER_ENROLLMENT_TOKEN` | `dev-worker-enrollment-token` | Enrollment secret |
 | `WORKER_TOKEN` | empty | Optional pre-issued worker token |

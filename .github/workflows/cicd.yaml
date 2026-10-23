@@ -23,9 +23,9 @@ jobs:
       run:
         working-directory: dashboard
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -56,9 +56,9 @@ jobs:
       run:
         working-directory: worker
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -79,7 +79,7 @@ jobs:
     name: Nix flake
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
       - uses: DeterminateSystems/nix-installer-action@v16
       - name: Flake show
         run: nix flake show --json > /tmp/flake-show.json
@@ -102,9 +102,9 @@ jobs:
     needs: [quality-dashboard, quality-worker]
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -163,9 +163,9 @@ jobs:
     needs: [quality-dashboard, quality-worker]
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -249,23 +249,23 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v3.7.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5.10.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.context }}
           tags: |
             type=raw, value=${{ matrix.model }}, enable=${{ matrix.model != '' }}
             type=raw, value=latest, enable=${{ matrix.image == 'dashboard' || matrix.image == 'worker-turbo' }}
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6.19.2
         with:
           context: ${{ matrix.context }}
           push: true

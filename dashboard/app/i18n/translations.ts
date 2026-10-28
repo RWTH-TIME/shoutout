@@ -79,9 +79,11 @@ export type AppTranslationEntries = {
   system: string;
   signInTitle: string;
   signInDescription: string;
-  signInLocalHint: string;
-  signInButton: string;
+  signInButton: (values: { provider: string }) => string;
   signInErrorReach: string;
+  logoutSection: string;
+  logoutSectionDescription: string;
+  logout: string;
   signInErrorGeneric: (values: { error: string }) => string;
   loading: string;
   languageAuto: string;
@@ -191,10 +193,12 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     signInTitle: "Shoutout",
     signInDescription:
       "Sign in to create transcription jobs and manage API keys.",
-    signInLocalHint: "Local test user: test / test",
-    signInButton: "Sign in with Keycloak",
+    signInButton: ({ provider }) => `Sign in with ${provider}`,
     signInErrorReach:
-      "Could not reach Keycloak. Check that it is running and OIDC URLs are correct.",
+      "Could not reach the sign-in service. Check that it is running and the sign-in URLs are correct.",
+    logoutSection: "Session",
+    logoutSectionDescription: "End your session on this browser.",
+    logout: "Log out",
     signInErrorGeneric: ({ error }) => `Sign-in failed (${error}).`,
     loading: "Loading…",
     languageAuto: "Auto",
@@ -309,10 +313,12 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     signInTitle: "Shoutout",
     signInDescription:
       "Melde dich an, um Transkriptionsjobs zu erstellen und API-Keys zu verwalten.",
-    signInLocalHint: "Lokaler Testbenutzer: test / test",
-    signInButton: "Mit Keycloak anmelden",
+    signInButton: ({ provider }) => `Mit ${provider} anmelden`,
     signInErrorReach:
-      "Keycloak nicht erreichbar. Prüfe, ob es läuft und die OIDC-URLs stimmen.",
+      "Anmeldedienst nicht erreichbar. Prüfe, ob er läuft und die Anmelde-URLs stimmen.",
+    logoutSection: "Sitzung",
+    logoutSectionDescription: "Beende deine Sitzung in diesem Browser.",
+    logout: "Abmelden",
     signInErrorGeneric: ({ error }) => `Anmeldung fehlgeschlagen (${error}).`,
     loading: "Laden…",
     languageAuto: "Auto",

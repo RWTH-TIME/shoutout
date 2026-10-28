@@ -19,6 +19,7 @@ services:
       - OIDC_PROVIDER=http://localhost:8090/realms/main
       - OIDC_CLIENT_ID=shoutout
       - OIDC_CLIENT_SECRET=shoutout-client-secret
+      - OIDC_DISPLAYNAME=${OIDC_DISPLAYNAME:-Keycloak}
     depends_on:
       postgres:
         condition: service_healthy

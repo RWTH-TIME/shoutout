@@ -11,6 +11,7 @@ import ThemeSection from "./ThemeSection";
 import LanguageSection from "./LanguageSection";
 import ApiKeysSection from "./ApiKeysSection";
 import NotificationsSection from "./NotificationsSection";
+import LogoutSection from "./LogoutSection";
 
 export default function SettingsClient() {
   const translation = useAppTranslation();
@@ -42,6 +43,7 @@ export default function SettingsClient() {
           <LanguageSection />
           <NotificationsSection />
           <ApiKeysSection />
+          <LogoutSection />
         </div>
       </div>
     </AppShell>

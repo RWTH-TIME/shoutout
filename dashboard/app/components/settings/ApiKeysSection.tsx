@@ -144,10 +144,12 @@ export default function ApiKeysSection() {
             <p className="text-description">{translation("tokenShownOnce")}</p>
             <div className="flex items-start gap-2">
               <code className="min-w-0 flex-1 break-all">{createdToken}</code>
-              <CopyToClipboardWrapper textToCopy={createdToken}>
-                <Button coloringStyle="tonal" size="sm">
-                  {translation("copyToken")}
-                </Button>
+              <CopyToClipboardWrapper
+                alignment="bottom"
+                containerClassName="bg-primary text-white px-2 py-1 rounded-lg"
+                textToCopy={createdToken}
+              >
+                Click to copy me
               </CopyToClipboardWrapper>
             </div>
           </div>
@@ -188,10 +190,12 @@ export default function ApiKeysSection() {
             </span>
             <div className="flex items-center gap-2 rounded-lg border border-divider bg-surface-variant px-3 py-2">
               <code className="min-w-0 flex-1 truncate text-sm">{mcpUrl}</code>
-              <CopyToClipboardWrapper textToCopy={mcpUrl}>
-                <Button coloringStyle="text" size="xs">
-                  {translation("copyToken")}
-                </Button>
+              <CopyToClipboardWrapper
+                alignment="bottom"
+                containerClassName="bg-primary text-white px-2 py-1 rounded-lg"
+                textToCopy={mcpUrl}
+              >
+                Click to copy me
               </CopyToClipboardWrapper>
             </div>
             <p className="text-xs text-description">

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { AppPage, Avatar, Button } from "@helpwave/hightide";
 import { useSession } from "next-auth/react";
-import { AudioLines, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import useAppTranslation from "../hooks/useAppTranslation";
+import WaveformLogo from "./WaveformLogo";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -113,7 +114,7 @@ export default function AppShell({
             className="flex w-full flex-row items-center justify-center gap-2 text-inherit no-underline"
             aria-label={translation("appName")}
           >
-            <AudioLines className="size-8 shrink-0 text-primary" aria-hidden />
+            <WaveformLogo className="size-8" />
             <span className="text-2xl font-semibold leading-none tracking-tight">
               {translation("appName")}
             </span>

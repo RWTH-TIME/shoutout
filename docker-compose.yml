@@ -20,6 +20,7 @@ services:
       - OIDC_INTERNAL_PROVIDER=http://keycloak:8080/realms/main
       - OIDC_CLIENT_ID=shoutout
       - OIDC_CLIENT_SECRET=shoutout-client-secret
+      - OIDC_DISPLAYNAME=${OIDC_DISPLAYNAME:-Keycloak}
       - JOB_EXPIRATION_DAYS=14
     depends_on:
       - postgres

@@ -43,6 +43,11 @@ in
       issuer = lib.mkOption { type = lib.types.str; };
       clientId = lib.mkOption { type = lib.types.str; default = "shoutout"; };
       clientSecretFile = lib.mkOption { type = lib.types.path; };
+      displayName = lib.mkOption {
+        type = lib.types.str;
+        default = "Shoutout";
+        description = "Identity provider name shown on the sign-in button.";
+      };
     };
     nextauthSecretFile = lib.mkOption { type = lib.types.path; };
     workerEnrollmentTokenFile = lib.mkOption { type = lib.types.path; };
@@ -161,6 +166,7 @@ in
           export S3_ACCESS_KEY_ID="$(cat "$CREDENTIALS_DIRECTORY/s3_access_key")"
           export S3_SECRET_ACCESS_KEY="$(cat "$CREDENTIALS_DIRECTORY/s3_secret_key")"
           export JOB_EXPIRATION_DAYS=${toString cfg.jobExpirationDays}
+          export OIDC_DISPLAYNAME=${lib.escapeShellArg cfg.oidc.displayName}
           export LISTMONK_URL=${lib.escapeShellArg cfg.listmonk.url}
           export LISTMONK_USERNAME=${lib.escapeShellArg cfg.listmonk.username}
           export LISTMONK_TEMPLATE_ID=${toString cfg.listmonk.templateId}

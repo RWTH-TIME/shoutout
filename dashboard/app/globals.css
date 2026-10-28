@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@helpwave/hightide/style/uncompiled/globals.css";
+@source "../node_modules/@helpwave/hightide";
 
 @theme static {
   --color-primary: var(--color-blue-500);
@@ -47,4 +48,51 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+}
+
+.waveform-logo path {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: waveform-pulse 1.15s ease-in-out infinite;
+}
+
+.waveform-logo path:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.waveform-logo path:nth-child(2) {
+  animation-delay: 0.22s;
+}
+
+.waveform-logo path:nth-child(3) {
+  animation-delay: 0.38s;
+}
+
+.waveform-logo path:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+.waveform-logo path:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+.waveform-logo path:nth-child(6) {
+  animation-delay: 0s;
+}
+
+@keyframes waveform-pulse {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waveform-logo path {
+    animation: none;
+  }
 }

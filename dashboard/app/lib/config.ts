@@ -35,6 +35,10 @@ const schema = z.object({
     .default("http://localhost:3000/api/auth/callback/keycloak"),
   NEXTAUTH_SECRET: z.string().default("random-auth-secret"),
   NEXTAUTH_URL: z.string().default("http://localhost:3000"),
+  OIDC_DISPLAYNAME: z
+    .string()
+    .default("Shoutout")
+    .transform((value) => value.trim() || "Shoutout"),
 });
 
 const env = {
@@ -74,6 +78,7 @@ const env = {
   OIDC_REDIRECT_URI: process.env.OIDC_REDIRECT_URI,
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+  OIDC_DISPLAYNAME: process.env.OIDC_DISPLAYNAME,
 };
 
 export type AppConfig = z.infer<typeof schema>;

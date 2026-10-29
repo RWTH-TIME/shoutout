@@ -114,6 +114,11 @@ const styles = StyleSheet.create({
   segment: {
     marginBottom: 10,
   },
+  segmentMeta: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 2,
+  },
   speaker: {
     fontWeight: "bold",
     fontSize: 10,
@@ -124,7 +129,7 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 10,
-    lineHeight: 14.5,
+    lineHeight: 1.45,
   },
   footer: {
     position: "absolute",
@@ -142,15 +147,26 @@ const styles = StyleSheet.create({
   },
   footerCenter: {
     width: "40%",
-    textAlign: "center",
+    flexDirection: "row",
+    justifyContent: "center",
   },
   footerRight: {
     width: "30%",
-    textAlign: "right",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  footerText: {
+    color: "#9ca3af",
+    fontSize: 8,
   },
   footerLink: {
     color: "#9ca3af",
-    textDecoration: "underline",
+    fontSize: 8,
+    textDecoration: "none",
+  },
+  lastPageAnchor: {
+    width: 1,
+    height: 1,
   },
 });
 
@@ -225,32 +241,42 @@ export default function TranscriptPdfDocument({
         <Text style={styles.sectionTitle}>{labels.transcript}</Text>
         {segments.map((segment, index) => (
           <View key={`${segment.start}-${index}`} style={styles.segment}>
-            <Text style={styles.segmentText} minPresenceAhead={48}>
+            <View style={styles.segmentMeta} minPresenceAhead={36}>
               <Text style={styles.speaker}>{segment.speaker}</Text>
-              {"  "}
               <Text style={styles.timestamp}>
                 {formatTimestamp(segment.start)}
               </Text>
-              {"\n"}
-              {segment.text}
-            </Text>
+            </View>
+            <Text style={styles.segmentText}>{segment.text}</Text>
           </View>
         ))}
 
+        <View id="last-page" style={styles.lastPageAnchor} />
+
         <View style={styles.footer} fixed>
           <Text style={styles.footerSide}>{jobName}</Text>
-          <Text style={styles.footerCenter}>
-            made with{" "}
+          <View style={styles.footerCenter}>
+            <Text style={styles.footerText}>made with </Text>
             <Link src={SHOUTOUT_URL} style={styles.footerLink}>
-              shoutout
+              <Text style={styles.footerLink}>shoutout</Text>
             </Link>
-          </Text>
-          <Text
-            style={styles.footerRight}
-            render={({ pageNumber, totalPages }) =>
-              `${pageNumber} / ${totalPages}`
-            }
-          />
+          </View>
+          <View style={styles.footerRight}>
+            <Text
+              style={styles.footerText}
+              render={({ pageNumber }) => `${pageNumber} / `}
+            />
+            <Link
+              src="#last-page"
+              style={styles.footerLink}
+              hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
+            >
+              <Text
+                style={styles.footerLink}
+                render={({ totalPages }) => `${totalPages}`}
+              />
+            </Link>
+          </View>
         </View>
       </Page>
     </Document>

@@ -19,6 +19,12 @@ export type AppTranslationEntries = {
   modelInfoTiny: string;
   modelInfoOther: string;
   modelInfoEnglishOnly: string;
+  modelInfoDialogTitle: string;
+  modelInfoDialogDescription: string;
+  modelInfoTableDetails: string;
+  modelInfoTableWorkers: string;
+  modelInfoWorkersHint: string;
+  modelEnglishOnlyShort: string;
   language: string;
   participants: string;
   participantsPlaceholder: string;
@@ -152,7 +158,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     selectJob: "Select a job or create a new one.",
     name: "Name",
     model: "Model",
-    modelInfoLabel: "About this model",
+    modelInfoLabel: "View available models",
     modelInfoTurbo:
       "Recommended. Almost as accurate as large, and much faster.",
     modelInfoLarge: "Most accurate, and the slowest.",
@@ -162,6 +168,14 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     modelInfoTiny: "Fastest, and the least accurate. Useful for a quick draft.",
     modelInfoOther: "Whisper model offered by the connected workers.",
     modelInfoEnglishOnly: "This variant only understands English.",
+    modelInfoDialogTitle: "Available models",
+    modelInfoDialogDescription:
+      "Compare speed, accuracy, and worker availability for the models connected to your workers.",
+    modelInfoTableDetails: "Details",
+    modelInfoTableWorkers: "Workers",
+    modelInfoWorkersHint:
+      "The number behind a model is how many connected workers can run it right now. More workers mean jobs using that model start sooner.",
+    modelEnglishOnlyShort: "EN only",
     language: "Language",
     participants: "Speakers",
     participantsPlaceholder: "Speaker count (auto)",
@@ -305,7 +319,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     selectJob: "Wähle einen Job aus oder erstelle einen neuen.",
     name: "Name",
     model: "Modell",
-    modelInfoLabel: "Über dieses Modell",
+    modelInfoLabel: "Verfügbare Modelle anzeigen",
     modelInfoTurbo:
       "Empfohlen. Fast so genau wie large, und deutlich schneller.",
     modelInfoLarge: "Am genauesten, und am langsamsten.",
@@ -317,6 +331,14 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
       "Am schnellsten und am ungenauesten. Gut für einen schnellen Entwurf.",
     modelInfoOther: "Whisper-Modell der verbundenen Worker.",
     modelInfoEnglishOnly: "Diese Variante versteht nur Englisch.",
+    modelInfoDialogTitle: "Verfügbare Modelle",
+    modelInfoDialogDescription:
+      "Vergleiche Geschwindigkeit, Genauigkeit und Worker-Verfügbarkeit der mit deinen Workern verbundenen Modelle.",
+    modelInfoTableDetails: "Details",
+    modelInfoTableWorkers: "Worker",
+    modelInfoWorkersHint:
+      "Die Zahl hinter einem Modell zeigt, wie viele verbundene Worker es gerade ausführen können. Mehr Worker heißt, Jobs mit diesem Modell starten schneller.",
+    modelEnglishOnlyShort: "Nur EN",
     language: "Sprache",
     participants: "Sprecher",
     participantsPlaceholder: "Sprecheranzahl (auto)",

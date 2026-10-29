@@ -275,7 +275,14 @@ export default function CreateJobModal({
               />
             )}
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="flex flex-col gap-3">
+              {single ? (
+                <ParticipantsInput
+                  value={participants}
+                  onChange={setParticipants}
+                  showLabel
+                />
+              ) : null}
               <ModelSelect
                 value={model || defaultModel}
                 models={models}
@@ -283,22 +290,15 @@ export default function CreateJobModal({
                 showLabel
               />
               {single ? (
-                <>
-                  <ParticipantsInput
-                    value={participants}
-                    onChange={setParticipants}
-                    showLabel
-                  />
-                  <div className="md:col-span-2">
-                    <div className="mb-1 text-xs text-description">
-                      {translation("language")}
-                    </div>
-                    <LanguageToggle
-                      value={language}
-                      onChange={setLanguage}
-                    />
+                <div>
+                  <div className="mb-1 text-xs text-description">
+                    {translation("language")}
                   </div>
-                </>
+                  <LanguageToggle
+                    value={language}
+                    onChange={setLanguage}
+                  />
+                </div>
               ) : null}
             </div>
 
@@ -316,9 +316,7 @@ export default function CreateJobModal({
 
         <div className="flex flex-col gap-3 border-t border-divider pt-3">
           {entries.length > 0 ? (
-            <div className="flex justify-start">
-              <AudioDropzone onFilesAdded={onFilesAdded} compact />
-            </div>
+            <AudioDropzone onFilesAdded={onFilesAdded} compact />
           ) : null}
           <div className="flex justify-end gap-2">
             <Button coloringStyle="text" onClick={close}>

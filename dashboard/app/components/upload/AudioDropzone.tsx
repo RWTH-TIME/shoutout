@@ -45,7 +45,39 @@ export default function AudioDropzone({
 
   if (compact) {
     return (
-      <>
+      <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        onClick={() => inputRef.current?.click()}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={(event) => {
+          event.preventDefault();
+          setDragging(false);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragging(false);
+          handleFiles(event.dataTransfer.files);
+        }}
+        className={`inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-dashed px-4 py-2.5 text-sm transition ${
+          dragging
+            ? "border-primary bg-primary/10 text-primary"
+            : "border-divider text-description hover:border-primary/50 hover:bg-surface-hover"
+        }`}
+      >
         <input
           ref={inputRef}
           type="file"
@@ -54,15 +86,9 @@ export default function AudioDropzone({
           className="hidden"
           onChange={(event) => handleFiles(event.target.files)}
         />
-        <Button
-          coloringStyle="outline"
-          size="sm"
-          onClick={() => inputRef.current?.click()}
-        >
-          <Upload size={16} />
-          {translation("addMoreFiles")}
-        </Button>
-      </>
+        <Upload size={16} className="shrink-0 text-primary" />
+        <span>{translation("addMoreFiles")}</span>
+      </div>
     );
   }
 

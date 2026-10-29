@@ -65,8 +65,8 @@ const schema = z.object({
   NEXTAUTH_URL: z.string().default("http://localhost:3000"),
   OIDC_DISPLAYNAME: z
     .string()
-    .default("Shoutout")
-    .transform((value) => value.trim() || "Shoutout"),
+    .default("shoutout")
+    .transform((value) => value.trim() || "shoutout"),
 });
 
 const env = {

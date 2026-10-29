@@ -4,7 +4,7 @@ import config from "./lib/config";
 import "./globals.css";
 
 export const metadata = {
-  title: "Shoutout",
+  title: "shoutout",
   description: "Audio transcription jobs",
 };
 

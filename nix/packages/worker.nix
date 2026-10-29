@@ -53,7 +53,7 @@ pythonPackages.buildPythonApplication {
   doCheck = false;
 
   meta = {
-    description = "Shoutout transcription worker";
+    description = "shoutout transcription worker";
     license = lib.licenses.gpl3Only;
     platforms = lib.platforms.linux;
   };

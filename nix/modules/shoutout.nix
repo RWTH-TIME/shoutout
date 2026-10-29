@@ -16,7 +16,7 @@ let
 in
 {
   options.services.shoutout = {
-    enable = lib.mkEnableOption "Shoutout dashboard system";
+    enable = lib.mkEnableOption "shoutout dashboard system";
     packageSource = lib.mkOption {
       type = lib.types.path;
       default = ../..;
@@ -45,14 +45,14 @@ in
       clientSecretFile = lib.mkOption { type = lib.types.path; };
       displayName = lib.mkOption {
         type = lib.types.str;
-        default = "Shoutout";
+        default = "shoutout";
         description = "Identity provider name shown on the sign-in button.";
       };
     };
     nextauthSecretFile = lib.mkOption { type = lib.types.path; };
     workerEnrollmentTokenFile = lib.mkOption { type = lib.types.path; };
     database = {
-      createLocally = lib.mkEnableOption "local PostgreSQL for Shoutout" // {
+      createLocally = lib.mkEnableOption "local PostgreSQL for shoutout" // {
         default = true;
       };
       url = lib.mkOption {
@@ -135,7 +135,7 @@ in
     };
 
     systemd.services.shoutout = {
-      description = "Shoutout dashboard";
+      description = "shoutout dashboard";
       after = [ "network-online.target" ] ++ lib.optional cfg.database.createLocally "postgresql.service";
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
@@ -182,7 +182,7 @@ in
     };
 
     systemd.services.shoutout-cleanup = {
-      description = "Shoutout cleanup";
+      description = "shoutout cleanup";
       serviceConfig = {
         Type = "oneshot";
         DynamicUser = true;

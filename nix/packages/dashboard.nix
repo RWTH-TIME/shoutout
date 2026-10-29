@@ -57,7 +57,7 @@ stdenv.mkDerivation {
   '';
 
   meta = with lib; {
-    description = "Shoutout dashboard";
+    description = "shoutout dashboard";
     license = licenses.gpl3Only;
     platforms = platforms.linux;
   };

@@ -145,7 +145,7 @@ export type AppTranslationEntries = {
 
 export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
   "en-US": {
-    appName: "Shoutout",
+    appName: "shoutout",
     addJob: "Add job",
     settings: "Settings",
     backToJobs: "Back to jobs",
@@ -226,7 +226,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
       "Use the same bearer token for REST and MCP. The secret is shown only once.",
     notificationsSection: "Mailing options",
     notificationsSectionDescription:
-      "Choose when Shoutout emails you about your jobs.",
+      "Choose when shoutout emails you about your jobs.",
     notifyEmail: "Notification email",
     notifyOnFinish: "Email when a job finishes",
     notifyOnFail: "Email when a job fails",
@@ -245,7 +245,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     apiMcpTools:
       "Tools: list_languages, list_models, request_upload, create_job, create_jobs_bulk, list_jobs, get_job, delete_job, download_job_result.",
     system: "System",
-    signInTitle: "Shoutout",
+    signInTitle: "shoutout",
     signInDescription:
       "Sign in to create transcription jobs and manage API keys.",
     signInButton: ({ provider }) => `Sign in with ${provider}`,
@@ -298,7 +298,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     alertPdfFailed: "Could not open PDF",
   },
   "de-DE": {
-    appName: "Shoutout",
+    appName: "shoutout",
     addJob: "Job hinzufügen",
     settings: "Einstellungen",
     backToJobs: "Zurück zu Jobs",
@@ -385,7 +385,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
       "Derselbe Bearer-Token gilt für REST und MCP. Das Geheimnis wird nur einmal angezeigt.",
     notificationsSection: "E-Mail-Optionen",
     notificationsSectionDescription:
-      "Lege fest, wann Shoutout dich über Jobs benachrichtigt.",
+      "Lege fest, wann shoutout dich über Jobs benachrichtigt.",
     notifyEmail: "Benachrichtigungs-E-Mail",
     notifyOnFinish: "E-Mail wenn ein Job fertig ist",
     notifyOnFail: "E-Mail wenn ein Job fehlschlägt",
@@ -405,7 +405,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     apiMcpTools:
       "Tools: list_languages, list_models, request_upload, create_job, create_jobs_bulk, list_jobs, get_job, delete_job, download_job_result.",
     system: "System",
-    signInTitle: "Shoutout",
+    signInTitle: "shoutout",
     signInDescription:
       "Melde dich an, um Transkriptionsjobs zu erstellen und API-Keys zu verwalten.",
     signInButton: ({ provider }) => `Mit ${provider} anmelden`,

@@ -10,7 +10,7 @@ let
 in
 {
   options.services.shoutout-worker = {
-    enable = lib.mkEnableOption "Shoutout transcription worker";
+    enable = lib.mkEnableOption "shoutout transcription worker";
     packageSource = lib.mkOption {
       type = lib.types.path;
       default = ../..;
@@ -48,7 +48,7 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.services.shoutout-worker = {
-      description = "Shoutout worker";
+      description = "shoutout worker";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];

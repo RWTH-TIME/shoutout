@@ -1,5 +1,5 @@
 {
-  description = "Shoutout transcription system and worker";
+  description = "shoutout transcription system and worker";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

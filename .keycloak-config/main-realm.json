@@ -741,8 +741,8 @@
         {
             "id": "351ad6a4-21ae-4e0e-b448-bc04e8130451",
             "clientId": "shoutout",
-            "name": "Shoutout",
-            "description": "Shoutout dashboard (local development)",
+            "name": "shoutout",
+            "description": "shoutout dashboard (local development)",
             "rootUrl": "http://localhost:8000",
             "adminUrl": "http://localhost:8000",
             "baseUrl": "",

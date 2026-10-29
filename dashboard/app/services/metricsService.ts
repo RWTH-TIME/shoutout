@@ -216,7 +216,7 @@ export async function renderMetrics(): Promise<string> {
   return [
     metric(
       "shoutout_metrics_collected_unixtime",
-      "Unix time of the last successful Shoutout metrics collection.",
+      "Unix time of the last successful shoutout metrics collection.",
       [{ labels: {}, value: collectedAt }]
     ),
     metric(
@@ -257,7 +257,7 @@ export async function renderMetrics(): Promise<string> {
     ),
     metric(
       "shoutout_workers_registered",
-      "Registered Shoutout workers.",
+      "Registered shoutout workers.",
       [{ labels: {}, value: workers.length }]
     ),
     metric(

@@ -1,4 +1,4 @@
-# <img src="dashboard/app/icon.svg" alt="" width="36" height="36" /> Shoutout
+# <img src="dashboard/app/icon.svg" alt="" width="36" height="36" /> shoutout
 
 Self-hosted audio transcription with speaker diarization.
 
@@ -156,7 +156,7 @@ Tools: `list_languages`, `list_models`, `request_upload`, `create_job`, `create_
 
 ## Email notifications (Listmonk)
 
-Optional. Set `MAIL_ENABLED=true` to show mailing preferences and the per-job notify toggle. With that flag on, Shoutout can email you when a job finishes or fails (per user settings and per-job toggle).
+Optional. Set `MAIL_ENABLED=true` to show mailing preferences and the per-job notify toggle. With that flag on, shoutout can email you when a job finishes or fails (per user settings and per-job toggle).
 
 Set `LISTMONK_URL`, `LISTMONK_USERNAME`, `LISTMONK_TOKEN`, and `LISTMONK_TEMPLATE_ID` as well. If `MAIL_ENABLED` is false, or `LISTMONK_URL` is empty, jobs still complete and no mail is sent. Mailing controls stay hidden while `MAIL_ENABLED` is false.
 

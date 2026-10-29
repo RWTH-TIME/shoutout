@@ -2,34 +2,20 @@
 
 import { TranscriptSegment } from "../../types/types";
 import { formatTimestamp } from "../../utils/date";
+import { speakerColorClass } from "../../utils/transcript";
 import useAppTranslation from "../../hooks/useAppTranslation";
-
-const SPEAKER_COLORS = [
-  "border-l-blue-500 bg-blue-500/5",
-  "border-l-emerald-500 bg-emerald-500/5",
-  "border-l-amber-500 bg-amber-500/5",
-  "border-l-violet-500 bg-violet-500/5",
-  "border-l-rose-500 bg-rose-500/5",
-  "border-l-cyan-500 bg-cyan-500/5",
-];
 
 type Props = {
   segments: TranscriptSegment[] | null;
+  rawSpeakers?: string[] | null;
   loading?: boolean;
   currentTime?: number;
   onSeek?: (seconds: number) => void;
 };
 
-function speakerColor(speaker: string, indexMap: Map<string, number>): string {
-  if (!indexMap.has(speaker)) {
-    indexMap.set(speaker, indexMap.size);
-  }
-  const index = indexMap.get(speaker) ?? 0;
-  return SPEAKER_COLORS[index % SPEAKER_COLORS.length] ?? SPEAKER_COLORS[0];
-}
-
 export default function TranscriptPreview({
   segments,
+  rawSpeakers = null,
   loading = false,
   currentTime = 0,
   onSeek,
@@ -58,13 +44,14 @@ export default function TranscriptPreview({
       {segments.map((segment, index) => {
         const active =
           currentTime >= segment.start && currentTime < segment.end;
+        const colorKey = rawSpeakers?.[index] ?? segment.speaker;
         return (
           <button
             key={`${segment.start}-${index}`}
             type="button"
             onClick={() => onSeek?.(segment.start)}
-            className={`cursor-pointer rounded-lg border-l-4 px-3 py-2 text-left transition ${speakerColor(
-              segment.speaker,
+            className={`cursor-pointer rounded-lg border-l-4 px-3 py-2 text-left transition ${speakerColorClass(
+              colorKey,
               colorMap
             )} ${active ? "ring-1 ring-primary" : "hover:bg-surface-hover"}`}
           >

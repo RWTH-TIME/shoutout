@@ -197,6 +197,40 @@ export default function useJobs() {
     return updated;
   }
 
+  async function updateFileSpeakerNames(
+    publicId: string,
+    fileId: string,
+    speakerNames: Record<string, string>
+  ): Promise<Job> {
+    const response = await fetch(
+      `/api/jobs/${publicId}/files/${fileId}/speakers`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ speakerNames }),
+      }
+    );
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(errorBody.error ?? "Could not update speaker names");
+    }
+    const data = await response.json();
+    const updated = data.job as Job;
+    await mutate(
+      (current) =>
+        current
+          ? current.map((item) =>
+              item.publicId === publicId ? updated : item
+            )
+          : [updated],
+      false
+    );
+    return updated;
+  }
+
   return {
     jobs,
     error,
@@ -205,6 +239,7 @@ export default function useJobs() {
     deleteJob,
     stopJob,
     updateJob,
+    updateFileSpeakerNames,
     mutate,
   };
 }

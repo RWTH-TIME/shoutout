@@ -2,6 +2,7 @@ FROM node:22.23.4-alpine AS installer
 
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY scripts/patch-react-pdf-hyphenate.mjs ./scripts/
 RUN npm ci
 
 FROM node:22.23.4-alpine AS builder
@@ -25,6 +26,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/app/lib/pdf/fonts ./app/lib/pdf/fonts
 
 EXPOSE 80
 

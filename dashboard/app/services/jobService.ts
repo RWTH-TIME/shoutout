@@ -1,4 +1,10 @@
-import { Status, Visibility, type job, type jobFile } from "@prisma/client";
+import {
+  Prisma,
+  Status,
+  Visibility,
+  type job,
+  type jobFile,
+} from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import {
   deleteObjects,
@@ -167,6 +173,45 @@ export async function updateJobForOwner(
     },
     include: { files: { orderBy: { position: "asc" } } },
   });
+}
+
+export async function updateFileSpeakerNames(
+  publicId: string,
+  fileId: string,
+  owner: string,
+  speakerNames: Record<string, string>
+) {
+  const job = await prisma.job.findUnique({
+    where: { publicId },
+    include: { files: { orderBy: { position: "asc" } } },
+  });
+  if (!job) {
+    throw new Error("Job not found");
+  }
+  if (job.owner !== owner) {
+    throw new Error("Forbidden");
+  }
+
+  const file = job.files.find((item) => item.id === fileId);
+  if (!file) {
+    throw new Error("File not found");
+  }
+
+  await prisma.jobFile.update({
+    where: { id: fileId },
+    data: {
+      speakerNames:
+        Object.keys(speakerNames).length > 0
+          ? speakerNames
+          : Prisma.DbNull,
+    },
+  });
+
+  const updated = await getJobByPublicId(publicId);
+  if (!updated) {
+    throw new Error("Job not found");
+  }
+  return updated;
 }
 
 async function collectJobObjectKeys(jobRecord: JobWithFiles): Promise<string[]> {

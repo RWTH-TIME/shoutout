@@ -49,6 +49,7 @@ model jobFile {
   resultTextKey   String?
   resultJsonKey   String?
   durationSeconds Float?
+  speakerNames    Json?
   job             job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])

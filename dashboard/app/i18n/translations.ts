@@ -123,6 +123,24 @@ export type AppTranslationEntries = {
   jobNotFound: string;
   notFoundTitle: string;
   notFoundDescription: string;
+  manageSpeakers: string;
+  manageSpeakersDescription: string;
+  speakerMergeWarningTitle: string;
+  speakerMergeWarningDescription: (values: {
+    count: number;
+    name: string;
+  }) => string;
+  saveSpeakerNames: string;
+  alertSpeakerNamesSaved: string;
+  alertSpeakerNamesFailed: string;
+  statisticsTitle: string;
+  speakersDetected: string;
+  totalWords: string;
+  totalCharacters: string;
+  wordsLabel: string;
+  charsLabel: string;
+  exportPdf: string;
+  alertPdfFailed: string;
 };
 
 export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
@@ -261,6 +279,23 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     jobNotFound: "Job not found or you do not have access.",
     notFoundTitle: "Page not found",
     notFoundDescription: "The page you are looking for does not exist.",
+    manageSpeakers: "Manage speakers",
+    manageSpeakersDescription:
+      "Rename diarized speakers for this transcript. Using the same name for multiple speakers merges them.",
+    speakerMergeWarningTitle: "Merge speakers?",
+    speakerMergeWarningDescription: ({ count, name }) =>
+      `You are about to merge ${count} speakers into “${name}”. Continue?`,
+    saveSpeakerNames: "Save names",
+    alertSpeakerNamesSaved: "Speaker names saved",
+    alertSpeakerNamesFailed: "Could not save speaker names",
+    statisticsTitle: "Statistics",
+    speakersDetected: "Speakers detected",
+    totalWords: "Total words",
+    totalCharacters: "Total characters",
+    wordsLabel: "words",
+    charsLabel: "chars",
+    exportPdf: "Export PDF",
+    alertPdfFailed: "Could not open PDF",
   },
   "de-DE": {
     appName: "Shoutout",
@@ -405,5 +440,22 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     jobNotFound: "Job nicht gefunden oder kein Zugriff.",
     notFoundTitle: "Seite nicht gefunden",
     notFoundDescription: "Die gesuchte Seite existiert nicht.",
+    manageSpeakers: "Sprecher verwalten",
+    manageSpeakersDescription:
+      "Benenne erkannte Sprecher für dieses Transkript um. Derselbe Name für mehrere Sprecher führt zu einem Merge.",
+    speakerMergeWarningTitle: "Sprecher zusammenführen?",
+    speakerMergeWarningDescription: ({ count, name }) =>
+      `Du bist dabei, ${count} Sprecher zu „${name}“ zusammenzuführen. Fortfahren?`,
+    saveSpeakerNames: "Namen speichern",
+    alertSpeakerNamesSaved: "Sprechernamen gespeichert",
+    alertSpeakerNamesFailed: "Sprechernamen konnten nicht gespeichert werden",
+    statisticsTitle: "Statistik",
+    speakersDetected: "Erkannte Sprecher",
+    totalWords: "Wörter gesamt",
+    totalCharacters: "Zeichen gesamt",
+    wordsLabel: "Wörter",
+    charsLabel: "Zeichen",
+    exportPdf: "PDF exportieren",
+    alertPdfFailed: "PDF konnte nicht geöffnet werden",
   },
 };

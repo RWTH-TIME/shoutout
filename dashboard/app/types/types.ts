@@ -11,6 +11,7 @@ export type JobFile = {
   resultTextKey?: string | null;
   resultJsonKey?: string | null;
   durationSeconds?: number | null;
+  speakerNames?: Record<string, string> | null;
 };
 
 export type Job = {

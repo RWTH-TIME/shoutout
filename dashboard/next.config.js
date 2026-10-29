@@ -6,7 +6,9 @@ const nextConfig = {
     "@aws-sdk/client-s3",
     "@aws-sdk/lib-storage",
     "@aws-sdk/s3-request-presigner",
+    "@react-pdf/renderer",
     "busboy",
+    "jszip",
   ],
 };
 

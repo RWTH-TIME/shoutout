@@ -44,6 +44,8 @@ stdenv.mkDerivation {
     cp prisma.config.ts $out/lib/shoutout-dashboard/
     cp -r scripts $out/lib/shoutout-dashboard/scripts
     cp package.json $out/lib/shoutout-dashboard/
+    mkdir -p $out/lib/shoutout-dashboard/app/lib/pdf
+    cp -r app/lib/pdf/fonts $out/lib/shoutout-dashboard/app/lib/pdf/fonts
     makeWrapper ${nodejs_22}/bin/node $out/bin/shoutout-dashboard \
       --set PRISMA_SCHEMA_ENGINE_BINARY "${prisma-engines}/bin/schema-engine" \
       --set PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING "1" \

@@ -10,6 +10,15 @@ export type AppTranslationEntries = {
   selectJob: string;
   name: string;
   model: string;
+  modelInfoLabel: string;
+  modelInfoTurbo: string;
+  modelInfoLarge: string;
+  modelInfoMedium: string;
+  modelInfoSmall: string;
+  modelInfoBase: string;
+  modelInfoTiny: string;
+  modelInfoOther: string;
+  modelInfoEnglishOnly: string;
   language: string;
   participants: string;
   participantsPlaceholder: string;
@@ -21,6 +30,9 @@ export type AppTranslationEntries = {
   delete: string;
   deleteConfirmTitle: string;
   deleteConfirmDescription: (values: { name: string }) => string;
+  stop: string;
+  stopConfirmTitle: string;
+  stopConfirmDescription: (values: { name: string }) => string;
   cancel: string;
   create: string;
   createJob: string;
@@ -39,11 +51,14 @@ export type AppTranslationEntries = {
   statusRunning: string;
   statusFinished: string;
   statusFailed: string;
+  statusCancelled: string;
   alertJobCreated: string;
   alertCreateFailed: string;
   alertDuplicateFiles: (values: { names: string }) => string;
   alertJobDeleted: string;
   alertDeleteFailed: string;
+  alertJobStopped: string;
+  alertStopFailed: string;
   alertDownloadFailed: string;
   alertShareUpdated: string;
   alertShareFailed: string;
@@ -52,6 +67,7 @@ export type AppTranslationEntries = {
   alertSettingsFailed: string;
   settingsTitle: string;
   settingsDescription: string;
+  settingsDescriptionWithoutMail: string;
   themeSection: string;
   themeSectionDescription: string;
   languageSection: string;
@@ -105,6 +121,8 @@ export type AppTranslationEntries = {
   filesDescription: string;
   details: string;
   jobNotFound: string;
+  notFoundTitle: string;
+  notFoundDescription: string;
 };
 
 export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
@@ -116,6 +134,16 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     selectJob: "Select a job or create a new one.",
     name: "Name",
     model: "Model",
+    modelInfoLabel: "About this model",
+    modelInfoTurbo:
+      "Recommended. Almost as accurate as large, and much faster.",
+    modelInfoLarge: "Most accurate, and the slowest.",
+    modelInfoMedium: "Good accuracy at a moderate speed.",
+    modelInfoSmall: "Faster than medium, with less accuracy on hard audio.",
+    modelInfoBase: "Fast, with clearly lower accuracy.",
+    modelInfoTiny: "Fastest, and the least accurate. Useful for a quick draft.",
+    modelInfoOther: "Whisper model offered by the connected workers.",
+    modelInfoEnglishOnly: "This variant only understands English.",
     language: "Language",
     participants: "Speakers",
     participantsPlaceholder: "Speaker count (auto)",
@@ -128,6 +156,10 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     deleteConfirmTitle: "Delete job?",
     deleteConfirmDescription: ({ name }) =>
       `Delete “${name}”? This cannot be undone.`,
+    stop: "Stop",
+    stopConfirmTitle: "Stop job?",
+    stopConfirmDescription: ({ name }) =>
+      `Stop “${name}”? Progress made so far will be lost.`,
     cancel: "Cancel",
     create: "Create",
     createJob: "Create job",
@@ -147,12 +179,15 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     statusRunning: "Running",
     statusFinished: "Finished",
     statusFailed: "Failed",
+    statusCancelled: "Cancelled",
     alertJobCreated: "Job created",
     alertCreateFailed: "Could not create job",
     alertDuplicateFiles: ({ names }) =>
       `Skipped duplicate file name(s): ${names}`,
     alertJobDeleted: "Job deleted",
     alertDeleteFailed: "Delete failed",
+    alertJobStopped: "Job stopped",
+    alertStopFailed: "Stop failed",
     alertDownloadFailed: "Download failed",
     alertShareUpdated: "Sharing updated",
     alertShareFailed: "Could not update sharing",
@@ -161,6 +196,8 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     alertSettingsFailed: "Could not save settings",
     settingsTitle: "Settings",
     settingsDescription: "Theme, language, mailing, and API keys for your account.",
+    settingsDescriptionWithoutMail:
+      "Theme, language, and API keys for your account.",
     themeSection: "Theme",
     themeSectionDescription: "Choose light, dark, or follow your system.",
     languageSection: "Language",
@@ -222,6 +259,8 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
       "Each uploaded audio file has its own preview. Select a file to play and read its transcript.",
     details: "Details",
     jobNotFound: "Job not found or you do not have access.",
+    notFoundTitle: "Page not found",
+    notFoundDescription: "The page you are looking for does not exist.",
   },
   "de-DE": {
     appName: "Shoutout",
@@ -231,6 +270,18 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     selectJob: "Wähle einen Job aus oder erstelle einen neuen.",
     name: "Name",
     model: "Modell",
+    modelInfoLabel: "Über dieses Modell",
+    modelInfoTurbo:
+      "Empfohlen. Fast so genau wie large, und deutlich schneller.",
+    modelInfoLarge: "Am genauesten, und am langsamsten.",
+    modelInfoMedium: "Gute Genauigkeit bei mittlerer Geschwindigkeit.",
+    modelInfoSmall:
+      "Schneller als medium, mit weniger Genauigkeit bei schwierigem Audio.",
+    modelInfoBase: "Schnell, mit deutlich geringerer Genauigkeit.",
+    modelInfoTiny:
+      "Am schnellsten und am ungenauesten. Gut für einen schnellen Entwurf.",
+    modelInfoOther: "Whisper-Modell der verbundenen Worker.",
+    modelInfoEnglishOnly: "Diese Variante versteht nur Englisch.",
     language: "Sprache",
     participants: "Sprecher",
     participantsPlaceholder: "Sprecheranzahl (auto)",
@@ -243,6 +294,10 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     deleteConfirmTitle: "Job löschen?",
     deleteConfirmDescription: ({ name }) =>
       `„${name}“ wirklich löschen? Das kann nicht rückgängig gemacht werden.`,
+    stop: "Stoppen",
+    stopConfirmTitle: "Job stoppen?",
+    stopConfirmDescription: ({ name }) =>
+      `„${name}“ wirklich stoppen? Der bisherige Fortschritt geht verloren.`,
     cancel: "Abbrechen",
     create: "Erstellen",
     createJob: "Job erstellen",
@@ -264,12 +319,15 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     statusRunning: "Läuft",
     statusFinished: "Fertig",
     statusFailed: "Fehlgeschlagen",
+    statusCancelled: "Abgebrochen",
     alertJobCreated: "Job erstellt",
     alertCreateFailed: "Job konnte nicht erstellt werden",
     alertDuplicateFiles: ({ names }) =>
       `Doppelte Dateiname(n) übersprungen: ${names}`,
     alertJobDeleted: "Job gelöscht",
     alertDeleteFailed: "Löschen fehlgeschlagen",
+    alertJobStopped: "Job gestoppt",
+    alertStopFailed: "Stoppen fehlgeschlagen",
     alertDownloadFailed: "Download fehlgeschlagen",
     alertShareUpdated: "Freigabe aktualisiert",
     alertShareFailed: "Freigabe konnte nicht aktualisiert werden",
@@ -279,6 +337,8 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     settingsTitle: "Einstellungen",
     settingsDescription:
       "Theme, Sprache, Benachrichtigungen und API-Keys für deinen Account.",
+    settingsDescriptionWithoutMail:
+      "Theme, Sprache und API-Keys für deinen Account.",
     themeSection: "Theme",
     themeSectionDescription:
       "Wähle Hell, Dunkel oder folge dem System.",
@@ -343,5 +403,7 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
       "Jede hochgeladene Audiodatei hat eine eigene Vorschau. Wähle eine Datei zum Abspielen und Lesen des Transkripts.",
     details: "Details",
     jobNotFound: "Job nicht gefunden oder kein Zugriff.",
+    notFoundTitle: "Seite nicht gefunden",
+    notFoundDescription: "Die gesuchte Seite existiert nicht.",
   },
 };

@@ -1,0 +1,17 @@
+FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
+
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get install -y ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt /app/requirements.txt
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_WARN_ABOUT_ROOT_USER=1
+ENV HF_HOME=/var/cache/shoutout-worker
+
+RUN pip install --upgrade pip && pip install -r requirements.txt

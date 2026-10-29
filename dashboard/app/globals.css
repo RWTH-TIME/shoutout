@@ -10,7 +10,11 @@
 
 @layer base {
   @variant dark {
-    --color-primary: var(--color-blue-200);
+    --color-primary: color-mix(
+      in srgb,
+      var(--color-blue-500) 40%,
+      var(--color-blue-200)
+    );
     --color-primary-hover: var(--color-blue-500);
   }
 }

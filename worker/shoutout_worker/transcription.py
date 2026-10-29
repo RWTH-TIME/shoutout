@@ -3,16 +3,32 @@ from __future__ import annotations
 import logging
 import subprocess
 import time
+import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
 import whisper
-from pyannote.audio import Pipeline
 
-from shoutout_worker.config import ConfigEntry
-from shoutout_worker.diarization_postprocess import (
+warnings.filterwarnings(
+    "ignore",
+    message=r"TensorFloat-32 \(TF32\) has been disabled",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"std\(\): degrees of freedom is <= 0",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"\s*torchcodec is not installed correctly",
+)
+
+from pyannote.audio import Pipeline  # noqa: E402
+from pyannote.core import Annotation  # noqa: E402
+
+from shoutout_worker.config import ConfigEntry  # noqa: E402
+from shoutout_worker.diarization_postprocess import (  # noqa: E402
     aggregate_section,
     create_section_table,
     remove_overlaps,
@@ -21,26 +37,40 @@ from shoutout_worker.diarization_postprocess import (
 
 class TranscriptionManager:
     def __init__(self) -> None:
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._diarization = None
-        token = ConfigEntry.HUGGINGFACE_TOKEN or None
-        if token:
-            try:
-                pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization-3.1",
-                    token=token,
-                )
-                if self._device.type == "cuda":
-                    pipeline = pipeline.to(self._device)
-                self._diarization = pipeline
-            except Exception as error:
-                logging.warning("Diarization unavailable, using single-speaker fallback: %s", error)
-        else:
-            logging.warning(
-                "HUGGINGFACE_TOKEN unset; jobs will use single-speaker Whisper only"
-            )
+        self._device: torch.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
+        self._diarization: Pipeline | None = self._load_diarization()
         self._whisper_model_name: str | None = None
         self._whisper = None
+
+    @property
+    def diarization_available(self) -> bool:
+        return self._diarization is not None
+
+    def _load_diarization(self) -> Pipeline | None:
+        model: str = ConfigEntry.DIARIZATION_MODEL
+        token: str | None = ConfigEntry.HUGGINGFACE_TOKEN.strip() or None
+        try:
+            pipeline: Pipeline | None = Pipeline.from_pretrained(model, token=token)
+        except Exception:
+            logging.exception(
+                "Could not load %s (HUGGINGFACE_TOKEN %s); "
+                "falling back to single-speaker transcripts",
+                model,
+                "set" if token else "unset",
+            )
+            return None
+        if pipeline is None:
+            logging.error(
+                "Could not load %s; accept its conditions on Hugging Face "
+                "and set HUGGINGFACE_TOKEN",
+                model,
+            )
+            return None
+        pipeline.to(self._device)
+        logging.info("Loaded %s on %s", model, self._device)
+        return pipeline
 
     def ensure_whisper(self, model_name: str) -> None:
         if self._whisper is not None and self._whisper_model_name == model_name:
@@ -89,22 +119,35 @@ class TranscriptionManager:
         )
         rttm_path.write_text(line, encoding="utf-8")
 
+    def _select_annotation(self, output: object) -> Annotation:
+        exclusive = getattr(output, "exclusive_speaker_diarization", None)
+        if isinstance(exclusive, Annotation) and exclusive.labels():
+            return exclusive
+        return getattr(output, "speaker_diarization", output)
+
     def diarize(self, workdir: Path, filename: str, num_speaker: int) -> Path:
         wav_path = self._ensure_wav(workdir, filename)
         rttm_path = workdir / f"{wav_path.stem}_diarized.rttm"
 
         if self._diarization is None:
+            logging.warning("%s: diarization pipeline unavailable, using SPEAKER_00 only", filename)
             self._write_single_speaker_rttm(wav_path, rttm_path)
             return rttm_path
 
-        waveform = torch.from_numpy(self._load_audio(wav_path)).unsqueeze(0)
-        num_speakers = int(num_speaker) if int(num_speaker) > 0 else None
-        diarization = self._diarization(
-            {"waveform": waveform, "sample_rate": 16000},
+        waveform: torch.Tensor = torch.from_numpy(self._load_audio(wav_path)).unsqueeze(0)
+        num_speakers: int | None = int(num_speaker) if int(num_speaker) > 0 else None
+        output = self._diarization(
+            {"waveform": waveform, "sample_rate": 16000, "uri": wav_path.stem},
             num_speakers=num_speakers,
         )
+        annotation: Annotation = self._select_annotation(output)
+        logging.info(
+            "%s: diarization found %d speaker(s)",
+            filename,
+            len(annotation.labels()),
+        )
         with rttm_path.open("w", encoding="utf-8") as handle:
-            diarization.write_rttm(handle)
+            annotation.write_rttm(handle)
         return rttm_path
 
     def transcribe(

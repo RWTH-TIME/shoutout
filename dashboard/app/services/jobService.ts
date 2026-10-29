@@ -37,6 +37,19 @@ export type CreateJobInput = {
 
 export type JobWithFiles = job & { files: jobFile[] };
 
+function resolveMail(input: {
+  notifyEmail?: string | null;
+  notifyEnabled?: boolean;
+}): { notifyEmail: string | null | undefined; notifyEnabled: boolean } {
+  if (!config.MAIL_ENABLED) {
+    return { notifyEmail: null, notifyEnabled: false };
+  }
+  return {
+    notifyEmail: input.notifyEmail || undefined,
+    notifyEnabled: input.notifyEnabled ?? true,
+  };
+}
+
 function computeExpiresAt(): Date | null {
   const days = config.JOB_EXPIRATION_DAYS;
   if (!days || days <= 0) {
@@ -96,6 +109,7 @@ export async function createJob(input: CreateJobInput) {
   const originalNames = uniqueOriginalNames(
     input.files.map((file) => file.originalName)
   );
+  const mail = resolveMail(input);
 
   return prisma.job.create({
     data: {
@@ -105,8 +119,8 @@ export async function createJob(input: CreateJobInput) {
       model: input.model,
       participants,
       language,
-      notifyEmail: input.notifyEmail || undefined,
-      notifyEnabled: input.notifyEnabled ?? true,
+      notifyEmail: mail.notifyEmail,
+      notifyEnabled: mail.notifyEnabled,
       expiresAt: computeExpiresAt(),
       files: {
         create: input.files.map((file, index) => ({
@@ -147,7 +161,7 @@ export async function updateJobForOwner(
     data: {
       ...(data.name !== undefined ? { name: data.name } : {}),
       ...(data.visibility !== undefined ? { visibility: data.visibility } : {}),
-      ...(data.notifyEnabled !== undefined
+      ...(config.MAIL_ENABLED && data.notifyEnabled !== undefined
         ? { notifyEnabled: data.notifyEnabled }
         : {}),
     },
@@ -208,6 +222,31 @@ export async function deleteJobByPublicId(publicId: string, owner: string) {
   const keys = await collectJobObjectKeys(job);
   await deleteObjects(keys);
   return prisma.job.delete({ where: { publicId } });
+}
+
+export async function stopJobByPublicId(publicId: string, owner: string) {
+  const job = await getJobByPublicId(publicId);
+  if (!job) {
+    throw new Error("Job not found");
+  }
+  if (job.owner !== owner) {
+    throw new Error("Forbidden");
+  }
+  if (job.status !== Status.PENDING && job.status !== Status.RUNNING) {
+    throw new Error("Job is not running");
+  }
+
+  return prisma.job.update({
+    where: { publicId },
+    data: {
+      status: Status.CANCELLED,
+      workerId: null,
+      claimedAt: null,
+      heartbeatAt: null,
+      error: "Cancelled by user",
+    },
+    include: { files: { orderBy: { position: "asc" } } },
+  });
 }
 
 export async function getDownloadUrlForJob(jobName: string, owner: string) {

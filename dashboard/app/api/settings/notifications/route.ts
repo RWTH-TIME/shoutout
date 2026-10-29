@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticate } from "../../../lib/auth";
+import config from "../../../lib/config";
 import {
   getUserSettings,
   upsertUserSettings,
@@ -13,6 +14,10 @@ const putSchema = z.object({
 });
 
 export const GET = async (request: NextRequest) => {
+  if (!config.MAIL_ENABLED) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const auth = await authenticate(request, { allowApiKey: false });
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,6 +36,10 @@ export const GET = async (request: NextRequest) => {
 };
 
 export const PUT = async (request: NextRequest) => {
+  if (!config.MAIL_ENABLED) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const auth = await authenticate(request, { allowApiKey: false });
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

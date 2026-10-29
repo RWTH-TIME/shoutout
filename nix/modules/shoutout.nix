@@ -82,6 +82,7 @@ in
       default = 14;
       description = "Days until jobs expire. Set to 0 for no expiration.";
     };
+    mail.enable = lib.mkEnableOption "mailing preferences and job email notifications";
     listmonk = {
       url = lib.mkOption {
         type = lib.types.str;
@@ -166,6 +167,7 @@ in
           export S3_ACCESS_KEY_ID="$(cat "$CREDENTIALS_DIRECTORY/s3_access_key")"
           export S3_SECRET_ACCESS_KEY="$(cat "$CREDENTIALS_DIRECTORY/s3_secret_key")"
           export JOB_EXPIRATION_DAYS=${toString cfg.jobExpirationDays}
+          export MAIL_ENABLED=${if cfg.mail.enable then "true" else "false"}
           export OIDC_DISPLAYNAME=${lib.escapeShellArg cfg.oidc.displayName}
           export LISTMONK_URL=${lib.escapeShellArg cfg.listmonk.url}
           export LISTMONK_USERNAME=${lib.escapeShellArg cfg.listmonk.username}

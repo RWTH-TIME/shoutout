@@ -34,6 +34,7 @@ class WorkerRuntime:
         return {
             "cuda": torch.cuda.is_available(),
             "device": str(self.transcription._device),
+            "diarization": self.transcription.diarization_available,
             "loadedWhisper": self.transcription._whisper_model_name,
             "models": ConfigEntry.models,
         }
@@ -176,6 +177,7 @@ def main() -> None:
         level=ConfigEntry.LOG_LEVEL,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    logging.captureWarnings(True)
     runtime = WorkerRuntime()
     signal.signal(signal.SIGTERM, runtime.stop)
     signal.signal(signal.SIGINT, runtime.stop)

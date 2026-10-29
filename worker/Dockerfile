@@ -1,30 +1,24 @@
-FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
+ARG BASE_IMAGE=ghcr.io/rwth-time/shoutout/worker-base:latest
 
-ARG HUGGINGFACE=
+FROM ${BASE_IMAGE}
+
+ARG HUGGINGFACE_DEV_PREWARM_TOKEN=
 ARG WHISPER_MODEL=small
-
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get install -y ffmpeg && \
-    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY pyproject.toml requirements.txt /app/
+COPY pyproject.toml /app/pyproject.toml
 COPY shoutout_worker /app/shoutout_worker
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_WARN_ABOUT_ROOT_USER=1
 ENV WHISPER_MODELS=${WHISPER_MODEL}
 ENV LOG_LEVEL=INFO
-ENV HF_HOME=/var/cache/shoutout-worker
 
-RUN pip install --upgrade pip && pip install -e .
+RUN pip install --no-deps -e .
 
-RUN if [ -n "${HUGGINGFACE}" ]; then \
-      python -c "from pyannote.audio import Pipeline; Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', token='${HUGGINGFACE}')"; \
-      python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')"; \
+RUN python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')"
+
+RUN if [ -n "${HUGGINGFACE_DEV_PREWARM_TOKEN}" ]; then \
+      python -c "from pyannote.audio import Pipeline; Pipeline.from_pretrained('pyannote/speaker-diarization-community-1', token='${HUGGINGFACE_DEV_PREWARM_TOKEN}')"; \
     fi
 
 ENTRYPOINT ["shoutout-worker"]

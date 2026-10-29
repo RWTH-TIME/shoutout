@@ -37,6 +37,7 @@ function resolveRecipient(payload: NotifyPayload): string | null {
 export async function notifyJobEvent(payload: NotifyPayload): Promise<void> {
   const notifyEmail = resolveRecipient(payload);
   if (
+    !config.MAIL_ENABLED ||
     !config.LISTMONK_URL ||
     !config.LISTMONK_USERNAME ||
     !config.LISTMONK_TOKEN ||

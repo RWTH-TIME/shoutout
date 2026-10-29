@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     WHISPER_MODELS: str = "tiny"
     HUGGINGFACE_TOKEN: str = ""
     HF_HOME: str = "/var/cache/shoutout-worker"
+    DIARIZATION_MODEL: str = "pyannote/speaker-diarization-community-1"
     CONCURRENCY: int = 1
     HEARTBEAT_INTERVAL_SECONDS: int = 20
     CLAIM_TIMEOUT_SECONDS: int = 25

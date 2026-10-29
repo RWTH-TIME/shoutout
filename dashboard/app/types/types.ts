@@ -21,7 +21,7 @@ export type Job = {
   model: string;
   participants?: number | null;
   language?: string | null;
-  status: STATUS | "PENDING" | "RUNNING" | "FINISHED" | "FAILED";
+  status: STATUS | "PENDING" | "RUNNING" | "FINISHED" | "FAILED" | "CANCELLED";
   createdAt: Date | string;
   expiresAt?: Date | string | null;
   visibility?: Visibility;
@@ -59,6 +59,7 @@ export enum STATUS {
   Running = "RUNNING",
   Finished = "FINISHED",
   Failed = "FAILED",
+  Cancelled = "CANCELLED",
 }
 
 export type AvailableModel = {

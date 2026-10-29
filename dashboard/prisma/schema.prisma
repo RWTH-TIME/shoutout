@@ -90,6 +90,7 @@ enum Status {
   FINISHED
   FAILED
   RUNNING
+  CANCELLED
 }
 
 enum Visibility {

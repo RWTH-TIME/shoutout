@@ -8,6 +8,7 @@ import useJobs from "../../hooks/useJob";
 import useModels from "../../hooks/useModels";
 import useAlert from "../../hooks/useAlert";
 import useAppTranslation from "../../hooks/useAppTranslation";
+import { useFeatures } from "../../context/FeaturesContext";
 import { BulkFileEntry } from "../../types/types";
 import { fileBaseName, formatFileSize } from "../../utils/file";
 import { jobNameConflict, nextUniqueJobName } from "../../utils/jobName";
@@ -34,6 +35,7 @@ export default function CreateJobModal({
   const { models } = useModels();
   const { setAlert } = useAlert();
   const translation = useAppTranslation();
+  const { mailEnabled } = useFeatures();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [entries, setEntries] = useState<BulkFileEntry[]>([]);
@@ -159,7 +161,7 @@ export default function CreateJobModal({
   }, [initialFiles, isOpen]);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !mailEnabled) {
       return;
     }
     let cancelled = false;
@@ -174,7 +176,7 @@ export default function CreateJobModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, mailEnabled]);
 
   async function onSubmit() {
     setBusy(true);
@@ -184,7 +186,7 @@ export default function CreateJobModal({
         model: model || defaultModel,
         participants,
         language,
-        notifyEnabled,
+        ...(mailEnabled ? { notifyEnabled } : {}),
         entries,
       });
       setAlert(translation("alertJobCreated"), "success");
@@ -300,13 +302,15 @@ export default function CreateJobModal({
               ) : null}
             </div>
 
-            <LabelledCheckbox
-              checkPosition="left"
-              size="md"
-              label={translation("notifyMe")}
-              value={notifyEnabled}
-              onValueChange={setNotifyEnabled}
-            />
+            {mailEnabled ? (
+              <LabelledCheckbox
+                checkPosition="left"
+                size="md"
+                label={translation("notifyMe")}
+                value={notifyEnabled}
+                onValueChange={setNotifyEnabled}
+              />
+            ) : null}
           </div>
         )}
 

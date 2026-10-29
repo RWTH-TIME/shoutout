@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import config from "../lib/config";
+import { compareModelNames } from "../utils/models";
 
 export type AvailableModel = {
   model: string;
@@ -22,7 +23,7 @@ export async function listAvailableModels(): Promise<AvailableModel[]> {
 
   return Array.from(counts.entries())
     .map(([model, workerCount]) => ({ model, workerCount }))
-    .sort((a, b) => a.model.localeCompare(b.model));
+    .sort((a, b) => compareModelNames(a.model, b.model));
 }
 
 export async function isModelAvailable(model: string): Promise<boolean> {

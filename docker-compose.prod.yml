@@ -26,6 +26,7 @@ services:
       - LISTMONK_TOKEN=${LISTMONK_TOKEN:-}
       - LISTMONK_TEMPLATE_ID=${LISTMONK_TEMPLATE_ID:-0}
       - JOB_EXPIRATION_DAYS=${JOB_EXPIRATION_DAYS:-14}
+      - MAIL_ENABLED=${MAIL_ENABLED:-false}
     depends_on:
       - postgres
       - garage
@@ -39,6 +40,8 @@ services:
       - WHISPER_MODELS=tiny,small
       - HUGGINGFACE_TOKEN=${HUGGINGFACE_APIKEY}
       - LOG_LEVEL=INFO
+    volumes:
+      - worker-hf-cache:/var/cache/shoutout-worker
     depends_on:
       - dashboard
     deploy:
@@ -77,3 +80,4 @@ volumes:
   shoutout-db-data:
   garage_meta:
   garage_data:
+  worker-hf-cache:

@@ -4,6 +4,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { z } from "zod";
 import { Status } from "@prisma/client";
 import { authenticate } from "../../lib/auth";
+import config from "../../lib/config";
 import { LANGUAGE_OPTIONS } from "../../utils/languages";
 import { listAvailableModels } from "../../services/models";
 import {
@@ -17,6 +18,13 @@ import { presignUpload } from "../../lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function mailShape<T extends z.ZodRawShape>(shape: T): T {
+  if (!config.MAIL_ENABLED) {
+    return {} as T;
+  }
+  return shape;
+}
 
 async function buildServer(owner: string, email?: string | null) {
   const server = new McpServer({
@@ -78,8 +86,10 @@ async function buildServer(owner: string, email?: string | null) {
       model: z.string(),
       participants: z.number().int().nonnegative().optional(),
       language: z.string().optional(),
-      notifyEmail: z.string().email().optional(),
-      notifyEnabled: z.boolean().optional(),
+      ...mailShape({
+        notifyEmail: z.string().email().optional(),
+        notifyEnabled: z.boolean().optional(),
+      }),
       uploadRef: z.string().optional(),
       uploadRefs: z.array(fileInputSchema).optional(),
     },
@@ -118,8 +128,10 @@ async function buildServer(owner: string, email?: string | null) {
         model: args.model,
         participants: args.participants,
         language: args.language,
-        notifyEmail: args.notifyEmail || email || undefined,
-        notifyEnabled: args.notifyEnabled,
+        notifyEmail: config.MAIL_ENABLED
+          ? args.notifyEmail || email || undefined
+          : undefined,
+        notifyEnabled: config.MAIL_ENABLED ? args.notifyEnabled : false,
         owner,
         files,
       });
@@ -138,7 +150,9 @@ async function buildServer(owner: string, email?: string | null) {
           model: z.string(),
           participants: z.number().int().nonnegative().optional(),
           language: z.string().optional(),
-          notifyEmail: z.string().email().optional(),
+          ...mailShape({
+            notifyEmail: z.string().email().optional(),
+          }),
         })
       ),
     },
@@ -153,7 +167,9 @@ async function buildServer(owner: string, email?: string | null) {
               model: item.model,
               participants: item.participants,
               language: item.language,
-              notifyEmail: item.notifyEmail || email || undefined,
+              notifyEmail: config.MAIL_ENABLED
+                ? item.notifyEmail || email || undefined
+                : undefined,
               owner,
               files: [
                 {

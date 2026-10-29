@@ -12,6 +12,7 @@ export const STATUS_COLORS: Record<STATUS, StatusColor> = {
   [STATUS.Running]: "primary",
   [STATUS.Finished]: "positive",
   [STATUS.Failed]: "negative",
+  [STATUS.Cancelled]: "neutral",
 };
 
 export function getStatusColor(status: string): StatusColor {
@@ -19,6 +20,7 @@ export function getStatusColor(status: string): StatusColor {
   if (status === STATUS.Finished) return STATUS_COLORS[STATUS.Finished];
   if (status === STATUS.Running) return STATUS_COLORS[STATUS.Running];
   if (status === STATUS.Pending) return STATUS_COLORS[STATUS.Pending];
+  if (status === STATUS.Cancelled) return STATUS_COLORS[STATUS.Cancelled];
   return "neutral";
 }
 

@@ -62,12 +62,12 @@ export default function AppShell({
     : undefined;
 
   const userControl = (
-    <>
+    <span className="inline-flex items-center gap-4">
       <span className="hidden text-base font-medium sm:inline">
         {session?.user?.name}
       </span>
       <Avatar name={displayName} size="md" image={avatarImage} />
-    </>
+    </span>
   );
 
   return (
@@ -102,7 +102,7 @@ export default function AppShell({
               {userControl}
             </Button>
           ) : (
-            <div className="flex items-center gap-2">{userControl}</div>
+            <div className="flex items-center">{userControl}</div>
           )}
         </div>,
       ]}

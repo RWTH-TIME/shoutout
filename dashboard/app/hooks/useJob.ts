@@ -134,6 +134,35 @@ export default function useJobs() {
     }
   }
 
+  async function stopJob(job: Job): Promise<Job | null> {
+    if (!job.publicId) {
+      return null;
+    }
+    try {
+      const stopJobResponse = await fetch(`/api/jobs/${job.publicId}/stop`, {
+        method: "POST",
+      });
+      if (!stopJobResponse.ok) {
+        throw new Error("Could not stop job");
+      }
+      const data = await stopJobResponse.json();
+      const stopped = data.job as Job;
+      await mutate(
+        (current) =>
+          current
+            ? current.map((item) =>
+                item.publicId === stopped.publicId ? stopped : item
+              )
+            : [stopped],
+        false
+      );
+      return stopped;
+    } catch (stopError) {
+      console.error("Error Stopping a Job", stopError);
+      return null;
+    }
+  }
+
   async function updateJob(
     publicId: string,
     patch: {
@@ -174,6 +203,7 @@ export default function useJobs() {
     createJob,
     downloadFile,
     deleteJob,
+    stopJob,
     updateJob,
     mutate,
   };

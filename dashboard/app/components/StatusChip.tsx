@@ -17,11 +17,13 @@ function statusLabelKey(
   | "statusRunning"
   | "statusFinished"
   | "statusFailed"
+  | "statusCancelled"
   | null {
   if (status === STATUS.Pending) return "statusPending";
   if (status === STATUS.Running) return "statusRunning";
   if (status === STATUS.Finished) return "statusFinished";
   if (status === STATUS.Failed) return "statusFailed";
+  if (status === STATUS.Cancelled) return "statusCancelled";
   return null;
 }
 

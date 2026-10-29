@@ -16,6 +16,7 @@ async function main(): Promise<void> {
     where: {
       OR: [
         { status: Status.FAILED },
+        { status: Status.CANCELLED },
         { expiresAt: { not: null, lt: now } },
       ],
     },

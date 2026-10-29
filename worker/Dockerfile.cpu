@@ -1,6 +1,6 @@
 FROM python:3.12-slim-bookworm
 
-ARG HUGGINGFACE=
+ARG HUGGINGFACE_DEV_PREWARM_TOKEN=
 ARG WHISPER_MODEL=tiny
 
 RUN apt-get update && \
@@ -26,17 +26,18 @@ RUN pip install --upgrade pip && \
       "numpy>=2.0.0" \
       "openai-whisper>=20250625" \
       "pandas>=2.2.0" \
-      "pyannote.audio>=4.0.4" \
-      "pydantic>=2.13.4" \
-      "pydantic-settings>=2.14.1" \
-      "python-dotenv>=1.2.2" \
-      "typing_extensions>=4.15.0" \
+      "pyannote.audio>=4.0.7" \
+      "pydantic>=2.14.1" \
+      "pydantic-settings>=2.16.2" \
+      "python-dotenv>=1.2.4" \
+      "typing_extensions>=4.16.0" \
       "urllib3>=2.5.0" && \
     pip install --no-deps -e .
 
-RUN if [ -n "${HUGGINGFACE}" ]; then \
-      python -c "from pyannote.audio import Pipeline; Pipeline.from_pretrained('pyannote/speaker-diarization-3.1', token='${HUGGINGFACE}')"; \
-      python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')"; \
+RUN python -c "import whisper; whisper.load_model('${WHISPER_MODEL}')"
+
+RUN if [ -n "${HUGGINGFACE_DEV_PREWARM_TOKEN}" ]; then \
+      python -c "from pyannote.audio import Pipeline; Pipeline.from_pretrained('pyannote/speaker-diarization-community-1', token='${HUGGINGFACE_DEV_PREWARM_TOKEN}')"; \
     fi
 
 ENTRYPOINT ["shoutout-worker"]

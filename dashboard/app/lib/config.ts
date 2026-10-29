@@ -1,5 +1,32 @@
 import { z } from "zod";
 
+const envBoolean = z.preprocess((value) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (value === undefined || value === null || value === "") {
+    return false;
+  }
+  const normalized = String(value).trim().toLowerCase();
+  if (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  ) {
+    return true;
+  }
+  if (
+    normalized === "0" ||
+    normalized === "false" ||
+    normalized === "no" ||
+    normalized === "off"
+  ) {
+    return false;
+  }
+  return value;
+}, z.boolean());
+
 const schema = z.object({
   NODE_ENV: z.string().default("development"),
   DATABASE_URL: z
@@ -19,6 +46,7 @@ const schema = z.object({
   WORKER_HEARTBEAT_STALE_MS: z.coerce.number().default(90_000),
   WORKER_MAX_ATTEMPTS: z.coerce.number().default(3),
   CLAIM_POLL_MS: z.coerce.number().default(25_000),
+  MAIL_ENABLED: envBoolean,
   LISTMONK_URL: z.string().optional().default(""),
   LISTMONK_USERNAME: z.string().optional().default(""),
   LISTMONK_TOKEN: z.string().optional().default(""),
@@ -61,6 +89,7 @@ const env = {
   WORKER_HEARTBEAT_STALE_MS: process.env.WORKER_HEARTBEAT_STALE_MS,
   WORKER_MAX_ATTEMPTS: process.env.WORKER_MAX_ATTEMPTS,
   CLAIM_POLL_MS: process.env.CLAIM_POLL_MS,
+  MAIL_ENABLED: process.env.MAIL_ENABLED,
   LISTMONK_URL: process.env.LISTMONK_URL,
   LISTMONK_USERNAME: process.env.LISTMONK_USERNAME,
   LISTMONK_TOKEN: process.env.LISTMONK_TOKEN,

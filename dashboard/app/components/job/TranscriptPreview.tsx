@@ -63,7 +63,7 @@ export default function TranscriptPreview({
             key={`${segment.start}-${index}`}
             type="button"
             onClick={() => onSeek?.(segment.start)}
-            className={`rounded-lg border-l-4 px-3 py-2 text-left transition ${speakerColor(
+            className={`cursor-pointer rounded-lg border-l-4 px-3 py-2 text-left transition ${speakerColor(
               segment.speaker,
               colorMap
             )} ${active ? "ring-1 ring-primary" : "hover:bg-surface-hover"}`}

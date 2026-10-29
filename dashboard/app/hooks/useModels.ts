@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { AvailableModel } from "../types/types";
+import { sortModels } from "../utils/models";
 
 async function fetcher(url: string): Promise<AvailableModel[]> {
   const response = await fetch(url);
@@ -9,7 +10,7 @@ async function fetcher(url: string): Promise<AvailableModel[]> {
     throw new Error("Failed to load models");
   }
   const data = await response.json();
-  return data.models as AvailableModel[];
+  return sortModels(data.models as AvailableModel[]);
 }
 
 export default function useModels() {

@@ -1,4 +1,6 @@
 import SessionWrapper from "./components/SessionWrapper";
+import { FeaturesProvider } from "./context/FeaturesContext";
+import config from "./lib/config";
 import "./globals.css";
 
 export const metadata = {
@@ -14,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <SessionWrapper>{children}</SessionWrapper>
+        <FeaturesProvider mailEnabled={config.MAIL_ENABLED}>
+          <SessionWrapper>{children}</SessionWrapper>
+        </FeaturesProvider>
       </body>
     </html>
   );

@@ -7,6 +7,7 @@ import {
   JobsSidebarList,
 } from "../SideBarComponents/JobsSidebar";
 import useAppTranslation from "../../hooks/useAppTranslation";
+import { useFeatures } from "../../context/FeaturesContext";
 import ThemeSection from "./ThemeSection";
 import LanguageSection from "./LanguageSection";
 import ApiKeysSection from "./ApiKeysSection";
@@ -15,6 +16,7 @@ import LogoutSection from "./LogoutSection";
 
 export default function SettingsClient() {
   const translation = useAppTranslation();
+  const { mailEnabled } = useFeatures();
   const router = useRouter();
 
   return (
@@ -36,12 +38,16 @@ export default function SettingsClient() {
               {translation("settingsTitle")}
             </h1>
             <p className="mt-1 text-sm text-description">
-              {translation("settingsDescription")}
+              {translation(
+                mailEnabled
+                  ? "settingsDescription"
+                  : "settingsDescriptionWithoutMail"
+              )}
             </p>
           </div>
           <ThemeSection />
           <LanguageSection />
-          <NotificationsSection />
+          {mailEnabled ? <NotificationsSection /> : null}
           <ApiKeysSection />
           <LogoutSection />
         </div>

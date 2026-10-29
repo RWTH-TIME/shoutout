@@ -12,6 +12,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  WORKER_BASE_IMAGE: ghcr.io/rwth-time/shoutout/worker-base
   NODE_VERSION: "22"
   PYTHON_VERSION: "3.13"
 
@@ -227,10 +228,36 @@ jobs:
       - name: All required checks passed
         run: echo "quality gate green"
 
+  build-worker-base:
+    name: Build worker base image
+    runs-on: ubuntu-latest
+    needs: [quality-gate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: worker
+          file: worker/Dockerfile.base
+          push: true
+          tags: |
+            ${{ env.WORKER_BASE_IMAGE }}:latest
+            ${{ env.WORKER_BASE_IMAGE }}:${{ github.sha }}
+
   build-images:
     name: Build images
     runs-on: ubuntu-latest
-    needs: [quality-gate]
+    needs: [quality-gate, build-worker-base]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
       fail-fast: false
@@ -271,6 +298,6 @@ jobs:
           push: true
           build-args: |
             WHISPER_MODEL=${{ matrix.model }}
-            HUGGINGFACE=${{ secrets.HUGGINGFACE_APIKEY }}
+            BASE_IMAGE=${{ env.WORKER_BASE_IMAGE }}:${{ github.sha }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

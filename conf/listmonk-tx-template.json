@@ -1,0 +1,6 @@
+{
+  "name": "shoutout",
+  "type": "tx",
+  "subject": "{{ if eq .Tx.Data.kind \"failed\" }}Transcription failed{{ else }}Transcription ready{{ end }}: {{ .Tx.Data.jobName }}",
+  "body": "<div style=\"font-family:sans-serif;max-width:480px\">\n  <img src=\"{{ .Tx.Data.logoUrl }}\" alt=\"shoutout\" width=\"48\" height=\"48\" style=\"display:block;margin-bottom:16px;border-radius:8px\">\n  {{ if eq .Tx.Data.kind \"failed\" }}\n  <p>Transcription of <strong>{{ .Tx.Data.jobName }}</strong> ({{ .Tx.Data.model }}) failed.</p>\n  {{ if .Tx.Data.error }}<p>{{ .Tx.Data.error }}</p>{{ end }}\n  {{ else }}\n  <p>Your transcript <strong>{{ .Tx.Data.jobName }}</strong> ({{ .Tx.Data.model }}) is ready.</p>\n  {{ end }}\n  <p>\n    <a href=\"{{ .Tx.Data.jobUrl }}\">Open job</a>\n    {{ if .Tx.Data.downloadUrl }} &middot; <a href=\"{{ .Tx.Data.downloadUrl }}\">Download transcript</a>{{ end }}\n  </p>\n</div>\n"
+}

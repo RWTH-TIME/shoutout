@@ -4,6 +4,20 @@ Self-hosted audio transcription with speaker diarization.
 
 Upload one or more audio files as a single job, run Whisper (and optionally pyannote) on attached workers, then preview transcripts in the browser, download a zip, or share the job privately, with signed-in users, or publicly.
 
+## What's new in v2
+
+- 📊 **Speaker statistics** — at-a-glance stats for each speaker
+- 🏷️ **Speaker labeling** — name speakers directly instead of “Speaker 1, 2, 3”
+- 🔗 **Sharing modes** — keep jobs private, share with signed-in users, or make them public
+- ✨ **Better UI/UX** — clearer layout and smoother day-to-day use
+- 🤖 **API + MCP tool** — connect shoutout directly to AI assistants
+- 📧 **Email notifications** — get notified when your results are ready
+- 📄 **Ready PDF export** — formatted PDFs ready to share
+- 📁 **Optimized multi-file upload** — upload several files more easily and reliably
+- ⚡ **Better performance & speaker diarization** — faster runs and more accurate speaker detection
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release notes.
+
 ## Models
 
 Speech-to-text uses [OpenAI Whisper](https://github.com/openai/whisper) through the `openai-whisper` package. A job names one checkpoint; the worker loads it with `whisper.load_model` on CUDA when a GPU is present, otherwise on CPU. The create-job form and `GET /api/v1/models` only list names a connected worker advertises in `WHISPER_MODELS`.
@@ -160,11 +174,24 @@ Optional. Set `MAIL_ENABLED=true` to show mailing preferences and the per-job no
 
 Set `LISTMONK_URL`, `LISTMONK_USERNAME`, `LISTMONK_TOKEN`, and `LISTMONK_TEMPLATE_ID` as well. If `MAIL_ENABLED` is false, or `LISTMONK_URL` is empty, jobs still complete and no mail is sent. Mailing controls stay hidden while `MAIL_ENABLED` is false.
 
-Example template body:
+`notifyJobEvent` sends Listmonk a `tx` message with `subscriber_mode: "external"`, so the recipient does not need to already exist as a Listmonk subscriber. The `data` payload available to the template is:
 
-```html
-<p>Your transcript <strong>{{ .Tx.Data.jobName }}</strong> ({{ .Tx.Data.model }}) is ready.</p>
-<p><a href="{{ .Tx.Data.jobUrl }}">Open job</a></p>
+| Field | Description |
+| --- | --- |
+| `kind` | `"finished"` or `"failed"` |
+| `jobName` / `model` | Job name and transcription model |
+| `jobUrl` | Link to the job in the dashboard (requires login) |
+| `downloadUrl` | Direct, token-based link to download the result; `null` for failed jobs |
+| `logoUrl` | Absolute URL to `${NEXTAUTH_URL}/mail-logo.png` |
+| `error` | Failure message, or `null` |
+
+[`conf/listmonk-tx-template.json`](conf/listmonk-tx-template.json) is a ready-to-use demo template with those fields, matching `name: "shoutout"` and `type: "tx"`. Import it with:
+
+```sh
+curl -u "$LISTMONK_USERNAME:$ADMIN_PASSWORD" \
+  -H 'Content-Type: application/json' \
+  -d @conf/listmonk-tx-template.json \
+  "$LISTMONK_URL/api/templates"
 ```
 
 ## NixOS

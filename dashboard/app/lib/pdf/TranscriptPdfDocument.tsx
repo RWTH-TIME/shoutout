@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Svg,
   Path,
+  Link,
 } from "@react-pdf/renderer";
 import { TranscriptSegment } from "../../types/types";
 import { formatTimestamp } from "../../utils/date";
@@ -14,6 +15,8 @@ import {
   SpeakerStats,
 } from "../../utils/transcript";
 import { buildPieSlices } from "./piePaths";
+
+const SHOUTOUT_URL = "https://github.com/RWTH-TIME/shoutout";
 
 type Props = {
   jobName: string;
@@ -111,11 +114,6 @@ const styles = StyleSheet.create({
   segment: {
     marginBottom: 10,
   },
-  segmentMeta: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 2,
-  },
   speaker: {
     fontWeight: "bold",
     fontSize: 10,
@@ -126,7 +124,7 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     fontSize: 10,
-    lineHeight: 1.45,
+    lineHeight: 14.5,
   },
   footer: {
     position: "absolute",
@@ -137,6 +135,22 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+  },
+  footerSide: {
+    width: "30%",
+  },
+  footerCenter: {
+    width: "40%",
+    textAlign: "center",
+  },
+  footerRight: {
+    width: "30%",
+    textAlign: "right",
+  },
+  footerLink: {
+    color: "#9ca3af",
+    textDecoration: "underline",
   },
 });
 
@@ -210,20 +224,29 @@ export default function TranscriptPdfDocument({
 
         <Text style={styles.sectionTitle}>{labels.transcript}</Text>
         {segments.map((segment, index) => (
-          <View key={`${segment.start}-${index}`} style={styles.segment} wrap={false}>
-            <View style={styles.segmentMeta}>
+          <View key={`${segment.start}-${index}`} style={styles.segment}>
+            <Text style={styles.segmentText} minPresenceAhead={48}>
               <Text style={styles.speaker}>{segment.speaker}</Text>
+              {"  "}
               <Text style={styles.timestamp}>
                 {formatTimestamp(segment.start)}
               </Text>
-            </View>
-            <Text style={styles.segmentText}>{segment.text}</Text>
+              {"\n"}
+              {segment.text}
+            </Text>
           </View>
         ))}
 
         <View style={styles.footer} fixed>
-          <Text>{jobName}</Text>
+          <Text style={styles.footerSide}>{jobName}</Text>
+          <Text style={styles.footerCenter}>
+            made with{" "}
+            <Link src={SHOUTOUT_URL} style={styles.footerLink}>
+              shoutout
+            </Link>
+          </Text>
           <Text
+            style={styles.footerRight}
             render={({ pageNumber, totalPages }) =>
               `${pageNumber} / ${totalPages}`
             }

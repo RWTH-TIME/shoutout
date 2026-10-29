@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button, ConfirmDialog, LabelledCheckbox } from "@helpwave/hightide";
-import { CircleStop, Download, Share2, Trash2 } from "lucide-react";
+import { CircleStop, Download, Pencil, Share2, Trash2 } from "lucide-react";
 import { Job } from "../../types/types";
 import useAppTranslation from "../../hooks/useAppTranslation";
 import { useFeatures } from "../../context/FeaturesContext";
@@ -11,6 +11,7 @@ import useJobs from "../../hooks/useJob";
 import StatusChip from "../StatusChip";
 import VisibilityIcon from "./VisibilityIcon";
 import ShareDialog from "./ShareDialog";
+import RenameJobDialog from "./RenameJobDialog";
 
 type Props = {
   job: Job;
@@ -35,6 +36,7 @@ export default function JobHeader({
   const [stopLoading, setStopLoading] = useState(false);
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
   const isStoppable = job.status === "PENDING" || job.status === "RUNNING";
 
@@ -113,6 +115,17 @@ export default function JobHeader({
             <div className="mt-1 flex items-center gap-2">
               <h2 className="truncate text-2xl font-semibold">{job.name}</h2>
               <VisibilityIcon visibility={job.visibility} size={18} />
+              {canManage ? (
+                <Button
+                  color="primary"
+                  coloringStyle="text"
+                  size="sm"
+                  onClick={() => setRenameOpen(true)}
+                  aria-label={translation("renameJob")}
+                >
+                  <Pencil size={16} aria-hidden />
+                </Button>
+              ) : null}
             </div>
           </div>
           <StatusChip status={job.status} size="sm" />
@@ -183,12 +196,20 @@ export default function JobHeader({
       </div>
 
       {canManage ? (
-        <ShareDialog
-          job={job}
-          isOpen={shareOpen}
-          onClose={() => setShareOpen(false)}
-          onUpdated={onUpdated}
-        />
+        <>
+          <ShareDialog
+            job={job}
+            isOpen={shareOpen}
+            onClose={() => setShareOpen(false)}
+            onUpdated={onUpdated}
+          />
+          <RenameJobDialog
+            job={job}
+            isOpen={renameOpen}
+            onClose={() => setRenameOpen(false)}
+            onUpdated={onUpdated}
+          />
+        </>
       ) : null}
 
       <ConfirmDialog
@@ -203,11 +224,6 @@ export default function JobHeader({
           }
         }}
         onConfirm={onDeleteConfirm}
-        onDecline={() => {
-          if (!deleteLoading) {
-            setDeleteConfirmOpen(false);
-          }
-        }}
         titleElement={translation("deleteConfirmTitle")}
         confirmType="negative"
       />
@@ -224,11 +240,6 @@ export default function JobHeader({
           }
         }}
         onConfirm={onStopConfirm}
-        onDecline={() => {
-          if (!stopLoading) {
-            setStopConfirmOpen(false);
-          }
-        }}
         titleElement={translation("stopConfirmTitle")}
         confirmType="negative"
       />

@@ -162,17 +162,37 @@ export async function updateJobForOwner(
     throw new Error("Forbidden");
   }
 
-  return prisma.job.update({
-    where: { publicId },
-    data: {
-      ...(data.name !== undefined ? { name: data.name } : {}),
-      ...(data.visibility !== undefined ? { visibility: data.visibility } : {}),
-      ...(config.MAIL_ENABLED && data.notifyEnabled !== undefined
-        ? { notifyEnabled: data.notifyEnabled }
-        : {}),
-    },
-    include: { files: { orderBy: { position: "asc" } } },
-  });
+  let nextName: string | undefined;
+  if (data.name !== undefined) {
+    nextName = data.name.trim();
+    if (!nextName) {
+      throw new Error("Invalid name");
+    }
+  }
+
+  try {
+    return await prisma.job.update({
+      where: { publicId },
+      data: {
+        ...(nextName !== undefined ? { name: nextName } : {}),
+        ...(data.visibility !== undefined
+          ? { visibility: data.visibility }
+          : {}),
+        ...(config.MAIL_ENABLED && data.notifyEnabled !== undefined
+          ? { notifyEnabled: data.notifyEnabled }
+          : {}),
+      },
+      include: { files: { orderBy: { position: "asc" } } },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      throw new Error("Name taken");
+    }
+    throw error;
+  }
 }
 
 export async function updateFileSpeakerNames(

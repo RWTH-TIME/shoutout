@@ -179,12 +179,6 @@ export default function ManageSpeakersDialog({
             void persist(pendingMapping);
           }
         }}
-        onDecline={() => {
-          if (!busy) {
-            setMergeConfirmOpen(false);
-            setPendingMapping(null);
-          }
-        }}
         titleElement={translation("speakerMergeWarningTitle")}
         confirmType="negative"
       />

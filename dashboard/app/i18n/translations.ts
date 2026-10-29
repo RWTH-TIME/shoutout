@@ -114,6 +114,11 @@ export type AppTranslationEntries = {
   share: string;
   shareTitle: string;
   shareDescription: string;
+  renameJob: string;
+  renameJobTitle: string;
+  renameJobDescription: string;
+  alertJobRenamed: string;
+  alertRenameFailed: string;
   visibilityPrivate: string;
   visibilityPrivateHint: string;
   visibilityAuthenticated: string;
@@ -276,6 +281,11 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     share: "Share",
     shareTitle: "Share job",
     shareDescription: "Choose who can open this job via its link.",
+    renameJob: "Rename",
+    renameJobTitle: "Rename job",
+    renameJobDescription: "Choose a new name for this job.",
+    alertJobRenamed: "Job renamed",
+    alertRenameFailed: "Could not rename job",
     visibilityPrivate: "Private",
     visibilityPrivateHint: "Only you can open this job.",
     visibilityAuthenticated: "Signed-in users",
@@ -444,6 +454,11 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     share: "Teilen",
     shareTitle: "Job teilen",
     shareDescription: "Lege fest, wer diesen Job über den Link öffnen darf.",
+    renameJob: "Umbenennen",
+    renameJobTitle: "Job umbenennen",
+    renameJobDescription: "Wähle einen neuen Namen für diesen Job.",
+    alertJobRenamed: "Job umbenannt",
+    alertRenameFailed: "Job konnte nicht umbenannt werden",
     visibilityPrivate: "Privat",
     visibilityPrivateHint: "Nur du kannst diesen Job öffnen.",
     visibilityAuthenticated: "Angemeldete Nutzer",

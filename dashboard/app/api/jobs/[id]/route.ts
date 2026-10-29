@@ -56,7 +56,13 @@ export const PATCH = async (
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed";
     const status =
-      message === "Forbidden" ? 403 : message === "Job not found" ? 404 : 400;
+      message === "Forbidden"
+        ? 403
+        : message === "Job not found"
+          ? 404
+          : message === "Name taken"
+            ? 409
+            : 400;
     return NextResponse.json({ error: message }, { status });
   }
 };

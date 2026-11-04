@@ -355,20 +355,47 @@ export async function getFileTextDownloadUrl(
 export async function completeJob(
   jobId: number,
   workerId: string,
-  fileResults: Array<{ id: string; durationSeconds?: number }> = []
+  fileResults: Array<{ id: string; durationSeconds?: number }> = [],
 ): Promise<void> {
   const existing = await getJobById(jobId);
   if (!existing || existing.workerId !== workerId) {
     throw new Error("Job not found");
   }
+  if (existing.status === Status.FINISHED) return;
+  if (existing.status !== Status.RUNNING) throw new Error("Job is not running");
+  if (
+    fileResults.some(
+      (result) => !existing.files.some((file) => file.id === result.id),
+    )
+  ) {
+    throw new Error("File does not belong to job");
+  }
 
   const resultToken = generateResultToken();
   const zipKey = jobResultZipKey(existing.publicId);
 
-  await prisma.$transaction(async (tx) => {
+  const completed = await prisma.$transaction(async (tx) => {
+    // Compare-and-set under the database row lock: only the winning request
+    // writes results, rotates the download token, and sends a notification.
+    const transition = await tx.job.updateMany({
+      where: {
+        id: jobId,
+        workerId,
+        status: Status.RUNNING,
+        claimedAt: existing.claimedAt,
+      },
+      data: {
+        status: Status.FINISHED,
+        resultToken,
+        resultZipKey: zipKey,
+        error: null,
+        heartbeatAt: new Date(),
+      },
+    });
+    if (transition.count === 0) return false;
     for (const result of fileResults) {
       await tx.jobFile.update({
-        where: { id: result.id },
+        where: { id: result.id, jobId },
         data: {
           resultTextKey: jobFileTextKey(existing.publicId, result.id),
           resultJsonKey: jobFileJsonKey(existing.publicId, result.id),
@@ -377,18 +404,9 @@ export async function completeJob(
       });
     }
 
-    await tx.job.update({
-      where: { id: jobId },
-      data: {
-        status: Status.FINISHED,
-        resultToken,
-        resultZipKey: zipKey,
-        error: null,
-        workerId,
-        heartbeatAt: new Date(),
-      },
-    });
+    return true;
   });
+  if (!completed) return;
 
   const job = await getJobById(jobId);
   if (!job) {
@@ -406,18 +424,25 @@ export async function completeJob(
 export async function failJob(
   jobId: number,
   workerId: string,
-  error: string
+  error: string,
 ): Promise<void> {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job || job.workerId !== workerId) {
     throw new Error("Job not found");
   }
+  // A late failure (e.g. a lost completion response) must not requeue a result.
+  if (job.status !== Status.RUNNING) return;
 
   const attempts = job.attempts + 1;
   const retry = attempts < config.WORKER_MAX_ATTEMPTS;
 
-  await prisma.job.update({
-    where: { id: jobId },
+  const transition = await prisma.job.updateMany({
+    where: {
+      id: jobId,
+      workerId,
+      status: Status.RUNNING,
+      claimedAt: job.claimedAt,
+    },
     data: {
       status: retry ? Status.PENDING : Status.FAILED,
       attempts,
@@ -427,6 +452,7 @@ export async function failJob(
       heartbeatAt: retry ? null : new Date(),
     },
   });
+  if (transition.count === 0) return;
 
   if (!retry) {
     const failed = await getJobById(jobId);

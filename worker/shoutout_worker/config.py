@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
     HUGGINGFACE_TOKEN: str = ""
     HF_HOME: str = "/var/cache/shoutout-worker"
     DIARIZATION_MODEL: str = "pyannote/speaker-diarization-community-1"
-    CONCURRENCY: int = 1
+    CONCURRENCY: int = Field(default=1, ge=1)
     HEARTBEAT_INTERVAL_SECONDS: int = 20
     CLAIM_TIMEOUT_SECONDS: int = 25
     LOG_LEVEL: str = "INFO"

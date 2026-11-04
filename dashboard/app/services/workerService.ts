@@ -148,12 +148,12 @@ export async function claimJob(
 }
 
 export async function heartbeatJob(jobId: number, workerId: string) {
-  const job = await prisma.job.findUnique({ where: { id: jobId } });
-  if (!job || job.workerId !== workerId) {
-    throw new Error("Job not found");
-  }
-  return prisma.job.update({
-    where: { id: jobId },
+  const result = await prisma.job.updateMany({
+    where: { id: jobId, workerId, status: Status.RUNNING },
     data: { heartbeatAt: new Date() },
   });
+  if (result.count === 0) {
+    throw new Error("Job not found");
+  }
+  return result;
 }

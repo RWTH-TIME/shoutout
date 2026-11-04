@@ -136,15 +136,31 @@ class TranscriptionManager:
 
         waveform: torch.Tensor = torch.from_numpy(self._load_audio(wav_path)).unsqueeze(0)
         num_speakers: int | None = int(num_speaker) if int(num_speaker) > 0 else None
+        started = time.perf_counter()
+        last_progress = started
+        last_step = None
+
+        def log_progress(step_name, _artifact, *, total=None, completed=None, **_kwargs):
+            nonlocal last_progress, last_step
+            now = time.perf_counter()
+            if step_name != last_step or now - last_progress >= 30 or (
+                total is not None and completed == total
+            ):
+                logging.info("%s: diarization %s %s/%s (%.1fs elapsed)",
+                             filename, step_name, completed, total, now - started)
+                last_progress, last_step = now, step_name
+
         output = self._diarization(
             {"waveform": waveform, "sample_rate": 16000, "uri": wav_path.stem},
             num_speakers=num_speakers,
+            hook=log_progress,
         )
         annotation: Annotation = self._select_annotation(output)
         logging.info(
-            "%s: diarization found %d speaker(s)",
+            "%s: diarization found %d speaker(s) in %.2fs",
             filename,
             len(annotation.labels()),
+            time.perf_counter() - started,
         )
         with rttm_path.open("w", encoding="utf-8") as handle:
             annotation.write_rttm(handle)
@@ -181,21 +197,27 @@ class TranscriptionManager:
             ],
         )
         df["End"] = df.Start + df.Duration
+        started = time.perf_counter()
         filtered = df[df.Duration > 0.8].copy()
         cleaned = remove_overlaps(filtered)
         sections = create_section_table(aggregate_section(cleaned[cleaned.Duration > 0.8]))
+        logging.info("%s: postprocessing %d turns into %d sections took %.3fs",
+                     filename, len(df), len(sections), time.perf_counter() - started)
         audio = self._load_audio(wav_path)
         sample_rate = 16000
         duration_seconds = float(len(audio)) / float(sample_rate)
 
         parts: list[str] = []
         segments: list[dict] = []
-        for row in sections.itertuples(index=False):
+        started = time.perf_counter()
+        for index, row in enumerate(sections.itertuples(index=False), 1):
             start = max(row.Start - 0.2, 0.0)
             end = row.End + 0.1
             start_idx = int(start * sample_rate)
             end_idx = int(end * sample_rate)
             chunk = audio[start_idx:end_idx]
+            if not len(chunk):
+                continue
             result = self._whisper.transcribe(chunk, language=language or None)
             text = str(result["text"]).strip()
             stamp = time.strftime("%H:%M:%S", time.gmtime(row.Start))
@@ -208,6 +230,9 @@ class TranscriptionManager:
                     "text": text,
                 }
             )
+            if index % 25 == 0 or index == len(sections):
+                logging.info("%s: transcribed %d/%d sections in %.2fs",
+                             filename, index, len(sections), time.perf_counter() - started)
 
         output = workdir / f"{stem}{ConfigEntry.FINISHED_FILE_FORMAT}"
         output.write_text("".join(parts), encoding="utf-8")

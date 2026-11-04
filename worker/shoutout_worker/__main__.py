@@ -5,7 +5,7 @@ import signal
 import tempfile
 import threading
 import traceback
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 import torch
@@ -29,6 +29,8 @@ class WorkerRuntime:
         self._stop = threading.Event()
         self._current_job_id: int | None = None
         self._lock = threading.Lock()
+        # The cached Whisper model can change between jobs and is not thread safe.
+        self._inference_lock = threading.Lock()
 
     def info(self) -> dict:
         return {
@@ -85,19 +87,15 @@ class WorkerRuntime:
                     source = workdir / local_name
                     download_input(file_claim["inputUrl"], source)
 
-                    logging.info("%s %s diarization started", job_name, original_name)
-                    self.transcription.diarize(
-                        workdir,
-                        local_name,
-                        participants or 0,
-                    )
-                    logging.info("%s %s transcription started", job_name, original_name)
-                    text_path, segments, duration = self.transcription.transcribe(
-                        workdir,
-                        local_name,
-                        language,
-                        model,
-                    )
+                    with self._inference_lock:
+                        logging.info("%s %s diarization started", job_name, original_name)
+                        self.transcription.diarize(
+                            workdir, local_name, participants or 0,
+                        )
+                        logging.info("%s %s transcription started", job_name, original_name)
+                        text_path, segments, duration = self.transcription.transcribe(
+                            workdir, local_name, language, model,
+                        )
                     json_path = workdir / f"{Path(local_name).stem}.json"
                     write_transcript_json(json_path, segments)
 
@@ -158,7 +156,14 @@ class WorkerRuntime:
             logging.info("Using existing WORKER_TOKEN")
 
         with ThreadPoolExecutor(max_workers=ConfigEntry.CONCURRENCY) as pool:
+            pending = set()
             while not self._stop.is_set():
+                pending = {future for future in pending if not future.done()}
+                if len(pending) >= ConfigEntry.CONCURRENCY:
+                    # Do not claim work into the executor's unbounded queue:
+                    # queued claims have no heartbeat and will be reclaimed.
+                    wait(pending, timeout=1, return_when=FIRST_COMPLETED)
+                    continue
                 try:
                     claim = self.client.claim(ConfigEntry.models, self.info())
                 except Exception as error:
@@ -168,7 +173,7 @@ class WorkerRuntime:
 
                 if claim is None:
                     continue
-                pool.submit(self.process_claim, claim)
+                pending.add(pool.submit(self.process_claim, claim))
 
 
 def main() -> None:

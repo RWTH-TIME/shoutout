@@ -10,6 +10,7 @@ out/
 
 ### dotenv ###
 .env
+huggingface.token
 .garage-creds.env
 .smoke-*.txt
 .smoke-debug.txt

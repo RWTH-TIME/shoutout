@@ -36,7 +36,13 @@ class DashboardClient:
         response = self._client.post(
             f"{self._base}/api/worker/jobs/claim",
             headers=self._headers(),
-            json={"models": models, "info": info},
+            # The dashboard ends its long poll before our client timeout, so it never
+            # claims a job for a request we have already abandoned.
+            json={
+                "models": models,
+                "info": info,
+                "waitMs": ConfigEntry.CLAIM_TIMEOUT_SECONDS * 1000,
+            },
             timeout=ConfigEntry.CLAIM_TIMEOUT_SECONDS + 5,
         )
         response.raise_for_status()

@@ -6,10 +6,13 @@ import {
   updateWorkerPresence,
 } from "../../../../services/workerService";
 import { prisma } from "../../../../lib/prisma";
+import config from "../../../../lib/config";
 
 const schema = z.object({
   models: z.array(z.string().min(1)).optional(),
   info: z.record(z.unknown()).optional(),
+  // How long the worker waits for this response; the poll must end before it.
+  waitMs: z.number().int().positive().optional(),
 });
 
 export const POST = async (request: NextRequest) => {
@@ -27,7 +30,16 @@ export const POST = async (request: NextRequest) => {
   const models = body.models ?? worker.models;
   await updateWorkerPresence(auth.workerId, models, body.info);
 
-  const claimed = await claimJob(auth.workerId, models);
+  const timeoutMs = Math.min(
+    config.CLAIM_POLL_MS,
+    body.waitMs ?? config.CLAIM_POLL_MS
+  );
+  const claimed = await claimJob(
+    auth.workerId,
+    models,
+    timeoutMs,
+    request.signal
+  );
   if (!claimed) {
     return NextResponse.json({ job: null }, { status: 200 });
   }
@@ -41,6 +53,7 @@ export const POST = async (request: NextRequest) => {
         model: claimed.job.model,
         participants: claimed.job.participants,
         language: claimed.job.language,
+        claimCount: claimed.job.claimCount,
       },
       files: claimed.files,
       zipUploadUrl: claimed.zipUploadUrl,

@@ -78,6 +78,7 @@ async function claimOnce(workerId: string, models: string[]) {
         workerId,
         claimedAt: new Date(),
         heartbeatAt: new Date(),
+        claimCount: { increment: 1 },
       },
       include: { files: { orderBy: { position: "asc" } } },
     });
@@ -89,12 +90,39 @@ async function claimOnce(workerId: string, models: string[]) {
 export async function claimJob(
   workerId: string,
   models: string[],
-  timeoutMs = config.CLAIM_POLL_MS
+  timeoutMs = config.CLAIM_POLL_MS,
+  signal?: AbortSignal
 ) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
+    // A worker that gave up on this request would never receive the job,
+    // leaving it RUNNING without heartbeats until it goes stale.
+    if (signal?.aborted) {
+      return null;
+    }
     const job = await claimOnce(workerId, models);
     if (job) {
+      console.info(
+        JSON.stringify({
+          event: "job_claimed",
+          jobId: job.id,
+          publicId: job.publicId,
+          workerId,
+          claimCount: job.claimCount,
+          attempts: job.attempts,
+        })
+      );
+      if (job.claimCount > 1) {
+        console.warn(
+          JSON.stringify({
+            event: "job_reclaimed",
+            jobId: job.id,
+            publicId: job.publicId,
+            workerId,
+            claimCount: job.claimCount,
+          })
+        );
+      }
       let files = job.files;
       if (files.length === 0 && job.audioFile) {
         const created = await prisma.jobFile.create({
@@ -148,12 +176,12 @@ export async function claimJob(
 }
 
 export async function heartbeatJob(jobId: number, workerId: string) {
-  const job = await prisma.job.findUnique({ where: { id: jobId } });
-  if (!job || job.workerId !== workerId) {
-    throw new Error("Job not found");
-  }
-  return prisma.job.update({
-    where: { id: jobId },
+  const result = await prisma.job.updateMany({
+    where: { id: jobId, workerId, status: Status.RUNNING },
     data: { heartbeatAt: new Date() },
   });
+  if (result.count === 0) {
+    throw new Error("Job not found");
+  }
+  return result;
 }

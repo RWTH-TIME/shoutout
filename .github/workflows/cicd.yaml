@@ -69,6 +69,11 @@ jobs:
       - name: Flake8
         run: flake8 shoutout_worker
 
+      - name: Worker tests
+        run: |
+          pip install pytest pandas numpy httpx pydantic-settings
+          PYTHONPATH=. python -m pytest tests -q
+
       - name: Validate packaging metadata
         run: python -c "import tomllib; tomllib.load(open('pyproject.toml','rb'))"
 

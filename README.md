@@ -312,4 +312,8 @@ docker compose -f docker-compose.e2e.yml up -d --build dashboard worker
 | `HUGGINGFACE_TOKEN` | empty | Token for pyannote; without it transcripts are single-speaker |
 | `DIARIZATION_MODEL` | `pyannote/speaker-diarization-community-1` | Diarization pipeline to load |
 | `CONCURRENCY` | `1` | Parallel jobs per process |
+| `WHISPER_CONDITION_ON_PREVIOUS_TEXT` | `false` | Feed the previous 30 s window back as prompt. `true` is Whisper's default but causes repetition loops and lost punctuation |
+| `WHISPER_TEMPERATURES` | `0.0,0.2,0.4,0.6` | Decoding fallback temperatures. Higher values (Whisper's default goes to `1.0`) produce invented, multilingual text |
+| `WHISPER_HALLUCINATION_SILENCE_THRESHOLD` | `2.0` | Skip text Whisper produces over silences longer than this many seconds; `0` disables |
+| `WHISPER_INITIAL_PROMPT` | empty | Style prompt for each section. Empty uses a short punctuated German/English prompt, `none` disables |
 | `HF_HOME` | `/var/cache/shoutout-worker` | Model cache |

@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import config from "../lib/config";
 
-const statuses = ["PENDING", "RUNNING", "FINISHED", "FAILED"] as const;
+const statuses = ["PENDING", "RUNNING", "FINISHED", "FAILED", "CANCELLED"] as const;
 
 type Sample = {
   labels: Record<string, string>;
@@ -19,6 +19,12 @@ type JobContentRow = {
   language: string | null;
   visibility: string;
   _count: { _all: number };
+};
+
+type ClaimStatsRow = {
+  reclaimed: number;
+  max_claims: number;
+  reclaimed_active: number;
 };
 
 type FileContentRow = {
@@ -111,6 +117,10 @@ export async function renderMetrics(): Promise<string> {
     workers,
     activeKeys,
     revokedKeys,
+    notificationRows,
+    notificationLastRows,
+    claimStats,
+    oldestRunning,
   ] = await Promise.all([
     prisma.job.groupBy({
       by: ["status"],
@@ -152,12 +162,52 @@ export async function renderMetrics(): Promise<string> {
     }),
     prisma.apiKey.count({ where: { revokedAt: null } }),
     prisma.apiKey.count({ where: { revokedAt: { not: null } } }),
+    prisma.notification.groupBy({
+      by: ["kind", "status"],
+      _count: { _all: true },
+    }),
+    prisma.notification.groupBy({
+      by: ["kind", "status"],
+      _max: { createdAt: true },
+    }),
+    prisma.$queryRaw<ClaimStatsRow[]>`
+      SELECT COUNT(*) FILTER (WHERE "claimCount" > 1)::int AS reclaimed,
+             COALESCE(MAX("claimCount"), 0)::int AS max_claims,
+             COUNT(*) FILTER (
+               WHERE "claimCount" > 1 AND "status" IN ('PENDING', 'RUNNING')
+             )::int AS reclaimed_active
+      FROM "job"
+    `,
+    prisma.job.aggregate({
+      where: { status: "RUNNING" },
+      _min: { claimedAt: true },
+    }),
   ]);
 
   const oldestCreatedAt = oldestPending._min.createdAt;
   const oldestSeconds = oldestCreatedAt
     ? Math.max(0, Math.floor((Date.now() - oldestCreatedAt.getTime()) / 1000))
     : 0;
+
+  const oldestClaimedAt = oldestRunning._min.claimedAt;
+  const oldestRunningSeconds = oldestClaimedAt
+    ? Math.max(0, Math.floor((Date.now() - oldestClaimedAt.getTime()) / 1000))
+    : 0;
+  const claims = claimStats[0] ?? {
+    reclaimed: 0,
+    max_claims: 0,
+    reclaimed_active: 0,
+  };
+  const notificationSamples = notificationRows.map((row) => ({
+    labels: { kind: row.kind, status: row.status },
+    value: row._count._all,
+  }));
+  const notificationLastSamples = notificationLastRows
+    .filter((row) => row._max.createdAt)
+    .map((row) => ({
+      labels: { kind: row.kind, status: row.status },
+      value: Math.floor((row._max.createdAt as Date).getTime() / 1000),
+    }));
 
   const onlineWorkers = workers.filter(
     (worker) => worker.lastSeenAt.getTime() >= staleBefore.getTime()
@@ -233,6 +283,34 @@ export async function renderMetrics(): Promise<string> {
       "shoutout_stale_jobs",
       "Running jobs whose worker heartbeat is missing or older than the claim timeout.",
       [{ labels: {}, value: staleJobs }]
+    ),
+    metric(
+      "shoutout_running_oldest_seconds",
+      "Age of the oldest running claim. Alert if far above the longest expected job.",
+      [{ labels: {}, value: oldestRunningSeconds }]
+    ),
+    metric(
+      "shoutout_jobs_reclaimed",
+      "Jobs claimed more than once (stale heartbeat or worker restart).",
+      [
+        { labels: { scope: "all" }, value: Number(claims.reclaimed) },
+        { labels: { scope: "active" }, value: Number(claims.reclaimed_active) },
+      ]
+    ),
+    metric(
+      "shoutout_job_claims_max",
+      "Highest number of claims of a single job. Should stay at 1 or 2.",
+      [{ labels: {}, value: Number(claims.max_claims) }]
+    ),
+    metric(
+      "shoutout_notifications",
+      "Notification mails by kind and status (SENT, FAILED, SKIPPED, PENDING).",
+      notificationSamples
+    ),
+    metric(
+      "shoutout_notification_last_unixtime",
+      "Unix time of the latest notification by kind and status.",
+      notificationLastSamples
     ),
     metric("shoutout_jobs", "Jobs by status.", countsByStatus(statusRows)),
     metric(

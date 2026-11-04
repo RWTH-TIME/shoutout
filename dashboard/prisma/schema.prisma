@@ -8,29 +8,31 @@ datasource db {
 }
 
 model job {
-  id            Int        @id @default(autoincrement())
-  publicId      String     @unique @default(uuid()) @db.Uuid
-  owner         String     @db.Uuid
-  name          String     @unique
+  id            Int            @id @default(autoincrement())
+  publicId      String         @unique @default(uuid()) @db.Uuid
+  owner         String         @db.Uuid
+  name          String         @unique
   audioFile     String?
   participants  Int?
   language      String?
   model         String
   notifyEmail   String?
-  notifyEnabled Boolean    @default(true)
-  visibility    Visibility @default(PRIVATE)
+  notifyEnabled Boolean        @default(true)
+  visibility    Visibility     @default(PRIVATE)
   expiresAt     DateTime?
-  status        Status     @default(PENDING)
+  status        Status         @default(PENDING)
   workerId      String?
   claimedAt     DateTime?
   heartbeatAt   DateTime?
   error         String?
-  attempts      Int        @default(0)
-  resultToken   String?    @unique
+  attempts      Int            @default(0)
+  claimCount    Int            @default(0)
+  resultToken   String?        @unique
   resultZipKey  String?
-  createdAt     DateTime   @default(now())
-  worker        worker?    @relation(fields: [workerId], references: [id])
+  createdAt     DateTime       @default(now())
+  worker        worker?        @relation(fields: [workerId], references: [id])
   files         jobFile[]
+  notifications notification[]
 
   @@index([owner, createdAt])
   @@index([status, createdAt])
@@ -55,11 +57,34 @@ model jobFile {
   @@index([jobId])
 }
 
+model notification {
+  id        String             @id @default(uuid()) @db.Uuid
+  // One row per job, event and claim; the unique key stops duplicate mails.
+  dedupeKey String             @unique
+  jobId     Int?
+  kind      String
+  status    NotificationStatus
+  recipient String?
+  error     String?
+  createdAt DateTime           @default(now())
+  job       job?               @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([jobId])
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model userSettings {
-  owner           String  @id @db.Uuid
-  notifyEmail     String?
-  notifyOnFinish  Boolean @default(true)
-  notifyOnFail    Boolean @default(false)
+  owner          String  @id @db.Uuid
+  notifyEmail    String?
+  notifyOnFinish Boolean @default(true)
+  notifyOnFail   Boolean @default(false)
 }
 
 model worker {

@@ -194,6 +194,33 @@ curl -u "$LISTMONK_USERNAME:$ADMIN_PASSWORD" \
   "$LISTMONK_URL/api/templates"
 ```
 
+Every notification attempt is recorded in the `notification` table: one row per job and kind, with status `SENT`, `FAILED`, `SKIPPED` (with the reason) or `PENDING`. A unique key per job and kind means a job can never send more than one "finished" or one "failed" mail, however often a worker reports it. To see which mails went out:
+
+```sql
+SELECT n."createdAt", n.kind, n.status, n.recipient, n.error, j.name
+FROM notification n LEFT JOIN job j ON j.id = n."jobId"
+ORDER BY n."createdAt" DESC LIMIT 50;
+```
+
+The dashboard also logs one JSON line per attempt (`notification_sent`, `notification_failed`, `notification_skipped`, `notification_duplicate_suppressed`, with masked recipient) and `job_claimed` / `job_reclaimed` for every claim.
+
+## Monitoring
+
+`GET /api/metrics` serves Prometheus metrics (local collectors only). Useful alerts:
+
+| Metric | Alert when |
+| --- | --- |
+| `shoutout_job_claims_max` | above 2: a job is handed out again and again |
+| `shoutout_jobs_reclaimed{scope="active"}` | above 0 for longer than a few minutes |
+| `shoutout_stale_jobs` | above 0: a running job lost its worker heartbeat |
+| `shoutout_running_oldest_seconds` | longer than your longest expected job |
+| `shoutout_queue_oldest_seconds` | jobs wait too long for a worker |
+| `shoutout_notifications{status="FAILED"}` | increases: Listmonk rejects or is unreachable |
+| `shoutout_notification_last_unixtime` | time of the latest notification per kind and status |
+| `shoutout_workers_online` | 0 |
+
+Workers log `Claimed job <id> (<name>), claim #<n>, <k> active` for every claim. A claim number above 1 means the job had been handed out before. Idle long-polls are no longer logged at INFO.
+
 ## NixOS
 
 ### Dashboard host
@@ -311,5 +338,9 @@ docker compose -f docker-compose.e2e.yml up -d --build dashboard worker
 | `WHISPER_MODELS` | `tiny` | Comma-separated models this worker offers |
 | `HUGGINGFACE_TOKEN` | empty | Token for pyannote; without it transcripts are single-speaker |
 | `DIARIZATION_MODEL` | `pyannote/speaker-diarization-community-1` | Diarization pipeline to load |
-| `CONCURRENCY` | `1` | Parallel jobs per process |
+| `CONCURRENCY` | `1` | Parallel jobs per process (minimum 1). Keep `1` per GPU: a worker only claims a new job when a slot is free, and Whisper/pyannote calls are serialised anyway |
+| `WHISPER_CONDITION_ON_PREVIOUS_TEXT` | `false` | Feed the previous 30 s window back as prompt. `true` is Whisper's default but causes repetition loops and lost punctuation |
+| `WHISPER_TEMPERATURES` | `0.0,0.2,0.4,0.6` | Decoding fallback temperatures. Higher values (Whisper's default goes to `1.0`) produce invented, multilingual text |
+| `WHISPER_HALLUCINATION_SILENCE_THRESHOLD` | `2.0` | Skip text Whisper produces over silences longer than this many seconds; `0` disables |
+| `WHISPER_INITIAL_PROMPT` | empty | Style prompt for each section. Empty uses a short punctuated German/English prompt, `none` disables |
 | `HF_HOME` | `/var/cache/shoutout-worker` | Model cache |

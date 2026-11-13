@@ -14,7 +14,7 @@
         "@aws-sdk/client-s3": "^3.1159.0",
         "@aws-sdk/lib-storage": "^3.1159.0",
         "@aws-sdk/s3-request-presigner": "^3.1159.0",
-        "@helpwave/hightide": "^0.18.0",
+        "@helpwave/hightide": "^0.19.0",
         "@modelcontextprotocol/sdk": "^1.32.2",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -44,7 +44,7 @@
         "eslint-config-next": "^16.4.3",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-prettier": "^5.5.7",
-        "prettier": "^3.9.10",
+        "prettier": "^3.10.1",
         "tailwindcss": "^4.3.3",
         "typescript": "^5.9.3"
     }

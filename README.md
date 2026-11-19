@@ -41,6 +41,8 @@ The local Compose worker bakes in `tiny`. CI publishes `ghcr.io/rwth-time/shouto
 
 - **Jobs as projects** — multiple files live in one job; each file gets its own transcript preview and playback
 - **Speaker-aware transcripts** — Whisper plus optional pyannote diarization with timestamps
+- **Meeting recording** — record another tab or window plus your microphone in the browser, stream chunks to the server as a live job, then transcribe
+- **Installable PWA** — install shoutout on the desktop or home screen; unfinished recordings can be recovered after a crash or offline period
 - **Web UI** — create jobs, watch status, preview results, share links, and manage mailing preferences when mail is enabled
 - **Workers over HTTPS** — GPU or CPU workers claim work from the dashboard; they never need database credentials
 - **Automation** — per-user API keys for REST and MCP
@@ -124,6 +126,24 @@ docker compose up -d keycloak-postgres keycloak
 5. Under **Settings**, configure theme, language, and API keys. Mailing options appear there when `MAIL_ENABLED=true`.
 
 Jobs expire after `JOB_EXPIRATION_DAYS` (default 14). Set `0` for no expiration.
+
+## Recording meetings
+
+The dashboard is an installable PWA. Use **Record** in the sidebar to capture a meeting in another tab or window together with your microphone.
+
+1. Choose meeting audio and/or microphone, model, language, and speakers.
+2. Start recording — a job appears with status **Recording**. Chunks upload continuously to object storage (also buffered in IndexedDB for crash/offline recovery).
+3. **Stop & transcribe** joins the chunks, flips the job to **Pending**, and a worker runs the normal pipeline.
+
+### Browser support
+
+| Capture | Chrome / Edge | Firefox | Safari |
+|---------|---------------|---------|--------|
+| Tab audio | Yes (enable “Share tab audio”) | No | No |
+| Window / screen audio | OS-dependent (Windows, ChromeOS; recent Chrome on macOS) | No | No |
+| Microphone | Yes | Yes | Yes |
+
+Prefer Chromium and share the meeting **tab** with tab audio enabled. Firefox and Safari can record the microphone only. Stale recordings older than `RECORDING_STALE_MS` (default 6h) are finished or deleted by the cleanup script.
 
 ## API and MCP
 

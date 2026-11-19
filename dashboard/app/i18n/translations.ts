@@ -58,6 +58,34 @@ export type AppTranslationEntries = {
   statusFinished: string;
   statusFailed: string;
   statusCancelled: string;
+  statusRecording: string;
+  recordMeeting: string;
+  recordMeetingTitle: string;
+  recordMeetingDescription: string;
+  recordSourceMeeting: string;
+  recordSourceMic: string;
+  recordMicDevice: string;
+  recordStart: string;
+  recordStopTranscribe: string;
+  recordDiscard: string;
+  recordMuteMic: string;
+  recordUnmuteMic: string;
+  recordPendingUploads: (values: { count: number }) => string;
+  recordSupportNotice: string;
+  recordSupportLimited: string;
+  recordSelectShareAudio: string;
+  recordNeedSource: string;
+  recordUnsupported: string;
+  alertRecordingStarted: string;
+  alertRecordingFinished: string;
+  alertRecordingFailed: string;
+  alertRecordingDiscarded: string;
+  recoveryTitle: string;
+  recoveryDescription: (values: { name: string }) => string;
+  recoveryUpload: string;
+  recoveryDiscard: string;
+  alertRecoveryDone: string;
+  alertRecoveryFailed: string;
   alertJobCreated: string;
   alertCreateFailed: string;
   alertDuplicateFiles: (values: { names: string }) => string;
@@ -217,6 +245,40 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     statusFinished: "Finished",
     statusFailed: "Failed",
     statusCancelled: "Cancelled",
+    statusRecording: "Recording",
+    recordMeeting: "Record",
+    recordMeetingTitle: "Record a meeting",
+    recordMeetingDescription:
+      "Capture tab or window audio together with your microphone, then send it for transcription.",
+    recordSourceMeeting: "Meeting audio (tab or window)",
+    recordSourceMic: "Microphone",
+    recordMicDevice: "Microphone device",
+    recordStart: "Start recording",
+    recordStopTranscribe: "Stop & transcribe",
+    recordDiscard: "Discard",
+    recordMuteMic: "Mute mic",
+    recordUnmuteMic: "Unmute mic",
+    recordPendingUploads: ({ count }) =>
+      count === 1 ? "1 chunk uploading" : `${count} chunks uploading`,
+    recordSupportNotice:
+      "Tab audio works in Chromium. Window or screen audio depends on your OS. Share the meeting tab and enable “Share tab audio”.",
+    recordSupportLimited:
+      "This browser can only record the microphone. Use Chrome or Edge to capture meeting audio from another tab.",
+    recordSelectShareAudio:
+      "No audio came from the shared surface. Share a Chrome tab and tick “Share tab audio”.",
+    recordNeedSource: "Enable meeting audio and/or the microphone.",
+    recordUnsupported: "Recording is not supported in this browser.",
+    alertRecordingStarted: "Recording started",
+    alertRecordingFinished: "Recording uploaded — transcription queued",
+    alertRecordingFailed: "Recording failed",
+    alertRecordingDiscarded: "Recording discarded",
+    recoveryTitle: "Unfinished recording",
+    recoveryDescription: ({ name }) =>
+      `“${name}” was interrupted. Upload the buffered audio and transcribe, or discard it.`,
+    recoveryUpload: "Upload & transcribe",
+    recoveryDiscard: "Discard",
+    alertRecoveryDone: "Recording recovered and queued",
+    alertRecoveryFailed: "Could not recover recording",
     alertJobCreated: "Job created",
     alertCreateFailed: "Could not create job",
     alertDuplicateFiles: ({ names }) =>
@@ -387,6 +449,42 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     statusFinished: "Fertig",
     statusFailed: "Fehlgeschlagen",
     statusCancelled: "Abgebrochen",
+    statusRecording: "Aufnahme",
+    recordMeeting: "Aufnehmen",
+    recordMeetingTitle: "Meeting aufnehmen",
+    recordMeetingDescription:
+      "Nimm Tab- oder Fenster-Audio zusammen mit deinem Mikrofon auf und sende es zur Transkription.",
+    recordSourceMeeting: "Meeting-Audio (Tab oder Fenster)",
+    recordSourceMic: "Mikrofon",
+    recordMicDevice: "Mikrofon-Gerät",
+    recordStart: "Aufnahme starten",
+    recordStopTranscribe: "Stoppen & transkribieren",
+    recordDiscard: "Verwerfen",
+    recordMuteMic: "Mikro stumm",
+    recordUnmuteMic: "Mikro an",
+    recordPendingUploads: ({ count }) =>
+      count === 1
+        ? "1 Chunk wird hochgeladen"
+        : `${count} Chunks werden hochgeladen`,
+    recordSupportNotice:
+      "Tab-Audio funktioniert in Chromium. Fenster- oder Bildschirm-Audio hängt vom Betriebssystem ab. Teile den Meeting-Tab und aktiviere „Tab-Audio teilen“.",
+    recordSupportLimited:
+      "Dieser Browser kann nur das Mikrofon aufnehmen. Nutze Chrome oder Edge, um Meeting-Audio aus einem anderen Tab zu erfassen.",
+    recordSelectShareAudio:
+      "Die geteilte Quelle hatte kein Audio. Teile einen Chrome-Tab und aktiviere „Tab-Audio teilen“.",
+    recordNeedSource: "Aktiviere Meeting-Audio und/oder das Mikrofon.",
+    recordUnsupported: "Aufnahme wird in diesem Browser nicht unterstützt.",
+    alertRecordingStarted: "Aufnahme gestartet",
+    alertRecordingFinished: "Aufnahme hochgeladen — Transkription in der Warteschlange",
+    alertRecordingFailed: "Aufnahme fehlgeschlagen",
+    alertRecordingDiscarded: "Aufnahme verworfen",
+    recoveryTitle: "Unvollständige Aufnahme",
+    recoveryDescription: ({ name }) =>
+      `„${name}“ wurde unterbrochen. Lade das gepufferte Audio hoch und transkribiere, oder verwirf es.`,
+    recoveryUpload: "Hochladen & transkribieren",
+    recoveryDiscard: "Verwerfen",
+    alertRecoveryDone: "Aufnahme wiederhergestellt und eingereiht",
+    alertRecoveryFailed: "Aufnahme konnte nicht wiederhergestellt werden",
     alertJobCreated: "Job erstellt",
     alertCreateFailed: "Job konnte nicht erstellt werden",
     alertDuplicateFiles: ({ names }) =>

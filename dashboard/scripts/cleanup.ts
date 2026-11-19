@@ -4,13 +4,16 @@ import {
   deleteObjects,
   jobResultZipKey,
   listObjectKeys,
+  recordingChunkPrefix,
   resultObjectKey,
   uploadObjectKey,
 } from "../app/lib/storage";
 import config from "../app/lib/config";
+import { abandonStaleRecordings } from "../app/services/recordingService";
 
 async function main(): Promise<void> {
   const now = new Date();
+  const abandoned = await abandonStaleRecordings();
 
   const staleJobs = await prisma.job.findMany({
     where: {
@@ -45,6 +48,7 @@ async function main(): Promise<void> {
     }
     const prefix = `${config.DOWNLOAD_FILE_TARGET_DIR}${job.publicId}/`;
     keys.push(...(await listObjectKeys(prefix)));
+    keys.push(...(await listObjectKeys(recordingChunkPrefix(job.publicId))));
     await deleteObjects(Array.from(new Set(keys)));
     await prisma.job.delete({ where: { id: job.id } });
   }
@@ -74,6 +78,14 @@ async function main(): Promise<void> {
     } else if (job.status === Status.FINISHED) {
       referenced.add(jobResultZipKey(job.publicId));
     }
+    if (job.status === Status.RECORDING) {
+      const chunkKeys = await listObjectKeys(
+        recordingChunkPrefix(job.publicId)
+      );
+      for (const key of chunkKeys) {
+        referenced.add(key);
+      }
+    }
   }
 
   const prefixes = [
@@ -92,7 +104,7 @@ async function main(): Promise<void> {
 
   await deleteObjects(orphanKeys);
   console.log(
-    `Cleanup finished: removed ${staleJobs.length} jobs and ${orphanKeys.length} orphan objects`
+    `Cleanup finished: abandoned ${abandoned.finished} stale recordings (finished) and ${abandoned.deleted} (deleted); removed ${staleJobs.length} jobs and ${orphanKeys.length} orphan objects`
   );
 }
 

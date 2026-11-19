@@ -13,6 +13,7 @@ export const STATUS_COLORS: Record<STATUS, StatusColor> = {
   [STATUS.Finished]: "positive",
   [STATUS.Failed]: "negative",
   [STATUS.Cancelled]: "neutral",
+  [STATUS.Recording]: "primary",
 };
 
 export function getStatusColor(status: string): StatusColor {
@@ -21,9 +22,14 @@ export function getStatusColor(status: string): StatusColor {
   if (status === STATUS.Running) return STATUS_COLORS[STATUS.Running];
   if (status === STATUS.Pending) return STATUS_COLORS[STATUS.Pending];
   if (status === STATUS.Cancelled) return STATUS_COLORS[STATUS.Cancelled];
+  if (status === STATUS.Recording) return STATUS_COLORS[STATUS.Recording];
   return "neutral";
 }
 
 export function isActiveStatus(status: string): boolean {
-  return status === STATUS.Pending || status === STATUS.Running;
+  return (
+    status === STATUS.Pending ||
+    status === STATUS.Running ||
+    status === STATUS.Recording
+  );
 }

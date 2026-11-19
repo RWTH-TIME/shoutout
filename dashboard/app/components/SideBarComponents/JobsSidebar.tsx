@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@helpwave/hightide";
-import { Plus } from "lucide-react";
+import { Mic, Plus } from "lucide-react";
 import { Job } from "../../types/types";
 import useJobs from "../../hooks/useJob";
 import useAppTranslation from "../../hooks/useAppTranslation";
+import { useRecording } from "../../hooks/useRecording";
 import CreateJobModal from "./CreateJobModal";
 import JobList from "./JobList";
 
@@ -15,13 +16,51 @@ type JobsSidebarProps = {
   renderAsShellParts?: boolean;
 };
 
+function SidebarActions({
+  onAddJob,
+}: {
+  onAddJob: () => void;
+}) {
+  const translation = useAppTranslation();
+  const { setDialogOpen, status, supportsRecorder } = useRecording();
+  const recordingActive =
+    status.state === "recording" || status.state === "stopping";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        color="primary"
+        className="w-full"
+        onClick={onAddJob}
+        disabled={recordingActive}
+      >
+        <span className="inline-flex items-center justify-center gap-2">
+          <Plus className="size-4 shrink-0" aria-hidden />
+          {translation("addJob")}
+        </span>
+      </Button>
+      <Button
+        coloringStyle="tonal"
+        color="primary"
+        className="w-full"
+        onClick={() => setDialogOpen(true)}
+        disabled={!supportsRecorder || recordingActive}
+      >
+        <span className="inline-flex items-center justify-center gap-2">
+          <Mic className="size-4 shrink-0" aria-hidden />
+          {translation("recordMeeting")}
+        </span>
+      </Button>
+    </div>
+  );
+}
+
 export default function JobsSidebar({
   selectedJobPublicId,
   onSelectJob,
   renderAsShellParts = false,
 }: JobsSidebarProps) {
   const { jobs } = useJobs();
-  const translation = useAppTranslation();
   const [createOpen, setCreateOpen] = useState(false);
 
   const list = (
@@ -34,16 +73,7 @@ export default function JobsSidebar({
 
   const footer = (
     <div className="shrink-0 border-t border-divider p-4">
-      <Button
-        color="primary"
-        className="w-full"
-        onClick={() => setCreateOpen(true)}
-      >
-        <span className="inline-flex items-center justify-center gap-2">
-          <Plus className="size-4 shrink-0" aria-hidden />
-          {translation("addJob")}
-        </span>
-      </Button>
+      <SidebarActions onAddJob={() => setCreateOpen(true)} />
     </div>
   );
 
@@ -82,21 +112,11 @@ export function JobsSidebarList({
 }
 
 export function JobsSidebarAddButton() {
-  const translation = useAppTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   return (
     <>
       <div className="p-1">
-        <Button
-          color="primary"
-          className="w-full"
-          onClick={() => setCreateOpen(true)}
-        >
-          <span className="inline-flex items-center justify-center gap-2">
-            <Plus className="size-4 shrink-0" aria-hidden />
-            {translation("addJob")}
-          </span>
-        </Button>
+        <SidebarActions onAddJob={() => setCreateOpen(true)} />
       </div>
       <CreateJobModal isOpen={createOpen} setOpen={setCreateOpen} />
     </>

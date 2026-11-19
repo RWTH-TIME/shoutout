@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { HightideConfigUtils, HightideProvider } from "@helpwave/hightide";
 import { AlertProvider } from "../context/AlertContext";
+import { RecordingProvider } from "../context/RecordingContext";
 import { appTranslation } from "../i18n/translations";
 import AlertPopup from "./utils/Alert";
 import HtmlLangSync from "./HtmlLangSync";
@@ -28,8 +29,10 @@ export default function SessionWrapper({ children }: Props) {
       >
         <HtmlLangSync />
         <AlertProvider>
-          <AlertPopup />
-          {children}
+          <RecordingProvider>
+            <AlertPopup />
+            {children}
+          </RecordingProvider>
         </AlertProvider>
       </HightideProvider>
     </SessionProvider>

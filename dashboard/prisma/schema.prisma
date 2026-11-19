@@ -117,6 +117,7 @@ enum Status {
   FAILED
   RUNNING
   CANCELLED
+  RECORDING
 }
 
 enum Visibility {

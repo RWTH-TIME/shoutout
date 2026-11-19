@@ -1,7 +1,14 @@
 import { prisma } from "../lib/prisma";
 import config from "../lib/config";
 
-const statuses = ["PENDING", "RUNNING", "FINISHED", "FAILED", "CANCELLED"] as const;
+const statuses = [
+  "PENDING",
+  "RUNNING",
+  "FINISHED",
+  "FAILED",
+  "CANCELLED",
+  "RECORDING",
+] as const;
 
 type Sample = {
   labels: Record<string, string>;

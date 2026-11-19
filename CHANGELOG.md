@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Browser meeting recorder** — capture tab/window audio plus your microphone from the PWA, create a live `RECORDING` job, upload chunks continuously, then queue transcription on stop
+- **Installable PWA** — web app manifest, icons, and a minimal service worker with IndexedDB buffering for crash/offline recovery of unfinished recordings
+
 ## [2.0.0] - 2026-10-29
 
 ### Added

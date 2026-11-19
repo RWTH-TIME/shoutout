@@ -7,7 +7,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { Readable } from "node:stream";
+import { PassThrough, Readable } from "node:stream";
 import config from "./config";
 
 function createClient(endpoint: string): S3Client {
@@ -51,6 +51,18 @@ export function jobFileTextKey(publicId: string, fileId: string): string {
 
 export function jobFileJsonKey(publicId: string, fileId: string): string {
   return `${config.DOWNLOAD_FILE_TARGET_DIR}${publicId}/${fileId}.json`;
+}
+
+export function recordingChunkPrefix(publicId: string): string {
+  return `${config.UPLOAD_FILE_TARGET_DIR}recordings/${publicId}/`;
+}
+
+export function recordingChunkKey(
+  publicId: string,
+  sequence: number
+): string {
+  const padded = sequence.toString().padStart(8, "0");
+  return `${recordingChunkPrefix(publicId)}${padded}.part`;
 }
 
 export async function presignUpload(fileName: string): Promise<string> {
@@ -132,6 +144,61 @@ export async function uploadStream(
     },
   });
   await upload.done();
+}
+
+async function readableFromObjectBody(
+  body: unknown
+): Promise<Readable> {
+  if (!body) {
+    throw new Error("Empty object body");
+  }
+  if (body instanceof Readable) {
+    return body;
+  }
+  if (typeof (body as { transformToByteArray?: unknown }).transformToByteArray === "function") {
+    const bytes = await (
+      body as { transformToByteArray: () => Promise<Uint8Array> }
+    ).transformToByteArray();
+    return Readable.from(Buffer.from(bytes));
+  }
+  throw new Error("Unsupported object body type");
+}
+
+export async function concatObjects(
+  keys: string[],
+  targetKey: string,
+  contentType?: string
+): Promise<void> {
+  if (keys.length === 0) {
+    throw new Error("No objects to concatenate");
+  }
+
+  const passThrough = new PassThrough();
+  const uploadPromise = uploadStream(targetKey, passThrough, contentType);
+
+  try {
+    for (const key of keys) {
+      const response = await internalClient.send(
+        new GetObjectCommand({
+          Bucket: config.S3_BUCKET,
+          Key: key,
+        })
+      );
+      const source = await readableFromObjectBody(response.Body);
+      await new Promise<void>((resolve, reject) => {
+        source.on("error", reject);
+        source.on("end", () => resolve());
+        source.pipe(passThrough, { end: false });
+      });
+    }
+    passThrough.end();
+    await uploadPromise;
+  } catch (error) {
+    passThrough.destroy(
+      error instanceof Error ? error : new Error(String(error))
+    );
+    throw error;
+  }
 }
 
 export async function deleteObjects(keys: string[]): Promise<void> {

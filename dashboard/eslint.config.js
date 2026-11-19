@@ -18,7 +18,7 @@ export default [
   },
 
   {
-    ignores: [".next/**", "node_modules/**", "**/*.d.ts", "scripts/**"],
+    ignores: [".next/**", "node_modules/**", "**/*.d.ts", "scripts/**", "public/sw.js"],
   },
   {
     files: ["next.config.js"],

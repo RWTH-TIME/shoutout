@@ -13,6 +13,7 @@ import {
   jobResultZipKey,
   listObjectKeys,
   presignDownload,
+  recordingChunkPrefix,
   resultObjectKey,
   uploadObjectKey,
 } from "../lib/storage";
@@ -39,6 +40,7 @@ export type CreateJobInput = {
   notifyEnabled?: boolean;
   owner: string;
   files: CreateJobFileInput[];
+  status?: Status;
 };
 
 export type JobWithFiles = job & { files: jobFile[] };
@@ -117,6 +119,8 @@ export async function createJob(input: CreateJobInput) {
   );
   const mail = resolveMail(input);
 
+  const status = input.status ?? Status.PENDING;
+
   return prisma.job.create({
     data: {
       name: input.name,
@@ -128,6 +132,8 @@ export async function createJob(input: CreateJobInput) {
       notifyEmail: mail.notifyEmail,
       notifyEnabled: mail.notifyEnabled,
       expiresAt: computeExpiresAt(),
+      status,
+      heartbeatAt: status === Status.RECORDING ? new Date() : undefined,
       files: {
         create: input.files.map((file, index) => ({
           position: index,
@@ -258,6 +264,9 @@ async function collectJobObjectKeys(jobRecord: JobWithFiles): Promise<string[]> 
     const prefix = `${config.DOWNLOAD_FILE_TARGET_DIR}${jobRecord.publicId}/`;
     keys.push(...(await listObjectKeys(prefix)));
   }
+  if (jobRecord.publicId) {
+    keys.push(...(await listObjectKeys(recordingChunkPrefix(jobRecord.publicId))));
+  }
   return Array.from(new Set(keys));
 }
 
@@ -297,7 +306,11 @@ export async function stopJobByPublicId(publicId: string, owner: string) {
   if (job.owner !== owner) {
     throw new Error("Forbidden");
   }
-  if (job.status !== Status.PENDING && job.status !== Status.RUNNING) {
+  if (
+    job.status !== Status.PENDING &&
+    job.status !== Status.RUNNING &&
+    job.status !== Status.RECORDING
+  ) {
     throw new Error("Job is not running");
   }
 

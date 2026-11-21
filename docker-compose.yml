@@ -84,7 +84,7 @@ services:
       - shoutout-db-data:/var/lib/postgresql/data
 
   garage:
-    image: dxflrs/garage:v2.0.0
+    image: dxflrs/garage:v2.5.0
     restart: always
     volumes:
       - ./conf/garage.toml:/etc/garage.toml:ro
@@ -122,7 +122,7 @@ services:
       POSTGRES_PASSWORD: "password"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.1
+    image: quay.io/keycloak/keycloak:26.8.2
     environment:
       KC_DB: "postgres"
       KC_DB_URL: "jdbc:postgresql://keycloak-postgres:5432/keycloak"

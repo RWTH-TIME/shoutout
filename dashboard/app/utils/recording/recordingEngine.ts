@@ -1,6 +1,10 @@
 import { createAudioMixer, type AudioMixer } from "./audioMixer";
-import { stopStream } from "./captureSources";
-import { ChunkUploader, type ChunkUploaderStatus } from "./chunkUploader";
+import { audioOnlyStream, stopStream } from "./captureSources";
+import {
+  ChunkUploadError,
+  ChunkUploader,
+  type ChunkUploaderStatus,
+} from "./chunkUploader";
 import {
   extensionForMimeType,
   pickRecorderMimeType,
@@ -13,11 +17,16 @@ import {
   putSession,
   type RecordingSession,
 } from "./recordingStore";
+import {
+  acquireRecordingLock,
+  tryPeekRecordingLock,
+  type RecordingLockHandle,
+} from "./sessionLock";
 
 export const DISPLAY_SOURCE_ID = "display";
 export const MIC_SOURCE_ID = "mic";
 
-const TIMESLICE_MS = 5000;
+const TIMESLICE_MS = 1000;
 
 export type RecordingEngineStatus = {
   state: "idle" | "recording" | "stopping" | "error";
@@ -67,6 +76,7 @@ export class RecordingEngine {
   private stopPromise: Promise<StopResult> | null = null;
   private autoFinishOnTrackEnd = true;
   private dataAvailableChain: Promise<void> = Promise.resolve();
+  private lockHandle: RecordingLockHandle | null = null;
 
   subscribe(listener: StatusListener): () => void {
     this.listeners.add(listener);
@@ -105,6 +115,12 @@ export class RecordingEngine {
       throw new Error("At least one audio source is required");
     }
 
+    const lock = await acquireRecordingLock(options.publicId);
+    if (!lock) {
+      throw new Error("Recording is already active in another tab");
+    }
+    this.lockHandle = lock;
+
     this.publicId = options.publicId;
     this.jobName = options.jobName;
     this.mimeType = mimeType;
@@ -117,21 +133,36 @@ export class RecordingEngine {
     this.micMuted = false;
     this.autoFinishOnTrackEnd = true;
 
-    const inputs = [
-      ...(options.displayStream
-        ? [{ id: DISPLAY_SOURCE_ID, stream: options.displayStream }]
-        : []),
-      ...(options.micStream
-        ? [{ id: MIC_SOURCE_ID, stream: options.micStream }]
-        : []),
-    ];
-    this.mixer = createAudioMixer(inputs);
+    const mixerInputs: Array<{ id: string; stream: MediaStream }> = [];
+    if (options.displayStream?.getAudioTracks().length) {
+      mixerInputs.push({
+        id: DISPLAY_SOURCE_ID,
+        stream: audioOnlyStream(options.displayStream),
+      });
+    }
+    if (options.micStream) {
+      mixerInputs.push({ id: MIC_SOURCE_ID, stream: options.micStream });
+    }
+    if (mixerInputs.length === 0) {
+      this.releaseLock();
+      throw new Error("At least one audio source is required");
+    }
+
+    this.mixer = createAudioMixer(mixerInputs);
+    if (this.mixer.context.state === "suspended") {
+      await this.mixer.context.resume();
+    }
 
     this.uploader = new ChunkUploader({
       publicId: options.publicId,
       onStatusChange: (status: ChunkUploaderStatus) => {
         this.pendingUploads = status.pendingCount;
-        if (status.lastError) {
+        if (status.fatalError) {
+          this.error = status.fatalError.message;
+          if (this.state === "recording") {
+            this.state = "error";
+          }
+        } else if (status.lastError) {
           this.error = status.lastError;
         }
         this.emit();
@@ -156,6 +187,9 @@ export class RecordingEngine {
         .catch((error) => {
           this.error =
             error instanceof Error ? error.message : "Chunk handling failed";
+          if (error instanceof ChunkUploadError && !error.retryable) {
+            this.state = "error";
+          }
           this.emit();
         });
     };
@@ -212,6 +246,7 @@ export class RecordingEngine {
       throw new Error(body.error ?? "Could not finish recording");
     }
     await deleteSession(this.publicId);
+    this.releaseLock();
     this.resetLocal();
   }
 
@@ -226,15 +261,28 @@ export class RecordingEngine {
       () => undefined
     );
     await deleteSession(publicId);
+    this.releaseLock();
     this.resetLocal();
   }
 
-  static async listRecoverableSessions(): Promise<RecordingSession[]> {
+  static async listRecoverableSessions(
+    activePublicId?: string | null
+  ): Promise<RecordingSession[]> {
     const sessions = await listSessions();
-    return sessions.filter(
+    const candidates = sessions.filter(
       (session) =>
-        session.state === "recording" || session.state === "finishing"
+        (session.state === "recording" || session.state === "finishing") &&
+        session.publicId !== activePublicId
     );
+
+    const recoverable: RecordingSession[] = [];
+    for (const session of candidates) {
+      const heldElsewhere = await tryPeekRecordingLock(session.publicId);
+      if (!heldElsewhere) {
+        recoverable.push(session);
+      }
+    }
+    return recoverable;
   }
 
   static async recoverAndFinish(publicId: string): Promise<void> {
@@ -243,39 +291,48 @@ export class RecordingEngine {
       throw new Error("Session not found");
     }
 
-    await putSession({ ...session, state: "finishing" });
-
-    const uploader = new ChunkUploader({ publicId });
-    await uploader.hydrate();
-    await uploader.drain();
-    uploader.dispose();
-
-    const pending = await listPendingChunks(publicId);
-    if (pending.length > 0) {
-      throw new Error("Some recording chunks could not be uploaded");
+    const lock = await acquireRecordingLock(publicId);
+    if (!lock) {
+      throw new Error("Recording is already active in another tab");
     }
 
-    const chunkCount = session.nextSequence;
-    if (chunkCount <= 0) {
-      throw new Error("No recording chunks to finish");
-    }
+    try {
+      await putSession({ ...session, state: "finishing" });
 
-    const response = await fetch(`/api/jobs/${publicId}/recording/finish`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        chunkCount,
-        durationSeconds: Math.max(0, (Date.now() - session.startedAt) / 1000),
-      }),
-    });
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      throw new Error(body.error ?? "Could not finish recording");
+      const uploader = new ChunkUploader({ publicId });
+      await uploader.hydrate();
+      await uploader.drain();
+      uploader.dispose();
+
+      const pending = await listPendingChunks(publicId);
+      if (pending.length > 0) {
+        throw new Error("Some recording chunks could not be uploaded");
+      }
+
+      const chunkCount = session.nextSequence;
+      if (chunkCount <= 0) {
+        throw new Error("No recording chunks to finish");
+      }
+
+      const response = await fetch(`/api/jobs/${publicId}/recording/finish`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          chunkCount,
+          durationSeconds: Math.max(0, (Date.now() - session.startedAt) / 1000),
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error ?? "Could not finish recording");
+      }
+      await deleteSession(publicId);
+    } finally {
+      lock.release();
     }
-    await deleteSession(publicId);
   }
 
   static async discardSession(publicId: string): Promise<void> {
@@ -313,7 +370,24 @@ export class RecordingEngine {
     }
 
     if (waitForUploads && this.uploader) {
-      await this.uploader.drain();
+      try {
+        await this.uploader.drain();
+      } catch (error) {
+        stopStream(this.displayStream);
+        stopStream(this.micStream);
+        this.mixer?.dispose();
+        this.uploader?.dispose();
+        this.recorder = null;
+        this.mixer = null;
+        this.uploader = null;
+        this.displayStream = null;
+        this.micStream = null;
+        this.state = "error";
+        this.error =
+          error instanceof Error ? error.message : "Upload failed";
+        this.emit();
+        throw error;
+      }
     }
 
     stopStream(this.displayStream);
@@ -347,9 +421,15 @@ export class RecordingEngine {
     };
   }
 
+  private releaseLock(): void {
+    this.lockHandle?.release();
+    this.lockHandle = null;
+  }
+
   private resetLocal(): void {
     this.clearElapsedTimer();
     this.detachTrackEndedHandlers();
+    this.releaseLock();
     this.publicId = null;
     this.jobName = null;
     this.mimeType = "";
@@ -364,6 +444,9 @@ export class RecordingEngine {
 
   private async handleDataAvailable(data: Blob): Promise<void> {
     if (!this.publicId || !data || data.size === 0 || !this.uploader) {
+      return;
+    }
+    if (this.uploader.getStatus().fatalError) {
       return;
     }
     const sequence = this.nextSequence;
@@ -407,10 +490,13 @@ export class RecordingEngine {
         });
     };
 
-    for (const stream of [this.displayStream, this.micStream]) {
-      if (!stream) {
-        continue;
-      }
+    const watchedStreams = this.displayStream
+      ? [this.displayStream]
+      : this.micStream
+        ? [this.micStream]
+        : [];
+
+    for (const stream of watchedStreams) {
       for (const track of stream.getTracks()) {
         const handler = () => onEnded();
         track.addEventListener("ended", handler);

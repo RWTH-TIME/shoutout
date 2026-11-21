@@ -55,7 +55,9 @@ export default function JobDetailClient({
     {
       fallbackData: { job: initialJob, canManage: initialCanManage },
       refreshInterval: (current) =>
-        current?.job?.status === "PENDING" || current?.job?.status === "RUNNING"
+        current?.job?.status === "PENDING" ||
+        current?.job?.status === "RUNNING" ||
+        current?.job?.status === "RECORDING"
           ? 4000
           : 0,
     }

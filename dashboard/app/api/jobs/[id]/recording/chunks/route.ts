@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticate } from "../../../../../lib/auth";
 import { presignRecordingChunk } from "../../../../../services/recordingService";
+import { recordingErrorResponse } from "../../../../../utils/recording/recordingErrors";
 
 const chunkSchema = z.object({
   sequence: z.number().int().nonnegative(),
@@ -17,10 +18,9 @@ export const POST = async (request: NextRequest, context: RouteContext) => {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: publicId } = await context.params;
-  const body = chunkSchema.parse(await request.json());
-
   try {
+    const { id: publicId } = await context.params;
+    const body = chunkSchema.parse(await request.json());
     const result = await presignRecordingChunk(
       publicId,
       auth.owner,
@@ -28,13 +28,6 @@ export const POST = async (request: NextRequest, context: RouteContext) => {
     );
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed";
-    const status =
-      message === "Forbidden"
-        ? 403
-        : message === "Job not found"
-          ? 404
-          : 400;
-    return NextResponse.json({ error: message }, { status });
+    return recordingErrorResponse(error);
   }
 };

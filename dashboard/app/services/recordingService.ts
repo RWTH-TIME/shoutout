@@ -5,6 +5,7 @@ import {
   concatObjects,
   deleteObjects,
   listObjectKeys,
+  objectExists,
   presignUpload,
   recordingChunkKey,
   recordingChunkPrefix,
@@ -124,13 +125,20 @@ export async function finishRecording(
   if (job.owner !== owner) {
     throw new Error("Forbidden");
   }
-  if (job.status !== Status.RECORDING) {
-    throw new Error("Job is not recording");
-  }
 
   const primary = job.files[0];
   if (!primary) {
     throw new Error("Recording has no audio file");
+  }
+
+  if (job.status !== Status.RECORDING) {
+    if (job.status === Status.PENDING || job.status === Status.RUNNING) {
+      const exists = await objectExists(uploadObjectKey(primary.audioFile));
+      if (exists) {
+        return job;
+      }
+    }
+    throw new Error("Job is not recording");
   }
 
   const prefix = recordingChunkPrefix(publicId);
@@ -179,6 +187,14 @@ export async function finishRecording(
     },
   });
   if (transition.count === 0) {
+    const refreshed = await getJobByPublicId(publicId);
+    if (
+      refreshed &&
+      (refreshed.status === Status.PENDING ||
+        refreshed.status === Status.RUNNING)
+    ) {
+      return refreshed;
+    }
     throw new Error("Job is not recording");
   }
 

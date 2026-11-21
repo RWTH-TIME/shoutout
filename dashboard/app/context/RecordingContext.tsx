@@ -29,6 +29,7 @@ import {
   supportsMediaRecorder,
 } from "../utils/recording/mediaSupport";
 import type { Job } from "../types/types";
+import RecoveryPrompt from "../components/recording/RecoveryPrompt";
 
 export type StartRecordingInput = {
   name: string;
@@ -120,11 +121,14 @@ export function RecordingProvider({
       setBusy(true);
       let displayStream: MediaStream | null = null;
       let micStream: MediaStream | null = null;
+      let displayHasAudio = false;
 
       try {
         if (input.includeDisplay) {
           try {
-            displayStream = await captureDisplayAudio();
+            const capture = await captureDisplayAudio();
+            displayStream = capture.stream;
+            displayHasAudio = capture.hasAudio;
           } catch (error) {
             if (error instanceof DisplayAudioUnavailableError) {
               throw new Error(translation("recordSelectShareAudio"));
@@ -135,6 +139,16 @@ export function RecordingProvider({
         if (input.includeMic) {
           micStream = await captureMicrophone(input.micDeviceId);
         }
+
+        if (displayStream && !displayHasAudio && !micStream) {
+          stopStream(displayStream);
+          displayStream = null;
+          throw new Error(translation("recordSelectShareAudio"));
+        }
+
+        const usedMicFallback = Boolean(
+          displayStream && !displayHasAudio && micStream
+        );
 
         const mimeType = pickRecorderMimeType();
         const extension = extensionForMimeType(mimeType);
@@ -180,7 +194,11 @@ export function RecordingProvider({
         );
         await refreshJobs();
         setDialogOpen(false);
-        setAlert(translation("alertRecordingStarted"), "success");
+        if (usedMicFallback) {
+          setAlert(translation("recordDisplayAudioFallback"), "warning");
+        } else {
+          setAlert(translation("alertRecordingStarted"), "success");
+        }
         router.push(`/job/${job.publicId}`);
       } catch (error) {
         stopStream(displayStream);
@@ -277,6 +295,10 @@ export function RecordingProvider({
   return (
     <RecordingContext.Provider value={value}>
       {children}
+      <RecoveryPrompt
+        activePublicId={status.publicId}
+        engineIdle={status.state === "idle"}
+      />
     </RecordingContext.Provider>
   );
 }

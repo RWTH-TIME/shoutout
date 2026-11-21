@@ -327,6 +327,32 @@ docker compose -f docker-compose.e2e.yml up -d --build dashboard worker
 ./scripts/e2e-test.sh
 ```
 
+### Recording Playwright tests
+
+Browser recording e2e lives in `dashboard/e2e`. It stubs `getDisplayMedia` / mic streams, mints a NextAuth session cookie (no Keycloak), and exercises start → chunk upload → stop, recovery after reload, source fallbacks, and API contracts.
+
+```sh
+docker compose -f docker-compose.smoke.yml up -d postgres garage
+COMPOSE_FILE=docker-compose.smoke.yml ./scripts/garage-bootstrap.sh
+set -a && . ./.garage-creds.env && set +a
+
+cd dashboard
+npm ci
+npx prisma migrate deploy
+npx prisma generate
+# On NixOS, enter `nix develop` first so Prisma engines resolve.
+S3_ENDPOINT=http://localhost:3900 S3_REGION=garage node scripts/set-garage-cors.mjs
+NEXTAUTH_SECRET=e2e-recording-secret NEXTAUTH_URL=http://127.0.0.1:3010 \
+  S3_ENDPOINT=http://localhost:3900 S3_PUBLIC_ENDPOINT=http://localhost:3900 \
+  S3_WORKER_ENDPOINT=http://localhost:3900 MAIL_ENABLED=false \
+  npm run build
+
+# Optional: system Chromium on NixOS
+export PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="${PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:-$(command -v chromium)}"
+npx playwright install chromium   # or use system Chromium only
+npm run test:e2e
+```
+
 ## Environment variables
 
 ### Dashboard

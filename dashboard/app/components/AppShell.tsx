@@ -8,7 +8,6 @@ import useAppTranslation from "../hooks/useAppTranslation";
 import WaveformLogo from "./WaveformLogo";
 import RecordingBar from "./recording/RecordingBar";
 import RecordingDialog from "./recording/RecordingDialog";
-import RecoveryPrompt from "./recording/RecoveryPrompt";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -131,7 +130,6 @@ export default function AppShell({
       {children}
       <RecordingDialog />
       <RecordingBar />
-      <RecoveryPrompt />
     </AppPage>
   );
 }

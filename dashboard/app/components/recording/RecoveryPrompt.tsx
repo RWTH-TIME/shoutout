@@ -8,7 +8,15 @@ import useAlert from "../../hooks/useAlert";
 import { RecordingEngine } from "../../utils/recording/recordingEngine";
 import type { RecordingSession } from "../../utils/recording/recordingStore";
 
-export default function RecoveryPrompt() {
+type RecoveryPromptProps = {
+  activePublicId?: string | null;
+  engineIdle?: boolean;
+};
+
+export default function RecoveryPrompt({
+  activePublicId = null,
+  engineIdle = true,
+}: RecoveryPromptProps) {
   const translation = useAppTranslation();
   const { setAlert } = useAlert();
   const { mutate } = useSWRConfig();
@@ -16,8 +24,13 @@ export default function RecoveryPrompt() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (!engineIdle) {
+      setSession(null);
+      return;
+    }
+
     let cancelled = false;
-    RecordingEngine.listRecoverableSessions()
+    RecordingEngine.listRecoverableSessions(activePublicId)
       .then((sessions) => {
         if (!cancelled && sessions[0]) {
           setSession(sessions[0]);
@@ -27,9 +40,9 @@ export default function RecoveryPrompt() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activePublicId, engineIdle]);
 
-  if (!session) {
+  if (!session || !engineIdle) {
     return null;
   }
 

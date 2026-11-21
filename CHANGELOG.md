@@ -9,8 +9,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- **Browser meeting recorder** — capture tab/window audio plus your microphone from the PWA, create a live `RECORDING` job, upload chunks continuously, then queue transcription on stop
+- **Browser meeting recorder** — capture tab, window, or entire-screen audio plus your microphone from the PWA, create a live `RECORDING` job, upload chunks continuously, then queue transcription on stop
 - **Installable PWA** — web app manifest, icons, and a minimal service worker with IndexedDB buffering for crash/offline recovery of unfinished recordings
+- **Recording Playwright e2e suite** — lifecycle, source variants, recovery, error handling, and API contract tests under `dashboard/e2e`
+
+### Fixed
+
+- **False “interrupted” recovery dialog** while a recording is still live in the same or another tab (Web Lock ownership + single RecoveryPrompt under the recording provider)
+- **Stop & transcribe hanging forever** when `/recording/chunks` returned a permanent error (typed non-retryable upload errors and bounded drain)
+- **400 Bad Request on `/recording/chunks`** mapped permanent “not recording” to **409** with `JOB_NOT_RECORDING`; validation errors stay 400; finish is idempotent when already queued
+- **Window / screen share without system audio** falls back to microphone instead of failing hard
 
 ## [2.0.0] - 2026-10-29
 

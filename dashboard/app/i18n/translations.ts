@@ -74,8 +74,11 @@ export type AppTranslationEntries = {
   recordSupportNotice: string;
   recordSupportLimited: string;
   recordSelectShareAudio: string;
+  recordDisplayAudioFallback: string;
   recordNeedSource: string;
   recordUnsupported: string;
+  recordStopConfirmTitle: string;
+  recordStopConfirmDescription: (values: { name: string }) => string;
   alertRecordingStarted: string;
   alertRecordingFinished: string;
   alertRecordingFailed: string;
@@ -249,8 +252,8 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     recordMeeting: "Record",
     recordMeetingTitle: "Record a meeting",
     recordMeetingDescription:
-      "Capture tab or window audio together with your microphone, then send it for transcription.",
-    recordSourceMeeting: "Meeting audio (tab or window)",
+      "Capture a tab, window, or entire screen together with your microphone, then send it for transcription.",
+    recordSourceMeeting: "Meeting audio (tab, window, or screen)",
     recordSourceMic: "Microphone",
     recordMicDevice: "Microphone device",
     recordStart: "Start recording",
@@ -261,13 +264,18 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     recordPendingUploads: ({ count }) =>
       count === 1 ? "1 chunk uploading" : `${count} chunks uploading`,
     recordSupportNotice:
-      "Tab audio works in Chromium. Window or screen audio depends on your OS. Share the meeting tab and enable “Share tab audio”.",
+      "In Chromium you can share a tab (with “Share tab audio”), a window, or the entire screen. Window and screen audio are only available on some platforms — keep the microphone enabled as a fallback.",
     recordSupportLimited:
       "This browser can only record the microphone. Use Chrome or Edge to capture meeting audio from another tab.",
     recordSelectShareAudio:
-      "No audio came from the shared surface. Share a Chrome tab and tick “Share tab audio”.",
+      "No audio came from the shared surface. Share a Chrome tab and tick “Share tab audio”, or enable the microphone.",
+    recordDisplayAudioFallback:
+      "The shared surface had no audio. Continuing with the microphone only.",
     recordNeedSource: "Enable meeting audio and/or the microphone.",
     recordUnsupported: "Recording is not supported in this browser.",
+    recordStopConfirmTitle: "Stop recording?",
+    recordStopConfirmDescription: ({ name }) =>
+      `Stop “${name}” and send the audio for transcription?`,
     alertRecordingStarted: "Recording started",
     alertRecordingFinished: "Recording uploaded — transcription queued",
     alertRecordingFailed: "Recording failed",
@@ -453,8 +461,8 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
     recordMeeting: "Aufnehmen",
     recordMeetingTitle: "Meeting aufnehmen",
     recordMeetingDescription:
-      "Nimm Tab- oder Fenster-Audio zusammen mit deinem Mikrofon auf und sende es zur Transkription.",
-    recordSourceMeeting: "Meeting-Audio (Tab oder Fenster)",
+      "Nimm einen Tab, ein Fenster oder den gesamten Bildschirm zusammen mit dem Mikrofon auf und sende es zur Transkription.",
+    recordSourceMeeting: "Meeting-Audio (Tab, Fenster oder Bildschirm)",
     recordSourceMic: "Mikrofon",
     recordMicDevice: "Mikrofon-Gerät",
     recordStart: "Aufnahme starten",
@@ -467,13 +475,18 @@ export const appTranslation: Translation<AppLocale, AppTranslationEntries> = {
         ? "1 Chunk wird hochgeladen"
         : `${count} Chunks werden hochgeladen`,
     recordSupportNotice:
-      "Tab-Audio funktioniert in Chromium. Fenster- oder Bildschirm-Audio hängt vom Betriebssystem ab. Teile den Meeting-Tab und aktiviere „Tab-Audio teilen“.",
+      "In Chromium kannst du einen Tab (mit „Tab-Audio teilen“), ein Fenster oder den gesamten Bildschirm teilen. Fenster- und Bildschirm-Audio gibt es nur auf manchen Plattformen — lass das Mikrofon als Fallback aktiviert.",
     recordSupportLimited:
       "Dieser Browser kann nur das Mikrofon aufnehmen. Nutze Chrome oder Edge, um Meeting-Audio aus einem anderen Tab zu erfassen.",
     recordSelectShareAudio:
-      "Die geteilte Quelle hatte kein Audio. Teile einen Chrome-Tab und aktiviere „Tab-Audio teilen“.",
+      "Die geteilte Quelle hatte kein Audio. Teile einen Chrome-Tab und aktiviere „Tab-Audio teilen“, oder aktiviere das Mikrofon.",
+    recordDisplayAudioFallback:
+      "Die geteilte Quelle hatte kein Audio. Die Aufnahme läuft nur mit dem Mikrofon weiter.",
     recordNeedSource: "Aktiviere Meeting-Audio und/oder das Mikrofon.",
     recordUnsupported: "Aufnahme wird in diesem Browser nicht unterstützt.",
+    recordStopConfirmTitle: "Aufnahme stoppen?",
+    recordStopConfirmDescription: ({ name }) =>
+      `„${name}“ stoppen und das Audio zur Transkription senden?`,
     alertRecordingStarted: "Aufnahme gestartet",
     alertRecordingFinished: "Aufnahme hochgeladen — Transkription in der Warteschlange",
     alertRecordingFailed: "Aufnahme fehlgeschlagen",

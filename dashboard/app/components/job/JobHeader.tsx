@@ -8,6 +8,8 @@ import useAppTranslation from "../../hooks/useAppTranslation";
 import { useFeatures } from "../../context/FeaturesContext";
 import useAlert from "../../hooks/useAlert";
 import useJobs from "../../hooks/useJob";
+import { useRecording } from "../../hooks/useRecording";
+import { RecordingEngine } from "../../utils/recording/recordingEngine";
 import StatusChip from "../StatusChip";
 import VisibilityIcon from "./VisibilityIcon";
 import ShareDialog from "./ShareDialog";
@@ -30,6 +32,11 @@ export default function JobHeader({
   const { mailEnabled } = useFeatures();
   const { setAlert } = useAlert();
   const { deleteJob, stopJob, updateJob } = useJobs();
+  const {
+    status: recordingStatus,
+    stopAndTranscribe,
+    busy: recordingBusy,
+  } = useRecording();
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -38,7 +45,16 @@ export default function JobHeader({
   const [shareOpen, setShareOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
-  const isStoppable = job.status === "PENDING" || job.status === "RUNNING";
+  const isLiveRecording =
+    job.status === "RECORDING" &&
+    recordingStatus.publicId === job.publicId &&
+    (recordingStatus.state === "recording" ||
+      recordingStatus.state === "stopping" ||
+      recordingStatus.state === "error");
+  const isStoppable =
+    job.status === "PENDING" ||
+    job.status === "RUNNING" ||
+    job.status === "RECORDING";
 
   async function onDownload() {
     if (job.status !== "FINISHED" || !job.publicId) {
@@ -77,19 +93,37 @@ export default function JobHeader({
   }
 
   async function onStopConfirm() {
-    if (stopLoading) {
+    if (stopLoading || recordingBusy) {
       return;
     }
     setStopLoading(true);
-    const stopped = await stopJob(job);
-    if (stopped) {
-      setAlert(translation("alertJobStopped"), "success");
-      setStopConfirmOpen(false);
-      onUpdated?.(stopped);
-    } else {
+    try {
+      if (job.status === "RECORDING") {
+        if (isLiveRecording) {
+          await stopAndTranscribe();
+          setStopConfirmOpen(false);
+          return;
+        }
+        await RecordingEngine.discardSession(job.publicId);
+        setAlert(translation("alertRecordingDiscarded"), "success");
+        setStopConfirmOpen(false);
+        onDeleted?.();
+        return;
+      }
+
+      const stopped = await stopJob(job);
+      if (stopped) {
+        setAlert(translation("alertJobStopped"), "success");
+        setStopConfirmOpen(false);
+        onUpdated?.(stopped);
+      } else {
+        setAlert(translation("alertStopFailed"), "error");
+      }
+    } catch {
       setAlert(translation("alertStopFailed"), "error");
+    } finally {
+      setStopLoading(false);
     }
-    setStopLoading(false);
   }
 
   async function onToggleNotify(checked: boolean) {
@@ -159,12 +193,14 @@ export default function JobHeader({
                 <Button
                   color="negative"
                   coloringStyle="outline"
-                  disabled={stopLoading}
+                  disabled={stopLoading || recordingBusy}
                   onClick={() => setStopConfirmOpen(true)}
                 >
                   <span className="inline-flex items-center gap-2">
                     <CircleStop size={16} aria-hidden />
-                    {translation("stop")}
+                    {job.status === "RECORDING"
+                      ? translation("recordStopTranscribe")
+                      : translation("stop")}
                   </span>
                 </Button>
               ) : null}
@@ -229,18 +265,28 @@ export default function JobHeader({
       />
 
       <ConfirmDialog
-        description={translation("stopConfirmDescription", {
-          name: job.name,
-        })}
+        description={
+          job.status === "RECORDING"
+            ? translation("recordStopConfirmDescription", {
+                name: job.name,
+              })
+            : translation("stopConfirmDescription", {
+                name: job.name,
+              })
+        }
         isModal
         isOpen={stopConfirmOpen}
         onCancel={() => {
-          if (!stopLoading) {
+          if (!stopLoading && !recordingBusy) {
             setStopConfirmOpen(false);
           }
         }}
         onConfirm={onStopConfirm}
-        titleElement={translation("stopConfirmTitle")}
+        titleElement={
+          job.status === "RECORDING"
+            ? translation("recordStopConfirmTitle")
+            : translation("stopConfirmTitle")
+        }
         confirmType="negative"
       />
     </>

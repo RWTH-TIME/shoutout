@@ -43,6 +43,10 @@ export function createAudioMixer(
     });
   }
 
+  if (context.state === "suspended") {
+    void context.resume();
+  }
+
   return {
     destination,
     context,

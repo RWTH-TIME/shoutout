@@ -225,10 +225,109 @@ jobs:
           test -f .garage-creds.env || printf 'S3_BUCKET=shoutout-job-bucket\n' > .garage-creds.env
           docker compose -f docker-compose.e2e.yml down -v || true
 
+  e2e-recording:
+    name: Recording Playwright e2e
+    runs-on: ubuntu-latest
+    needs: [quality-dashboard]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dashboard deps
+        working-directory: dashboard
+        run: npm ci && npx prisma generate
+
+      - name: Install Playwright Chromium
+        working-directory: dashboard
+        run: npx playwright install --with-deps chromium
+
+      - name: Start postgres and garage
+        run: |
+          set +x
+          chmod +x scripts/garage-bootstrap.sh
+          printf 'S3_ACCESS_KEY_ID=placeholder\nS3_SECRET_ACCESS_KEY=placeholder\nS3_BUCKET=shoutout-job-bucket\n' > .garage-creds.env
+          docker compose -f docker-compose.smoke.yml up -d postgres garage
+          COMPOSE_FILE=docker-compose.smoke.yml ./scripts/garage-bootstrap.sh
+          grep -q '^S3_ACCESS_KEY_ID=GK' .garage-creds.env
+          set -a && . ./.garage-creds.env && set +a
+          cd dashboard && node scripts/set-garage-cors.mjs
+
+      - name: Migrate database
+        working-directory: dashboard
+        env:
+          DATABASE_URL: postgresql://admin:admin@localhost:5433/postgres?schema=public
+        run: npx prisma migrate deploy
+
+      - name: Build dashboard
+        working-directory: dashboard
+        env:
+          DATABASE_URL: postgresql://admin:admin@localhost:5433/postgres?schema=public
+          S3_ENDPOINT: http://localhost:3900
+          S3_PUBLIC_ENDPOINT: http://localhost:3900
+          S3_WORKER_ENDPOINT: http://localhost:3900
+          S3_REGION: garage
+          NEXTAUTH_SECRET: e2e-recording-secret
+          NEXTAUTH_URL: http://127.0.0.1:3010
+          WORKER_ENROLLMENT_TOKEN: dev-worker-enrollment-token
+          MAIL_ENABLED: "false"
+          OIDC_PROVIDER: http://localhost:8090/realms/main
+          OIDC_INTERNAL_PROVIDER: http://localhost:8090/realms/main
+        run: |
+          set -a
+          # shellcheck disable=SC1091
+          . ../.garage-creds.env
+          set +a
+          npm run build
+
+      - name: Run recording Playwright tests
+        working-directory: dashboard
+        env:
+          DATABASE_URL: postgresql://admin:admin@localhost:5433/postgres?schema=public
+          S3_ENDPOINT: http://localhost:3900
+          S3_PUBLIC_ENDPOINT: http://localhost:3900
+          S3_WORKER_ENDPOINT: http://localhost:3900
+          S3_REGION: garage
+          NEXTAUTH_SECRET: e2e-recording-secret
+          NEXTAUTH_URL: http://127.0.0.1:3010
+          E2E_BASE_URL: http://127.0.0.1:3010
+          E2E_PORT: "3010"
+          WORKER_ENROLLMENT_TOKEN: dev-worker-enrollment-token
+          MAIL_ENABLED: "false"
+          OIDC_PROVIDER: http://localhost:8090/realms/main
+          OIDC_INTERNAL_PROVIDER: http://localhost:8090/realms/main
+        run: |
+          set -a
+          # shellcheck disable=SC1091
+          . ../.garage-creds.env
+          set +a
+          npx playwright test --reporter=list
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-recording-report
+          path: |
+            dashboard/playwright-report
+            dashboard/test-results
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        run: |
+          test -f .garage-creds.env || printf 'S3_BUCKET=shoutout-job-bucket\n' > .garage-creds.env
+          docker compose -f docker-compose.smoke.yml down -v || true
+
   quality-gate:
     name: Quality gate
     runs-on: ubuntu-latest
-    needs: [quality-dashboard, quality-worker, nix, smoke, e2e]
+    needs: [quality-dashboard, quality-worker, nix, smoke, e2e, e2e-recording]
     steps:
       - name: All required checks passed
         run: echo "quality gate green"

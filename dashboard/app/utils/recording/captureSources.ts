@@ -11,7 +11,12 @@ type DisplayAudioConstraints = MediaTrackConstraints & {
   suppressLocalAudioPlayback?: boolean;
 };
 
-export async function captureDisplayAudio(): Promise<MediaStream> {
+export type DisplayCaptureResult = {
+  stream: MediaStream;
+  hasAudio: boolean;
+};
+
+export async function captureDisplayAudio(): Promise<DisplayCaptureResult> {
   const audioConstraints: DisplayAudioConstraints = {
     echoCancellation: false,
     noiseSuppression: false,
@@ -21,7 +26,11 @@ export async function captureDisplayAudio(): Promise<MediaStream> {
   };
 
   const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: true,
+    video: {
+      frameRate: { ideal: 5, max: 15 },
+      width: { ideal: 640 },
+      height: { ideal: 360 },
+    },
     audio: audioConstraints,
     // @ts-expect-error Chromium-only DisplayMediaStreamOptions fields
     systemAudio: "include",
@@ -30,12 +39,9 @@ export async function captureDisplayAudio(): Promise<MediaStream> {
   });
 
   const audioTracks = stream.getAudioTracks();
-  if (audioTracks.length === 0) {
-    stream.getTracks().forEach((track) => track.stop());
-    throw new DisplayAudioUnavailableError();
-  }
+  const hasAudio = audioTracks.length > 0;
 
-  return stream;
+  return { stream, hasAudio };
 }
 
 export async function captureMicrophone(
@@ -75,4 +81,8 @@ export function stopStream(stream: MediaStream | null | undefined): void {
     return;
   }
   stream.getTracks().forEach((track) => track.stop());
+}
+
+export function audioOnlyStream(stream: MediaStream): MediaStream {
+  return new MediaStream(stream.getAudioTracks());
 }

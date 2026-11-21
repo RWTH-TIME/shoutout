@@ -1,6 +1,7 @@
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
   ListObjectsV2Command,
@@ -238,4 +239,37 @@ export async function listObjectKeys(prefix: string): Promise<string[]> {
   } while (continuationToken);
 
   return keys;
+}
+
+export async function objectExists(key: string): Promise<boolean> {
+  try {
+    await internalClient.send(
+      new HeadObjectCommand({
+        Bucket: config.S3_BUCKET,
+        Key: key,
+      })
+    );
+    return true;
+  } catch (error) {
+    const status =
+      typeof error === "object" &&
+      error !== null &&
+      "$metadata" in error &&
+      typeof (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+        ?.httpStatusCode === "number"
+        ? (error as { $metadata: { httpStatusCode: number } }).$metadata
+            .httpStatusCode
+        : undefined;
+    if (status === 404) {
+      return false;
+    }
+    const name =
+      typeof error === "object" && error !== null && "name" in error
+        ? String((error as { name: unknown }).name)
+        : "";
+    if (name === "NotFound" || name === "NoSuchKey") {
+      return false;
+    }
+    throw error;
+  }
 }

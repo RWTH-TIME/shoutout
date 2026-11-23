@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # repetition loops and unpunctuated lowercase output, especially with large-v3.
     WHISPER_CONDITION_ON_PREVIOUS_TEXT: bool = False
     WHISPER_TEMPERATURES: str = "0.0,0.2,0.4,0.6"
-    WHISPER_HALLUCINATION_SILENCE_THRESHOLD: float = 2.0
+    WHISPER_HALLUCINATION_SILENCE_THRESHOLD: float = 0.0
     # Optional prompt override; empty uses a short, well punctuated prompt per language
     # so Whisper keeps punctuation and capitalisation. Set to "none" to disable.
     WHISPER_INITIAL_PROMPT: str = ""

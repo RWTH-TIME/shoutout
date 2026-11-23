@@ -34,6 +34,12 @@ from shoutout_worker.diarization_postprocess import (  # noqa: E402
     remove_overlaps,
 )
 
+SAMPLE_RATE = 16000
+MAX_CHUNK_SECONDS = 30.0
+MIN_UNCOVERED_GAP = 1.5
+CHUNK_PAD_SECONDS = 0.2
+PROMPT_TAIL_CHARS = 200
+
 
 class TranscriptionManager:
     def __init__(self) -> None:
@@ -160,16 +166,15 @@ class TranscriptionManager:
         gibberish or as a translation.
         """
         assert self._whisper is not None
-        sample_rate = 16000
-        window = 30 * sample_rate
+        window = 30 * SAMPLE_RATE
         longest = sections.assign(Length=sections.End - sections.Start).sort_values(
             "Length", ascending=False
         )
         scores: dict[str, float] = {}
         for row in longest.head(5).itertuples(index=False):
-            start_idx = int(row.Start * sample_rate)
+            start_idx = int(row.Start * SAMPLE_RATE)
             chunk = audio[start_idx : start_idx + window]
-            if len(chunk) < sample_rate:
+            if len(chunk) < SAMPLE_RATE:
                 continue
             mel = whisper.log_mel_spectrogram(
                 whisper.pad_or_trim(chunk), self._whisper.dims.n_mels
@@ -183,34 +188,105 @@ class TranscriptionManager:
         logging.info("Detected language %s for whole file", detected)
         return detected
 
-    def _transcribe_chunk(self, chunk: np.ndarray, language: str | None) -> str:
+    def _transcribe_chunk(
+        self,
+        chunk: np.ndarray,
+        language: str | None,
+        *,
+        initial_prompt: str | None = None,
+        disable_hallucination_guard: bool = False,
+    ) -> tuple[str, list[dict]]:
         assert self._whisper is not None
-        prompt = ConfigEntry.initial_prompt(language)
+        prompt = (
+            initial_prompt
+            if initial_prompt is not None
+            else ConfigEntry.initial_prompt(language)
+        )
+        if disable_hallucination_guard:
+            hall_threshold: float | None = None
+        else:
+            hall_threshold = ConfigEntry.WHISPER_HALLUCINATION_SILENCE_THRESHOLD or None
         result = self._whisper.transcribe(
             chunk,
             language=language,
-            # Defaults of whisper.transcribe let one bad 30 s window poison every following
-            # window of the section (repetition loops, lost punctuation/casing) and fall
-            # back to temperature 1.0 sampling, which produces multilingual gibberish.
             condition_on_previous_text=ConfigEntry.WHISPER_CONDITION_ON_PREVIOUS_TEXT,
             temperature=ConfigEntry.temperatures,
             compression_ratio_threshold=2.4,
             logprob_threshold=-1.0,
             no_speech_threshold=0.6,
-            # Only steers the first window of a section (style: punctuation and casing);
-            # not carried to later windows so it cannot leak into silent stretches.
             initial_prompt=prompt,
-            # Skip text Whisper invents over silent stretches (sections are padded to
-            # the end of the previous speaker turn, so they often start with silence).
-            word_timestamps=ConfigEntry.WHISPER_HALLUCINATION_SILENCE_THRESHOLD > 0,
-            hallucination_silence_threshold=(
-                ConfigEntry.WHISPER_HALLUCINATION_SILENCE_THRESHOLD or None
-            ),
+            word_timestamps=True,
+            hallucination_silence_threshold=hall_threshold,
             fp16=self._device.type == "cuda",
         )
-        if "segments" not in result:
-            return str(result.get("text", "")).strip()
-        return join_segments(result["segments"])
+        raw_segments = list(result.get("segments") or [])
+        if raw_segments:
+            return join_segments(raw_segments), raw_segments
+        return str(result.get("text", "")).strip(), []
+
+    def _slice_audio(
+        self, audio: np.ndarray, start: float, end: float
+    ) -> tuple[np.ndarray, float]:
+        audio_start = max(start - CHUNK_PAD_SECONDS, 0.0)
+        audio_end = end + CHUNK_PAD_SECONDS
+        start_idx = int(audio_start * SAMPLE_RATE)
+        end_idx = int(audio_end * SAMPLE_RATE)
+        return audio[start_idx:end_idx], audio_start
+
+    def _transcribe_section(
+        self,
+        audio: np.ndarray,
+        language: str | None,
+        section_start: float,
+        section_end: float,
+        turns: list[tuple[float, float]],
+    ) -> str:
+        speech_turns = turns or [(section_start, section_end)]
+        sub_spans = split_spans(speech_turns, MAX_CHUNK_SECONDS)
+        pieces: list[tuple[float, str]] = []
+        covered: list[tuple[float, float]] = []
+        previous_text = ""
+
+        for span_start, span_end in sub_spans:
+            chunk, audio_start = self._slice_audio(audio, span_start, span_end)
+            if not len(chunk):
+                continue
+            prompt = prompt_tail(previous_text) or ConfigEntry.initial_prompt(language)
+            text, raw_segments = self._transcribe_chunk(
+                chunk, language, initial_prompt=prompt
+            )
+            if text:
+                pieces.append((span_start, text))
+                previous_text = text
+            span_coverage = coverage_from_segments(raw_segments, audio_start)
+            if text and not span_coverage:
+                span_coverage = [(span_start, span_end)]
+            covered.extend(span_coverage)
+
+        uncovered = find_uncovered_spans(speech_turns, covered, MIN_UNCOVERED_GAP)
+        if uncovered:
+            logging.info(
+                "Recovering %d uncovered span(s) totaling %.1fs of diarized speech",
+                len(uncovered),
+                sum(end - start for start, end in uncovered),
+            )
+        for gap_start, gap_end in uncovered:
+            chunk, _audio_start = self._slice_audio(audio, gap_start, gap_end)
+            if not len(chunk):
+                continue
+            prompt = prompt_tail(previous_text) or ConfigEntry.initial_prompt(language)
+            text, _raw = self._transcribe_chunk(
+                chunk,
+                language,
+                initial_prompt=prompt,
+                disable_hallucination_guard=True,
+            )
+            if text:
+                pieces.append((gap_start, text))
+                previous_text = text
+
+        pieces.sort(key=lambda item: item[0])
+        return " ".join(text for _start, text in pieces if text).strip()
 
     def transcribe(
         self,
@@ -246,12 +322,12 @@ class TranscriptionManager:
         started = time.perf_counter()
         filtered = df[df.Duration > 0.8].copy()
         cleaned = remove_overlaps(filtered)
-        sections = create_section_table(aggregate_section(cleaned[cleaned.Duration > 0.8]))
+        turn_rows = cleaned[cleaned.Duration > 0.8]
+        sections = create_section_table(aggregate_section(turn_rows))
         logging.info("%s: postprocessing %d turns into %d sections took %.3fs",
                      filename, len(df), len(sections), time.perf_counter() - started)
         audio = self._load_audio(wav_path)
-        sample_rate = 16000
-        duration_seconds = float(len(audio)) / float(sample_rate)
+        duration_seconds = float(len(audio)) / float(SAMPLE_RATE)
 
         language = (language or "").strip().lower() or None
         if language is None:
@@ -261,14 +337,12 @@ class TranscriptionManager:
         segments: list[dict] = []
         started = time.perf_counter()
         for index, row in enumerate(sections.itertuples(index=False), 1):
-            start = max(row.Start - 0.2, 0.0)
-            end = row.End + 0.1
-            start_idx = int(start * sample_rate)
-            end_idx = int(end * sample_rate)
-            chunk = audio[start_idx:end_idx]
-            if not len(chunk):
-                continue
-            text = self._transcribe_chunk(chunk, language)
+            turns = turns_overlapping(
+                turn_rows, float(row.Start), float(row.End), str(row.Speaker)
+            )
+            text = self._transcribe_section(
+                audio, language, float(row.Start), float(row.End), turns
+            )
             stamp = time.strftime("%H:%M:%S", time.gmtime(row.Start))
             parts.append(f"{row.Speaker} {stamp}\n{text}\n\n")
             segments.append(
@@ -311,6 +385,128 @@ def join_segments(segments: list[dict]) -> str:
             continue
         texts.append(_collapse_repeats(text))
     return " ".join(texts).strip()
+
+
+def prompt_tail(text: str, max_chars: int = PROMPT_TAIL_CHARS) -> str | None:
+    cleaned = text.strip()
+    if not cleaned:
+        return None
+    if len(cleaned) <= max_chars:
+        return cleaned
+    return cleaned[-max_chars:].lstrip()
+
+
+def turns_overlapping(
+    turns: pd.DataFrame,
+    section_start: float,
+    section_end: float,
+    speaker: str,
+) -> list[tuple[float, float]]:
+    spans: list[tuple[float, float]] = []
+    for row in turns.itertuples(index=False):
+        if str(row.Speaker) != speaker:
+            continue
+        if float(row.End) <= section_start or float(row.Start) >= section_end:
+            continue
+        spans.append(
+            (
+                max(float(row.Start), section_start),
+                min(float(row.End), section_end),
+            )
+        )
+    return spans
+
+
+def split_spans(
+    spans: list[tuple[float, float]], max_seconds: float
+) -> list[tuple[float, float]]:
+    pieces: list[tuple[float, float]] = []
+    for start, end in spans:
+        cursor = start
+        while end - cursor > max_seconds:
+            pieces.append((cursor, cursor + max_seconds))
+            cursor += max_seconds
+        if end > cursor:
+            pieces.append((cursor, end))
+    return pieces
+
+
+def coverage_from_segments(
+    segments: list[dict], offset: float
+) -> list[tuple[float, float]]:
+    intervals: list[tuple[float, float]] = []
+    for segment in segments:
+        words = segment.get("words") or []
+        word_intervals = [
+            (offset + float(word["start"]), offset + float(word["end"]))
+            for word in words
+            if word.get("start") is not None and word.get("end") is not None
+        ]
+        if word_intervals:
+            intervals.extend(word_intervals)
+            continue
+        if segment.get("start") is None or segment.get("end") is None:
+            continue
+        if not str(segment.get("text", "")).strip():
+            continue
+        intervals.append(
+            (offset + float(segment["start"]), offset + float(segment["end"]))
+        )
+    return merge_intervals(intervals)
+
+
+def merge_intervals(
+    intervals: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    if not intervals:
+        return []
+    ordered = sorted(intervals)
+    merged: list[tuple[float, float]] = [ordered[0]]
+    for start, end in ordered[1:]:
+        last_start, last_end = merged[-1]
+        if start <= last_end + 0.05:
+            merged[-1] = (last_start, max(last_end, end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def find_uncovered_spans(
+    turns: list[tuple[float, float]],
+    covered: list[tuple[float, float]],
+    min_gap: float = MIN_UNCOVERED_GAP,
+) -> list[tuple[float, float]]:
+    merged_covered = merge_intervals(covered)
+    gaps: list[tuple[float, float]] = []
+    for turn_start, turn_end in turns:
+        gaps.extend(
+            subtract_interval(turn_start, turn_end, merged_covered, min_gap)
+        )
+    return gaps
+
+
+def subtract_interval(
+    start: float,
+    end: float,
+    covered: list[tuple[float, float]],
+    min_gap: float,
+) -> list[tuple[float, float]]:
+    gaps: list[tuple[float, float]] = []
+    cursor = start
+    for cov_start, cov_end in covered:
+        if cov_end <= cursor:
+            continue
+        if cov_start >= end:
+            break
+        gap_end = min(cov_start, end)
+        if gap_end - cursor >= min_gap:
+            gaps.append((cursor, gap_end))
+        cursor = max(cursor, cov_end)
+        if cursor >= end:
+            break
+    if end - cursor >= min_gap:
+        gaps.append((cursor, end))
+    return gaps
 
 
 def _normalise(text: str) -> str:

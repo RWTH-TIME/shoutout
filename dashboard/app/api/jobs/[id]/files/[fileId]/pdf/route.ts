@@ -5,14 +5,10 @@ import {
   isJobExpired,
 } from "../../../../../../services/accessService";
 import { getJobByPublicId } from "../../../../../../services/jobService";
-import { getObjectText } from "../../../../../../lib/storage";
-import { renderTranscriptPdf } from "../../../../../../lib/pdf/renderTranscriptPdf";
 import {
-  applySpeakerNames,
-  computeSpeakerStats,
-  parseTranscriptPayload,
-  speakerNamesFromJson,
-} from "../../../../../../utils/transcript";
+  pdfResponseHeaders,
+  renderFileTranscriptPdf,
+} from "../../../../../../lib/pdf/renderTranscriptPdf";
 
 export const runtime = "nodejs";
 
@@ -33,38 +29,10 @@ export const GET = async (
   }
 
   try {
-    const raw = await getObjectText(file.resultJsonKey);
-    const payload = JSON.parse(raw) as unknown;
-    const segments = applySpeakerNames(
-      parseTranscriptPayload(payload),
-      speakerNamesFromJson(file.speakerNames)
-    );
-    const stats = computeSpeakerStats(segments);
-
-    const buffer = await renderTranscriptPdf({
-      jobName: job.name,
-      fileName: file.originalName,
-      generatedAt: new Date().toISOString().slice(0, 19).replace("T", " "),
-      stats,
-      segments,
-      labels: {
-        statistics: "Statistics",
-        speakersDetected: "Speakers detected",
-        totalWords: "Total words",
-        totalCharacters: "Total characters",
-        wordsLabel: "words",
-        transcript: "Transcript",
-      },
-    });
-
-    const safeName = file.originalName.replace(/[^\w.-]+/g, "_");
-    return new NextResponse(new Uint8Array(buffer), {
+    const pdf = await renderFileTranscriptPdf(job.name, file);
+    return new NextResponse(new Uint8Array(pdf.buffer), {
       status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${safeName}.pdf"`,
-        "Cache-Control": "no-store",
-      },
+      headers: pdfResponseHeaders(pdf.fileName, "inline"),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed";

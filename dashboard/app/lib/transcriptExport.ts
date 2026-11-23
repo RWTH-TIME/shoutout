@@ -1,6 +1,7 @@
 import type { jobFile } from "@prisma/client";
 import JSZip from "jszip";
 import { getObjectText } from "./storage";
+import type { TranscriptSegment } from "../types/types";
 import {
   applySpeakerNames,
   parseTranscriptPayload,
@@ -14,20 +15,24 @@ function fileBaseName(originalName: string): string {
     : originalName;
 }
 
-export async function renderFileTranscriptText(
+export async function loadFileSegments(
   file: jobFile
-): Promise<string> {
+): Promise<TranscriptSegment[]> {
   if (!file.resultJsonKey) {
     throw new Error("Result not ready");
   }
   const raw = await getObjectText(file.resultJsonKey);
   const payload = JSON.parse(raw) as unknown;
-  const segments = parseTranscriptPayload(payload);
-  const mapped = applySpeakerNames(
-    segments,
+  return applySpeakerNames(
+    parseTranscriptPayload(payload),
     speakerNamesFromJson(file.speakerNames)
   );
-  return renderTranscriptText(mapped);
+}
+
+export async function renderFileTranscriptText(
+  file: jobFile
+): Promise<string> {
+  return renderTranscriptText(await loadFileSegments(file));
 }
 
 export async function renderJobTranscriptZip(

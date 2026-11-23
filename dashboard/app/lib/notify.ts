@@ -1,7 +1,10 @@
-import { Prisma, type job } from "@prisma/client";
+import { Prisma, type job, type jobFile } from "@prisma/client";
 import config from "./config";
 import { prisma } from "./prisma";
+import { loadFileSegments } from "./transcriptExport";
 import type { NotificationSettings } from "../services/userSettingsService";
+import { formatTimestamp } from "../utils/date";
+import { computeSpeakerStats, SPEAKER_PALETTE } from "../utils/transcript";
 
 type NotifyPayload = {
   kind: "finished" | "failed";
@@ -16,8 +19,29 @@ type NotifyPayload = {
     | "owner"
     | "error"
     | "resultToken"
-  >;
+  > & { files: jobFile[] };
   settings: NotificationSettings;
+};
+
+type MailSpeakerStat = {
+  name: string;
+  words: number;
+  percentage: number;
+  color: string;
+};
+
+type MailFileStats = {
+  speakerCount: number;
+  totalWords: number;
+  totalChars: number;
+  speakers: MailSpeakerStat[];
+};
+
+type MailFile = {
+  name: string;
+  duration: string | null;
+  pdfUrl: string | null;
+  stats: MailFileStats | null;
 };
 
 const NOTIFY_TIMEOUT_MS = 10_000;
@@ -116,6 +140,51 @@ async function reserve(
   }
 }
 
+async function buildFileStats(file: jobFile): Promise<MailFileStats | null> {
+  try {
+    const stats = computeSpeakerStats(await loadFileSegments(file));
+    return {
+      speakerCount: stats.speakerCount,
+      totalWords: stats.totalWords,
+      totalChars: stats.totalChars,
+      speakers: stats.perSpeaker.map((item, index) => ({
+        name: item.speaker,
+        words: item.words,
+        percentage: item.percentage,
+        color: SPEAKER_PALETTE[index % SPEAKER_PALETTE.length].hex,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function buildMailFiles(
+  payload: NotifyPayload,
+  baseUrl: string
+): Promise<MailFile[]> {
+  if (payload.kind !== "finished") {
+    return [];
+  }
+  const token: string | null = payload.job.resultToken;
+  const files: jobFile[] = payload.job.files.filter(
+    (file) => file.resultJsonKey
+  );
+  return Promise.all(
+    files.map(async (file): Promise<MailFile> => ({
+      name: file.originalName,
+      duration:
+        file.durationSeconds != null
+          ? formatTimestamp(file.durationSeconds)
+          : null,
+      pdfUrl: token
+        ? `${baseUrl}/api/downloads/${token}/files/${file.id}/pdf`
+        : null,
+      stats: await buildFileStats(file),
+    }))
+  );
+}
+
 async function finish(id: string, status: "SENT" | "FAILED", error?: string) {
   await prisma.notification.update({
     where: { id },
@@ -145,7 +214,7 @@ export async function notifyJobEvent(payload: NotifyPayload): Promise<void> {
     const downloadUrl = payload.job.resultToken
       ? `${baseUrl}/api/downloads/${payload.job.resultToken}`
       : null;
-    const logoUrl = `${baseUrl}/mail-logo.png`;
+    const files: MailFile[] = await buildMailFiles(payload, baseUrl);
     const url = `${config.LISTMONK_URL.replace(/\/$/, "")}/api/tx`;
     const auth = Buffer.from(
       `${config.LISTMONK_USERNAME}:${config.LISTMONK_TOKEN}`
@@ -173,7 +242,7 @@ export async function notifyJobEvent(payload: NotifyPayload): Promise<void> {
             model: payload.job.model,
             jobUrl,
             downloadUrl,
-            logoUrl,
+            files,
             error: payload.job.error ?? null,
           },
         }),

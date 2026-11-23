@@ -202,8 +202,10 @@ Set `LISTMONK_URL`, `LISTMONK_USERNAME`, `LISTMONK_TOKEN`, and `LISTMONK_TEMPLAT
 | `jobName` / `model` | Job name and transcription model |
 | `jobUrl` | Link to the job in the dashboard (requires login) |
 | `downloadUrl` | Direct, token-based link to download the result; `null` for failed jobs |
-| `logoUrl` | Absolute URL to `${NEXTAUTH_URL}/mail-logo.png` |
+| `files` | One entry per finished file (empty for failed jobs): `name`, `duration` (`mm:ss` or `hh:mm:ss`, or `null`), `pdfUrl` (direct, token-based PDF download) and `stats` (`speakerCount`, `totalWords`, `totalChars`, `speakers[]` with `name`, `words`, `percentage`, `color`; `null` if the transcript could not be read) |
 | `error` | Failure message, or `null` |
+
+The demo template is a full HTML mail and embeds the logo as an inline SVG data URI, so it loads no external resources.
 
 [`conf/listmonk-tx-template.json`](conf/listmonk-tx-template.json) is a ready-to-use demo template with those fields, matching `name: "shoutout"` and `type: "tx"`. Import it with:
 

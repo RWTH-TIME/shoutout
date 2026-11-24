@@ -70,6 +70,8 @@ export const POST = async (request: NextRequest) => {
       notifyEmail:
         firstMeta.notifyEmail || fields.notifyEmail || auth.email || undefined,
       owner: auth.owner,
+      onBehalfOf: auth.onBehalfOf,
+      serviceAccountId: auth.serviceAccountId,
       files: fileInputs,
     });
 

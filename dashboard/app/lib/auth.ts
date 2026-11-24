@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { authOptions } from "../api/auth/[...nextauth]/authOptions";
 import { prisma } from "./prisma";
 import config from "./config";
+import { ensureServiceAccounts } from "./serviceAccounts";
 
 export type AuthContext = {
   owner: string;
@@ -11,6 +12,8 @@ export type AuthContext = {
   kind: "session" | "apiKey" | "worker" | "enrollment";
   workerId?: string;
   apiKeyId?: string;
+  serviceAccountId?: string;
+  onBehalfOf?: string;
 };
 
 function hashToken(token: string): string {
@@ -46,7 +49,19 @@ export function generateResultToken(): string {
   return randomBytes(24).toString("base64url");
 }
 
-async function authenticateApiKey(token: string): Promise<AuthContext | null> {
+function behalfOf(value: string | null): string | undefined {
+  const cleaned = value?.trim() ?? "";
+  if (!cleaned || cleaned.length > 200 || /[\r\n]/.test(cleaned)) {
+    return undefined;
+  }
+  return cleaned;
+}
+
+async function authenticateApiKey(
+  token: string,
+  onBehalfHeader: string | null,
+): Promise<AuthContext | null> {
+  await ensureServiceAccounts();
   const hash = hashToken(token);
   const key = await prisma.apiKey.findUnique({ where: { hash } });
   if (!key || key.revokedAt) {
@@ -61,6 +76,8 @@ async function authenticateApiKey(token: string): Promise<AuthContext | null> {
     email: key.ownerEmail,
     kind: "apiKey",
     apiKeyId: key.id,
+    serviceAccountId: key.serviceAccountId ?? undefined,
+    onBehalfOf: key.serviceAccountId ? behalfOf(onBehalfHeader) : undefined,
   };
 }
 
@@ -92,7 +109,7 @@ export async function authenticate(
   if (header?.startsWith("Bearer ") && options.allowApiKey !== false) {
     const token = header.slice("Bearer ".length).trim();
     if (token.startsWith("so_")) {
-      return authenticateApiKey(token);
+      return authenticateApiKey(token, request.headers.get("x-shoutout-on-behalf-of"));
     }
   }
 

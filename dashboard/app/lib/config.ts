@@ -68,6 +68,7 @@ const schema = z.object({
     .string()
     .default("shoutout")
     .transform((value) => value.trim() || "shoutout"),
+  SERVICE_ACCOUNTS_FILE: z.string().optional().default(""),
 });
 
 const env = {
@@ -110,6 +111,7 @@ const env = {
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   OIDC_DISPLAYNAME: process.env.OIDC_DISPLAYNAME,
+  SERVICE_ACCOUNTS_FILE: process.env.SHOUTOUT_SERVICE_ACCOUNTS_FILE,
 };
 
 export type AppConfig = z.infer<typeof schema>;

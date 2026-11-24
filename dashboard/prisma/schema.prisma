@@ -29,10 +29,12 @@ model job {
   claimCount    Int            @default(0)
   resultToken   String?        @unique
   resultZipKey  String?
+  onBehalfOf    String?
   createdAt     DateTime       @default(now())
   worker        worker?        @relation(fields: [workerId], references: [id])
   files         jobFile[]
   notifications notification[]
+  usage         usageEvent?
 
   @@index([owner, createdAt])
   @@index([status, createdAt])
@@ -97,18 +99,43 @@ model worker {
   jobs       job[]
 }
 
+model serviceAccount {
+  id        String       @id @db.Uuid
+  name      String       @unique
+  createdAt DateTime     @default(now())
+  apiKeys   apiKey[]
+  usage     usageEvent[]
+}
+
+model usageEvent {
+  id               String         @id @default(uuid()) @db.Uuid
+  serviceAccountId String         @db.Uuid
+  jobId            Int            @unique
+  onBehalfOf       String?
+  audioSeconds     Float          @default(0)
+  files            Int            @default(0)
+  createdAt        DateTime       @default(now())
+  serviceAccount   serviceAccount @relation(fields: [serviceAccountId], references: [id], onDelete: Cascade)
+  job              job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([serviceAccountId, createdAt])
+}
+
 model apiKey {
-  id         String    @id @default(uuid()) @db.Uuid
-  owner      String    @db.Uuid
-  name       String
-  prefix     String
-  hash       String    @unique
-  ownerEmail String?
-  createdAt  DateTime  @default(now())
-  lastUsedAt DateTime?
-  revokedAt  DateTime?
+  id               String          @id @default(uuid()) @db.Uuid
+  owner            String          @db.Uuid
+  name             String
+  prefix           String
+  hash             String          @unique
+  ownerEmail       String?
+  serviceAccountId String?         @db.Uuid
+  createdAt        DateTime        @default(now())
+  lastUsedAt       DateTime?
+  revokedAt        DateTime?
+  serviceAccount   serviceAccount? @relation(fields: [serviceAccountId], references: [id], onDelete: Cascade)
 
   @@index([owner])
+  @@index([serviceAccountId])
 }
 
 enum Status {

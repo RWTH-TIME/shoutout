@@ -66,6 +66,8 @@ export const POST = async (request: NextRequest) => {
       notifyEmail: fields.notifyEmail || auth.email || undefined,
       notifyEnabled,
       owner: auth.owner,
+      onBehalfOf: auth.onBehalfOf,
+      serviceAccountId: auth.serviceAccountId,
       files: files.map((file) => ({
         audioFile: file.uploadRef,
         originalName: file.filename,

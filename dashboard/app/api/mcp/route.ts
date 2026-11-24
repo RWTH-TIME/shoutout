@@ -26,7 +26,11 @@ function mailShape<T extends z.ZodRawShape>(shape: T): T {
   return shape;
 }
 
-async function buildServer(owner: string, email?: string | null) {
+async function buildServer(
+  owner: string,
+  email?: string | null,
+  accounting?: { serviceAccountId?: string; onBehalfOf?: string },
+) {
   const server = new McpServer({
     name: "shoutout",
     version: "0.2.0",
@@ -133,6 +137,8 @@ async function buildServer(owner: string, email?: string | null) {
           : undefined,
         notifyEnabled: config.MAIL_ENABLED ? args.notifyEnabled : false,
         owner,
+        onBehalfOf: accounting?.onBehalfOf,
+        serviceAccountId: accounting?.serviceAccountId,
         files,
       });
       return { content: [{ type: "text", text: JSON.stringify(job) }] };
@@ -171,6 +177,8 @@ async function buildServer(owner: string, email?: string | null) {
                 ? item.notifyEmail || email || undefined
                 : undefined,
               owner,
+              onBehalfOf: accounting?.onBehalfOf,
+              serviceAccountId: accounting?.serviceAccountId,
               files: [
                 {
                   audioFile: item.uploadRef,
@@ -266,7 +274,10 @@ async function handleMcp(request: NextRequest): Promise<Response> {
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
   });
-  const server = await buildServer(auth.owner, auth.email);
+  const server = await buildServer(auth.owner, auth.email, {
+    serviceAccountId: auth.serviceAccountId,
+    onBehalfOf: auth.onBehalfOf,
+  });
   await server.connect(transport);
   return transport.handleRequest(request);
 }

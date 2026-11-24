@@ -145,6 +145,16 @@ The dashboard is an installable PWA. Use **Record** in the sidebar to capture a 
 
 Prefer Chromium and share the meeting **tab** with tab audio enabled. Firefox and Safari can record the microphone only. Stale recordings older than `RECORDING_STALE_MS` (default 6h) are finished or deleted by the cleanup script.
 
+## Service accounts
+
+A service account is a machine identity for another system, such as Brickyard. It is not a Keycloak user. Put a JSON file on the dashboard host and point `SHOUTOUT_SERVICE_ACCOUNTS_FILE` at it:
+
+```json
+[{ "name": "brickyard", "tokenHash": "<sha256 hex of the full token>" }]
+```
+
+The token itself looks like `so_svc_<prefix>_<secret>` and is stored only by the caller. The dashboard stores the hash, attributes jobs to the service account, and records `X-Shoutout-On-Behalf-Of` when that header names the person the work was done for. `GET /api/v1/usage?from=&to=` returns job, file, and audio-second totals grouped by that person. The header is ignored for personal API keys.
+
 ## API and MCP
 
 Create an API key under **Settings → API keys**. The secret is shown once. The same bearer token works for REST and MCP.

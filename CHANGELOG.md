@@ -9,6 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- **Service accounts** — `SHOUTOUT_SERVICE_ACCOUNTS_FILE` provisions long-lived `so_svc_` API keys that are not tied to a person. Jobs can send `X-Shoutout-On-Behalf-Of`, and `GET /api/v1/usage` reports audio seconds per service account and person.
 - **Browser meeting recorder** — capture tab, window, or entire-screen audio plus your microphone from the PWA, create a live `RECORDING` job, upload chunks continuously, then queue transcription on stop
 - **Installable PWA** — web app manifest, icons, and a minimal service worker with IndexedDB buffering for crash/offline recovery of unfinished recordings
 - **Recording Playwright e2e suite** — lifecycle, source variants, recovery, error handling, and API contract tests under `dashboard/e2e`

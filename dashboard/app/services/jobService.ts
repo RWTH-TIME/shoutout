@@ -41,6 +41,8 @@ export type CreateJobInput = {
   owner: string;
   files: CreateJobFileInput[];
   status?: Status;
+  onBehalfOf?: string;
+  serviceAccountId?: string;
 };
 
 export type JobWithFiles = job & { files: jobFile[] };
@@ -121,7 +123,7 @@ export async function createJob(input: CreateJobInput) {
 
   const status = input.status ?? Status.PENDING;
 
-  return prisma.job.create({
+  const created = await prisma.job.create({
     data: {
       name: input.name,
       owner: input.owner,
@@ -133,6 +135,7 @@ export async function createJob(input: CreateJobInput) {
       notifyEnabled: mail.notifyEnabled,
       expiresAt: computeExpiresAt(),
       status,
+      onBehalfOf: input.onBehalfOf || undefined,
       heartbeatAt: status === Status.RECORDING ? new Date() : undefined,
       files: {
         create: input.files.map((file, index) => ({
@@ -149,6 +152,17 @@ export async function createJob(input: CreateJobInput) {
     },
     include: { files: { orderBy: { position: "asc" } } },
   });
+  if (input.serviceAccountId) {
+    await prisma.usageEvent.create({
+      data: {
+        serviceAccountId: input.serviceAccountId,
+        jobId: created.id,
+        onBehalfOf: input.onBehalfOf || null,
+        files: input.files.length,
+      },
+    });
+  }
+  return created;
 }
 
 export async function updateJobForOwner(
@@ -418,6 +432,15 @@ export async function completeJob(
   if (!job) {
     return;
   }
+
+  const audioSeconds = fileResults.reduce(
+    (sum, result) => sum + (result.durationSeconds ?? 0),
+    0,
+  );
+  await prisma.usageEvent.updateMany({
+    where: { jobId },
+    data: { audioSeconds },
+  });
 
   const settings = await getUserSettings(job.owner);
   await notifyJobEvent({

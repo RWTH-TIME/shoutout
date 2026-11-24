@@ -130,6 +130,6 @@ export async function listUsage(
     serviceAccountId,
     from: from?.toISOString() ?? null,
     to: to?.toISOString() ?? null,
-    groups: [...groups.values()],
+    groups: Array.from(groups.values()),
   };
 }
